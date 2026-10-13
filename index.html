@@ -234,7 +234,7 @@
     <div class="relative z-10 flex flex-col min-h-screen">
 
         <!-- TOP BRANDING BANNER (Interactive Glowing & Animated Banner) -->
-        <div id="top-banner-wrapper" class="w-full max-w-7xl mx-auto mt-4 rounded-2xl bg-slate-50 banner-container shadow-[0_10px_30px_rgba(0,0,0,0.8)] group cursor-pointer">
+        <div id="top-banner-wrapper" class="w-full bg-slate-50 banner-container shadow-[0_10px_30px_rgba(0,0,0,0.8)] group cursor-pointer">
             <!-- Animated Sweeping Beam -->
             <div class="banner-light-beam"></div>
             
@@ -247,7 +247,7 @@
 
             <!-- Banner Image with Subtle Interactive Tilt / Zoom Effect -->
             <div class="w-full max-w-full flex items-center justify-center bg-slate-50 relative z-10">
-                <img id="top-banner-img" src="banner-kun-maana.png"
+                <img id="top-banner-img" src="assets/banner-kun-maana.jpg"
                      alt="بانر منصة كُنْ مَعَنا - مدرسة خولة بنت حكيم (9-12)"
                      class="w-full h-36 md:h-52 lg:h-64 object-fill object-center transition-transform duration-500 ease-out group-hover:scale-[1.015]">
             </div>
@@ -315,6 +315,7 @@
                         <option value="vice_principal">مساعدة المديرة</option>
                         <option value="nurse">الممرضة المدرسية</option>
                         <option value="social_worker">الأخصائية الاجتماعية</option>
+                        <option value="systems_specialist">أخصائية أنظمة مدرسية</option>
                         <option value="psychologist">الأخصائية النفسية</option>
                         <option value="homeroom_teacher">مربية الصف</option>
                         <option value="career_counselor">أخصائية التوجيه المهني</option>
@@ -587,7 +588,7 @@
                         <!-- Official Staff Roles Template Buttons -->
                         <div class="mb-4" id="staff-templates-grid-wrap">
                             <label class="block text-xs font-semibold text-slate-700 mb-2">رسائل رسمية مقترحة من الإدارة والمختصين:</label>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
                                 <button onclick="applyTemplate('principal')" class="text-xs bg-slate-200 hover:bg-slate-300 text-indigo-800 p-2.5 rounded-xl border border-indigo-500/40 flex flex-col items-center gap-1.5 transition hover:border-indigo-400">
                                     <span>مديرة المدرسة</span>
                                 </button>
@@ -605,6 +606,31 @@
                                 </button>
                                 <button onclick="applyTemplate('career_counselor')" class="text-xs bg-slate-200 hover:bg-slate-300 text-teal-700 p-2.5 rounded-xl border border-teal-500/40 flex flex-col items-center gap-1.5 transition hover:border-teal-400">
                                     <span>التوجيه المهني</span>
+                                </button>
+                                <button onclick="applyTemplate('systems_specialist')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-700 p-2.5 rounded-xl border border-orange-500/40 flex flex-col items-center gap-1.5 transition hover:border-orange-400">
+                                    <span>أخصائية أنظمة مدرسية</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Systems Specialist Template Buttons (absence / tardiness / early-leave) -->
+                        <div class="mb-4 hidden" id="systems-specialist-grid-wrap">
+                            <label class="block text-xs font-semibold text-slate-700 mb-2">نماذج غياب - تأخر - استئذان (حسب شؤون الطلبة - سلطنة عُمان):</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                                <button onclick="applyTemplate('systems_absence_notice1')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-700 p-2.5 rounded-xl border border-orange-500/40 flex flex-col items-center gap-1.5 transition hover:border-orange-400">
+                                    <span>غياب - إشعار أول</span>
+                                </button>
+                                <button onclick="applyTemplate('systems_absence_notice2')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-800 p-2.5 rounded-xl border border-orange-600/40 flex flex-col items-center gap-1.5 transition hover:border-orange-500">
+                                    <span>غياب - تنبيه ثاني</span>
+                                </button>
+                                <button onclick="applyTemplate('systems_absence_warning3')" class="text-xs bg-slate-200 hover:bg-slate-300 text-red-800 p-2.5 rounded-xl border border-red-600/40 flex flex-col items-center gap-1.5 transition hover:border-red-500">
+                                    <span>غياب - إنذار ثالث</span>
+                                </button>
+                                <button onclick="applyTemplate('systems_tardiness')" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-800 p-2.5 rounded-xl border border-amber-500/40 flex flex-col items-center gap-1.5 transition hover:border-amber-400">
+                                    <span>تأخر صباحي</span>
+                                </button>
+                                <button onclick="applyTemplate('systems_early_leave')" class="text-xs bg-slate-200 hover:bg-slate-300 text-cyan-700 p-2.5 rounded-xl border border-cyan-500/40 flex flex-col items-center gap-1.5 transition hover:border-cyan-400">
+                                    <span>استئذان (خروج مبكر)</span>
                                 </button>
                             </div>
                         </div>
@@ -1468,7 +1494,13 @@
             'nurse': 'الممرضة المدرسية',
             'social_worker': 'الأخصائية الاجتماعية',
             'psychologist': 'الأخصائية النفسية',
-            'career_counselor': 'أخصائية التوجيه المهني'
+            'career_counselor': 'أخصائية التوجيه المهني',
+            'systems_specialist': 'أخصائية أنظمة مدرسية',
+            'systems_absence_notice1': 'غياب - إشعار أول',
+            'systems_absence_notice2': 'غياب - تنبيه ثاني',
+            'systems_absence_warning3': 'غياب - إنذار ثالث',
+            'systems_tardiness': 'تأخر صباحي',
+            'systems_early_leave': 'استئذان (خروج مبكر)'
         };
 
         const defaultStudents = [
@@ -1666,7 +1698,13 @@
             'social_worker': 'الأخصائية الاجتماعية',
             'psychologist': 'الأخصائية النفسية',
             'homeroom_teacher': 'مربية الصف',
-            'career_counselor': 'أخصائية التوجيه المهني'
+            'career_counselor': 'أخصائية التوجيه المهني',
+            'systems_specialist': 'أخصائية الأنظمة المدرسية',
+            'systems_absence_notice1': 'أخصائية الأنظمة المدرسية',
+            'systems_absence_notice2': 'أخصائية الأنظمة المدرسية',
+            'systems_absence_warning3': 'أخصائية الأنظمة المدرسية',
+            'systems_tardiness': 'أخصائية الأنظمة المدرسية',
+            'systems_early_leave': 'أخصائية الأنظمة المدرسية'
         };
 
         function populateTeacherSelect(subjectName) {
@@ -1712,7 +1750,7 @@
                 .replace(/\n*التوقيع: .*$/s, '')
                 .trimEnd();
 
-            const staffSignature = STAFF_ROLE_SIGNATURES[activeTemplateType];
+            const staffSignature = resolveStaffSignature(activeTemplateType);
             if (staffSignature) {
                 base = base ? `${base}\n\nالتوقيع: ${staffSignature}` : base;
             } else if (currentTeacherName) {
@@ -1729,6 +1767,32 @@
 
             updateStats();
             if (selectedStudent) applyTemplate(activeTemplateType);
+        }
+
+        // The 5 absence/tardiness/early-leave escalation templates (systems_
+        // absence_notice1/2, systems_absence_warning3, systems_tardiness,
+        // systems_early_leave) are shared between 3 roles: the dedicated
+        // "أخصائية أنظمة مدرسية" role, and — per the user's request to
+        // delegate this duty to them too — "الأخصائية الاجتماعية" and
+        // "الأخصائية النفسية". Whichever of these 3 is the currently active
+        // role is who the message text/signature names, so the same
+        // regulation-based template reads correctly no matter who sends it.
+        function getSystemsSharedRoleTitle() {
+            if (currentStaffRole === 'social_worker') return 'الأخصائية الاجتماعية';
+            if (currentStaffRole === 'psychologist') return 'الأخصائية النفسية';
+            return 'أخصائية الأنظمة المدرسية';
+        }
+
+        const SYSTEMS_SHARED_TEMPLATE_TYPES = ['systems_absence_notice1', 'systems_absence_notice2', 'systems_absence_warning3', 'systems_tardiness', 'systems_early_leave'];
+
+        // Signature for a template type: the 5 shared escalation templates are
+        // signed with whichever of the 3 delegated roles is active right now
+        // (so the signature always matches the message text above), every
+        // other template keeps using its fixed STAFF_ROLE_SIGNATURES entry
+        // exactly as before.
+        function resolveStaffSignature(type) {
+            if (SYSTEMS_SHARED_TEMPLATE_TYPES.includes(type)) return getSystemsSharedRoleTitle();
+            return STAFF_ROLE_SIGNATURES[type];
         }
 
         function generateMessageText(type, student) {
@@ -1762,6 +1826,18 @@
                     return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم الأخصائية النفسية بمدرسة خولة بنت حكيم (9-12) بخصوص متابعة نفسية تتعلق بابنتكم، ونرجو التكرم بالتواصل أو زيارة المدرسة لمناقشة الموضوع بما يحقق مصلحة ابنتكم ويضمن استقرارها النفسي. 💙`;
                 case 'career_counselor':
                     return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم أخصائية التوجيه المهني بمدرسة خولة بنت حكيم (9-12) لمتابعة مسار ابنتكم المهني والأكاديمي وتوجيهها للمسار الأنسب لها، ونرجو التكرم بالتواصل مع المدرسة لمزيد من التفاصيل. 🎯`;
+                case 'systems_specialist':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم أخصائية الأنظمة المدرسية بمدرسة خولة بنت حكيم (9-12) بخصوص متابعة انضباط حضور الطالبة (غياب / تأخر / استئذان) وفق لائحة تنظيم شؤون الطلبة الصادرة عن وزارة التربية والتعليم بسلطنة عمان. نرجو التكرم بالتواصل مع المدرسة لمزيد من التفاصيل. 📋`;
+                case 'systems_absence_notice1':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم ${getSystemsSharedRoleTitle()} بمدرسة خولة بنت حكيم (9-12) لإشعاركم بأن عدد أيام غياب الطالبة بلغ (يومين)، وذلك وفق لائحة تنظيم شؤون الطلبة بوزارة التربية والتعليم. نرجو الحرص على انتظامها في الحضور، وتزويدنا بالعذر إن وجد. 📋`;
+                case 'systems_absence_notice2':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم ${getSystemsSharedRoleTitle()} بمدرسة خولة بنت حكيم (9-12) لإشعاركم بأن عدد أيام غياب الطالبة بلغ (5 أيام)، وهو ما يستوجب وفق اللائحة توجيه تنبيه كتابي ثانٍ لولي الأمر. نأمل تكاتفكم معنا لمتابعة انتظام الطالبة في الحضور حرصاً على مصلحتها التعليمية. ⚠️`;
+                case 'systems_absence_warning3':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم ${getSystemsSharedRoleTitle()} بمدرسة خولة بنت حكيم (9-12) لإشعاركم بأن عدد أيام غياب الطالبة بلغ (8 أيام)، وهو ما يستوجب وفق اللائحة توجيه إنذار كتابي ثالث، مع دعوتكم للتكرم بزيارة المدرسة خلال (7 أيام) من تاريخ هذا الإشعار لمناقشة الموضوع. شاكرين لكم سرعة التجاوب. 🔴`;
+                case 'systems_tardiness':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم ${getSystemsSharedRoleTitle()} بمدرسة خولة بنت حكيم (9-12) لإشعاركم بتكرر تأخر الطالبة الصباحي عن الحضور في الوقت المحدد، مع التنبيه إلى أن لائحة تنظيم شؤون الطلبة تعتبر تكرر التأخر (5 مرات فأكثر) غياباً يوماً كاملاً. نرجو الحرص على حضورها في الوقت المحدد. ⏰`;
+                case 'systems_early_leave':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم ${getSystemsSharedRoleTitle()} بمدرسة خولة بنت حكيم (9-12) لإشعاركم باستئذان الطالبة بالخروج من المدرسة قبل انتهاء اليوم الدراسي. نرجو التكرم بتزويدنا بموافقتكم أو العذر المناسب لضمان سلامتها. 🚪`;
                 default:
                     return `السلام عليكم ورحمة الله وبركاته، بشأن الطالبة: ${name}.\n\nملاحظة من معلمة مادة (${currentSubjectName}):\n`;
             }
@@ -2037,6 +2113,7 @@
                 subject: currentSubjectName,
                 teacherName: currentTeacherName,
                 type: activeTemplateType,
+                signerRole: currentStaffRole,
                 className: document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '',
                 message: message,
                 mode: mode,
@@ -2063,13 +2140,23 @@
 
             const subjectGrid = document.getElementById('subject-templates-grid-wrap');
             const staffGrid = document.getElementById('staff-templates-grid-wrap');
+            const systemsGrid = document.getElementById('systems-specialist-grid-wrap');
 
             if (value === 'subject_teacher') {
                 if (subjectGrid) subjectGrid.classList.remove('hidden');
                 if (staffGrid) staffGrid.classList.add('hidden');
+                if (systemsGrid) systemsGrid.classList.add('hidden');
             } else {
                 if (subjectGrid) subjectGrid.classList.add('hidden');
                 if (staffGrid) staffGrid.classList.remove('hidden');
+                if (systemsGrid) {
+                    // Delegated to 3 roles: the dedicated systems-specialist role,
+                    // and (per the user's request) the social worker and
+                    // psychologist too, since absence/tardiness/early-leave
+                    // follow-up is part of their duties as well.
+                    if (value === 'systems_specialist' || value === 'social_worker' || value === 'psychologist') systemsGrid.classList.remove('hidden');
+                    else systemsGrid.classList.add('hidden');
+                }
                 if (selectedStudent) applyTemplate(value);
             }
             showToast(`الدور الحالي: ${ROLE_DISPLAY_LABELS[value] || value}`);
@@ -2125,7 +2212,7 @@
         // before). Mirrors the same signature logic for consistency.
         function composeMessageForStudent(type, student) {
             let msg = generateMessageText(type, student);
-            const staffSignature = STAFF_ROLE_SIGNATURES[type];
+            const staffSignature = resolveStaffSignature(type);
             if (staffSignature) {
                 msg += `\n\nالتوقيع: ${staffSignature}`;
             } else if (currentTeacherName) {
@@ -2200,6 +2287,7 @@
                 subject: currentSubjectName,
                 teacherName: currentTeacherName,
                 type: activeTemplateType,
+                signerRole: currentStaffRole,
                 className: classLabel,
                 message: message,
                 mode: bulkQueueMode,
@@ -3260,11 +3348,22 @@
         }
 
         // Who actually sent/signed a given archived message: the official staff
-        // signature if the template was one of the 7 staff roles, otherwise the
+        // signature if the template was one of the staff roles, otherwise the
         // subject-teacher name recorded at send time. Works for entries archived
         // before this field existed too, since it's derived from entry.type /
         // entry.teacherName rather than a newly-stored field.
+        //
+        // For the 5 shared systems-escalation templates specifically, prefers
+        // entry.signerRole (recorded at send time, from this change onward) so
+        // the label shows which of the 3 delegated roles actually sent it;
+        // older archived entries have no signerRole and simply fall back to
+        // the generic "أخصائية أنظمة مدرسية" label, exactly as before.
         function getEntrySenderLabel(entry) {
+            if (SYSTEMS_SHARED_TEMPLATE_TYPES.includes(entry.type) && entry.signerRole) {
+                if (entry.signerRole === 'social_worker') return 'الأخصائية الاجتماعية';
+                if (entry.signerRole === 'psychologist') return 'الأخصائية النفسية';
+                return 'أخصائية الأنظمة المدرسية';
+            }
             const staffSignature = STAFF_ROLE_SIGNATURES[entry.type];
             if (staffSignature) return staffSignature;
             return entry.teacherName || 'غير محدد';
