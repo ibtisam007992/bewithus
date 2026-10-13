@@ -234,7 +234,7 @@
     <div class="relative z-10 flex flex-col min-h-screen">
 
         <!-- TOP BRANDING BANNER (Interactive Glowing & Animated Banner) -->
-        <div id="top-banner-wrapper" class="w-full max-w-7xl mx-auto mt-4 rounded-2xl bg-slate-50 banner-container shadow-[0_10px_30px_rgba(0,0,0,0.8)] group cursor-pointer">
+        <div id="top-banner-wrapper" class="w-full bg-slate-50 banner-container shadow-[0_10px_30px_rgba(0,0,0,0.8)] group cursor-pointer">
             <!-- Animated Sweeping Beam -->
             <div class="banner-light-beam"></div>
             
@@ -247,7 +247,7 @@
 
             <!-- Banner Image with Subtle Interactive Tilt / Zoom Effect -->
             <div class="w-full max-w-full flex items-center justify-center bg-slate-50 relative z-10">
-                <img id="top-banner-img" src="banner-kun-maana.png"
+                <img id="top-banner-img" src="assets/banner-kun-maana.jpg"
                      alt="بانر منصة كُنْ مَعَنا - مدرسة خولة بنت حكيم (9-12)"
                      class="w-full h-36 md:h-52 lg:h-64 object-fill object-center transition-transform duration-500 ease-out group-hover:scale-[1.015]">
             </div>
@@ -364,7 +364,16 @@
 
             <!-- LEFT COLUMN: Student Directory & Search (5 Columns) -->
             <section class="lg:col-span-5 flex flex-col gap-4">
-                
+
+                <!-- Overdue Follow-up Banner: lists students whose 3rd absence
+                     warning passed its 7-day follow-up deadline without the
+                     case being closed. Hidden when there are none. Populated by
+                     renderFollowupDueBanner(). -->
+                <div id="followup-due-banner" class="hidden bg-red-50 border border-red-300 rounded-2xl p-3 flex items-center justify-between gap-2 flex-wrap">
+                    <p id="followup-due-text" class="text-xs font-bold text-red-700 flex items-center gap-1.5">⏰</p>
+                    <button onclick="openAttendanceReportModal()" class="text-[10px] bg-red-600 hover:bg-red-500 text-white px-2.5 py-1 rounded-lg font-bold transition shrink-0">عرض التفاصيل</button>
+                </div>
+
                 <!-- Stats Bar -->
                 <div class="grid grid-cols-3 gap-3">
                     <div class="glass-card p-3 rounded-2xl text-center border-b-2 border-cyan-500/50">
@@ -616,14 +625,15 @@
                         <!-- Systems Specialist Template Buttons (absence / tardiness / early-leave) -->
                         <div class="mb-4 hidden" id="systems-specialist-grid-wrap">
                             <label class="block text-xs font-semibold text-slate-700 mb-2">نماذج غياب - تأخر - استئذان (حسب شؤون الطلبة - سلطنة عُمان):</label>
+                            <p id="systems-stage-suggestion" class="hidden text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 mb-2">💡</p>
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                                <button onclick="applyTemplate('systems_absence_notice1')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-700 p-2.5 rounded-xl border border-orange-500/40 flex flex-col items-center gap-1.5 transition hover:border-orange-400">
+                                <button id="systems-btn-notice1" onclick="applyTemplate('systems_absence_notice1')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-700 p-2.5 rounded-xl border border-orange-500/40 flex flex-col items-center gap-1.5 transition hover:border-orange-400">
                                     <span>غياب - إشعار أول</span>
                                 </button>
-                                <button onclick="applyTemplate('systems_absence_notice2')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-800 p-2.5 rounded-xl border border-orange-600/40 flex flex-col items-center gap-1.5 transition hover:border-orange-500">
+                                <button id="systems-btn-notice2" onclick="applyTemplate('systems_absence_notice2')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-800 p-2.5 rounded-xl border border-orange-600/40 flex flex-col items-center gap-1.5 transition hover:border-orange-500">
                                     <span>غياب - تنبيه ثاني</span>
                                 </button>
-                                <button onclick="applyTemplate('systems_absence_warning3')" class="text-xs bg-slate-200 hover:bg-slate-300 text-red-800 p-2.5 rounded-xl border border-red-600/40 flex flex-col items-center gap-1.5 transition hover:border-red-500">
+                                <button id="systems-btn-warning3" onclick="applyTemplate('systems_absence_warning3')" class="text-xs bg-slate-200 hover:bg-slate-300 text-red-800 p-2.5 rounded-xl border border-red-600/40 flex flex-col items-center gap-1.5 transition hover:border-red-500">
                                     <span>غياب - إنذار ثالث</span>
                                 </button>
                                 <button onclick="applyTemplate('systems_tardiness')" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-800 p-2.5 rounded-xl border border-amber-500/40 flex flex-col items-center gap-1.5 transition hover:border-amber-400">
@@ -632,6 +642,21 @@
                                 <button onclick="applyTemplate('systems_early_leave')" class="text-xs bg-slate-200 hover:bg-slate-300 text-cyan-700 p-2.5 rounded-xl border border-cyan-500/40 flex flex-col items-center gap-1.5 transition hover:border-cyan-400">
                                     <span>استئذان (خروج مبكر)</span>
                                 </button>
+                            </div>
+
+                            <!-- Case tracking: current stage, overdue follow-up warning, closing
+                                 note, and a link to the full timeline. Shown only once a student
+                                 is selected (populated by updateSystemsCaseTracking()). -->
+                            <div id="systems-case-tracking" class="hidden mt-3 bg-slate-100/80 border border-slate-300 rounded-xl p-3 space-y-2">
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <p id="systems-case-status-label" class="text-[11px] font-bold text-slate-700"></p>
+                                    <button onclick="openAbsenceTimelineModal()" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-indigo-700 border border-indigo-400/40 px-2.5 py-1 rounded-lg font-bold transition">عرض مسار المتابعة الكامل</button>
+                                </div>
+                                <p id="systems-followup-overdue-note" class="hidden text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">⏰ تجاوزت موعد متابعة الإنذار الثالث (7 أيام). يرجى التواصل أو إغلاق الحالة.</p>
+                                <div class="flex items-center gap-2">
+                                    <input type="text" id="systems-case-note" placeholder="سبب الغياب / رد ولي الأمر (اختياري)..." class="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 focus:outline-none focus:border-indigo-500">
+                                    <button onclick="closeAbsenceCaseForSelectedStudent()" class="text-[10px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3 py-1.5 rounded-lg font-bold transition shrink-0">إغلاق الحالة</button>
+                                </div>
                             </div>
                         </div>
 
@@ -1158,6 +1183,10 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                             <span>تصدير شهري</span>
                         </button>
+                        <button onclick="openAttendanceReportModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-700 border border-orange-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="تقرير مخصص للغياب والتأخر والاستئذان، محمي برقم سري">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                            <span>تقرير الغياب والتأخر</span>
+                        </button>
                         <button onclick="openClearArchiveModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-rose-700 border border-rose-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="مسح رسائل من الأرشيف، محمي برقم سري">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             <span>مسح الأرشيف</span>
@@ -1244,6 +1273,84 @@
                     <button onclick="clearEntireArchive()" class="w-full text-xs bg-gradient-to-r from-rose-700 to-red-700 hover:from-rose-600 hover:to-red-600 text-white py-2.5 rounded-xl font-bold transition">مسح كل الأرشيف نهائياً</button>
                     <p class="text-[10px] text-slate-500 text-center">تحذير: المسح نهائي ولا يمكن التراجع عنه.</p>
                     <button onclick="closeClearArchiveModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-2 rounded-xl">إغلاق</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Absence/Tardiness/Early-leave Timeline Modal: shows every systems-
+             tracking message ever sent to one student, in order, so whoever is
+             following up can see exactly where her case stands. Opened from the
+             "عرض مسار المتابعة الكامل" button next to the systems-specialist
+             template grid. -->
+        <div id="absence-timeline-modal" class="fixed inset-0 z-50 bg-slate-50/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel max-w-lg w-full p-6 rounded-3xl border border-indigo-500/40 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>مسار متابعة الغياب والتأخر والاستئذان</span>
+                    </h3>
+                    <button onclick="closeAbsenceTimelineModal()" class="text-slate-600 hover:text-slate-900">✕</button>
+                </div>
+                <p id="absence-timeline-student-name" class="text-xs font-bold text-indigo-700"></p>
+                <div id="absence-timeline-list" class="space-y-2"></div>
+                <div class="flex justify-end pt-1 border-t border-slate-200">
+                    <button onclick="closeAbsenceTimelineModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-2 px-4 rounded-xl">إغلاق</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Report Modal: a report scoped to only the absence /
+             tardiness / early-leave template types (unlike the general monthly
+             export above), grouped by class with totals, password-gated like
+             the other sensitive reports. Also lists students currently overdue
+             for their post-3rd-warning follow-up. -->
+        <div id="attendance-report-modal" class="fixed inset-0 z-50 bg-slate-50/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel max-w-lg w-full p-6 rounded-3xl border border-orange-500/40 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        <span>تقرير الغياب والتأخر محمي</span>
+                    </h3>
+                    <button onclick="closeAttendanceReportModal()" class="text-slate-600 hover:text-slate-900">✕</button>
+                </div>
+
+                <div id="attendance-report-lock-step" class="space-y-3">
+                    <div>
+                        <label class="text-xs font-bold text-slate-700 block mb-1">الشهر المطلوب</label>
+                        <input type="month" id="attendance-report-month" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2 text-sm text-slate-800 focus:outline-none focus:border-orange-500 transition">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-700 block mb-1">الرقم السري</label>
+                        <input type="password" inputmode="numeric" maxlength="4" id="attendance-report-password" onkeyup="if(event.key==='Enter') verifyAttendanceReportPassword()" placeholder="••••" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2 text-sm text-slate-800 text-center tracking-[0.5em] focus:outline-none focus:border-orange-500 transition">
+                    </div>
+                    <p id="attendance-report-error" class="hidden text-[11px] text-red-600 font-bold text-center">الرقم السري غير صحيح، حاولي مجدداً</p>
+                    <button onclick="verifyAttendanceReportPassword()" class="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-2.5 rounded-xl transition text-sm">فتح التقرير</button>
+                </div>
+
+                <div id="attendance-report-unlocked-step" class="hidden space-y-3">
+                    <p id="attendance-report-summary" class="text-xs text-slate-600 text-center"></p>
+
+                    <div id="attendance-report-overdue-section" class="hidden bg-red-50 border border-red-200 rounded-xl p-3 space-y-1.5">
+                        <p class="text-[11px] font-bold text-red-700">⏰ طالبات تجاوزن موعد متابعة الإنذار الثالث:</p>
+                        <div id="attendance-report-overdue-list" class="space-y-1"></div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700 mb-2">حسب الصف</h4>
+                        <div id="attendance-report-by-class-container" class="space-y-2"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700 mb-2">حسب نوع الحالة</h4>
+                        <div id="attendance-report-by-type-container" class="space-y-2"></div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1">
+                        <button onclick="exportAttendanceReportExcel()" class="flex-1 text-xs bg-slate-200 hover:bg-slate-300 text-emerald-700 border border-emerald-500/30 py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-bold transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H8a2 2 0 01-2-2V5a2 2 0 012-2h6l6 6v11a2 2 0 01-2 2z"></path></svg>
+                            <span>تصدير Excel</span>
+                        </button>
+                        <button onclick="closeAttendanceReportModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-2.5 rounded-xl">إغلاق</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1513,6 +1620,7 @@
         ];
 
         function initData() {
+            loadAbsenceCaseLog();
             const storedStudents = localStorage.getItem('school_students_list');
             if (storedStudents) {
                 try { students = JSON.parse(storedStudents); } catch(e) { students = [...defaultStudents]; }
@@ -1548,6 +1656,7 @@
             if (roleSelect) roleSelect.value = savedRole;
             changeStaffRole(savedRole);
 
+            renderFollowupDueBanner();
             applyDarkModePreference();
         }
 
@@ -2016,6 +2125,7 @@
                 const absenceBadge = recentAbsences >= ABSENCE_ALERT_THRESHOLD
                     ? `<span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded-md font-bold shrink-0" title="تكرار الغياب/التأخر خلال آخر 30 يوماً">⚠ ${recentAbsences} غياب/تأخر</span>`
                     : '';
+                const systemsBadge = getSystemsTrackingBadge(student.phone);
                 const card = document.createElement('div');
                 card.className = `p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-2 ${
                     isSelected
@@ -2035,6 +2145,7 @@
                             <h4 class="text-xs font-bold text-slate-900 break-words leading-snug flex items-center gap-1.5 flex-wrap">
                                 <span>${student.name}</span>
                                 ${absenceBadge}
+                                ${systemsBadge}
                             </h4>
                             <p class="text-[11px] text-emerald-600 font-mono dir-ltr text-right font-semibold">${student.phone}</p>
                         </div>
@@ -2059,6 +2170,7 @@
             applyTemplate(activeTemplateType);
             renderStudentsList(document.getElementById('search-input').value);
             renderStudentMessageHistory(student);
+            updateSystemsCaseTracking();
         }
 
         function toggleAddStudentForm() {
@@ -2124,6 +2236,9 @@
 
             updateStats();
             renderStudentMessageHistory(selectedStudent);
+            renderStudentsList(document.getElementById('search-input') ? document.getElementById('search-input').value : '');
+            updateSystemsCaseTracking();
+            renderFollowupDueBanner();
             window.open(url, '_blank');
         }
 
@@ -2158,6 +2273,7 @@
                     else systemsGrid.classList.add('hidden');
                 }
                 if (selectedStudent) applyTemplate(value);
+                if (selectedStudent) updateSystemsCaseTracking();
             }
             showToast(`الدور الحالي: ${ROLE_DISPLAY_LABELS[value] || value}`);
         }
@@ -2296,6 +2412,7 @@
             saveArchiveToStorage();
             backupArchiveEntryToGoogleSheet(messageArchive[0]);
             updateStats();
+            renderFollowupDueBanner();
 
             bulkQueueIndex++;
 
@@ -2363,6 +2480,282 @@
                 e.type === 'absence_tardiness' &&
                 new Date(e.sentAt).getTime() >= cutoff
             ).length;
+        }
+
+        // ============================================================
+        // Absence/Tardiness/Early-leave Case Tracking ("مسار متابعة الغياب
+        // والتأخر والاستئذان"): tracks, per phone number, the escalation
+        // stage reached (إشعار أول -> تنبيه ثاني -> إنذار ثالث), whether the
+        // case has been closed with a note, and surfaces a 7-day follow-up
+        // reminder after the 3rd warning if the case stays open. Purely
+        // additive: reads the SAME messageArchive entries already created by
+        // the existing systems_* templates above, and stores only its own
+        // extra bookkeeping (case status/note) in a new localStorage key, so
+        // nothing already saved is touched or restructured.
+        // ============================================================
+        let absenceCaseLog = {}; // { [phone]: { status: 'closed', note, closedAt } }
+
+        function loadAbsenceCaseLog() {
+            const stored = localStorage.getItem('school_absence_case_log');
+            if (stored) {
+                try { absenceCaseLog = JSON.parse(stored); } catch(e) { absenceCaseLog = {}; }
+            } else {
+                absenceCaseLog = {};
+            }
+        }
+
+        function saveAbsenceCaseLog() {
+            localStorage.setItem('school_absence_case_log', JSON.stringify(absenceCaseLog));
+        }
+
+        // The 3 escalation stages, in order.
+        const ABSENCE_STAGE_ORDER = ['systems_absence_notice1', 'systems_absence_notice2', 'systems_absence_warning3'];
+        const FOLLOWUP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days after the 3rd warning
+        const EARLY_LEAVE_ALERT_THRESHOLD = 3;
+
+        // All systems_* escalation-stage archive entries for one student,
+        // oldest first, ignoring any sent before the case was last closed
+        // (so a new absence after closing starts the stages fresh again).
+        function getActiveStageEntries(phone) {
+            const caseInfo = absenceCaseLog[phone];
+            const closedAt = (caseInfo && caseInfo.status === 'closed') ? new Date(caseInfo.closedAt).getTime() : 0;
+            return messageArchive
+                .filter(e => e.phone === phone && ABSENCE_STAGE_ORDER.includes(e.type) && new Date(e.sentAt).getTime() > closedAt)
+                .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+        }
+
+        // Index (0,1,2) of the highest stage reached since the case was last
+        // closed, or -1 if no stage message has been sent yet.
+        function getCurrentStageIndex(phone) {
+            const entries = getActiveStageEntries(phone);
+            if (entries.length === 0) return -1;
+            let highest = -1;
+            entries.forEach(e => {
+                const idx = ABSENCE_STAGE_ORDER.indexOf(e.type);
+                if (idx > highest) highest = idx;
+            });
+            return highest;
+        }
+
+        // Which template should be sent next for this student, based on
+        // where her case currently stands.
+        function getNextSuggestedStage(phone) {
+            const idx = getCurrentStageIndex(phone);
+            if (idx < 0) return 'systems_absence_notice1';
+            if (idx >= ABSENCE_STAGE_ORDER.length - 1) return null; // already at the 3rd warning
+            return ABSENCE_STAGE_ORDER[idx + 1];
+        }
+
+        // The most recent still-active 3rd-warning entry for a student, if
+        // any — used to compute the 7-day follow-up window.
+        function getLastWarning3Entry(phone) {
+            const entries = getActiveStageEntries(phone).filter(e => e.type === 'systems_absence_warning3');
+            return entries.length ? entries[entries.length - 1] : null;
+        }
+
+        // True when a student reached the 3rd warning more than 7 days ago
+        // and her case is still open (not closed since).
+        function isFollowUpOverdue(phone) {
+            const caseInfo = absenceCaseLog[phone];
+            if (caseInfo && caseInfo.status === 'closed') return false;
+            const warning3 = getLastWarning3Entry(phone);
+            if (!warning3) return false;
+            return (Date.now() - new Date(warning3.sentAt).getTime()) > FOLLOWUP_WINDOW_MS;
+        }
+
+        // Repeated-early-leave count, mirroring getRecentAbsenceCount's
+        // 30-day window but for the dedicated "استئذان" template type.
+        function getRepeatEarlyLeaveCount(phone) {
+            const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+            return messageArchive.filter(e =>
+                e.phone === phone &&
+                e.type === 'systems_early_leave' &&
+                new Date(e.sentAt).getTime() >= cutoff
+            ).length;
+        }
+
+        // Closes a student's current absence/tardiness case (e.g. once the
+        // reason is known or a decision is made), recording an optional
+        // note. A later new systems_* message naturally re-opens tracking
+        // from stage 1, since getActiveStageEntries only looks at entries
+        // sent AFTER closedAt.
+        function closeAbsenceCase(phone, note) {
+            absenceCaseLog[phone] = {
+                status: 'closed',
+                note: note || '',
+                closedAt: new Date().toISOString()
+            };
+            saveAbsenceCaseLog();
+        }
+
+        function closeAbsenceCaseForSelectedStudent() {
+            if (!selectedStudent) { showToast("اختر طالبة أولاً", true); return; }
+            const noteField = document.getElementById('systems-case-note');
+            const note = noteField ? noteField.value.trim() : '';
+            closeAbsenceCase(selectedStudent.phone, note);
+            if (noteField) noteField.value = '';
+            showToast(`تم إغلاق حالة: ${selectedStudent.name}`);
+            updateSystemsCaseTracking();
+            renderStudentsList(document.getElementById('search-input') ? document.getElementById('search-input').value : '');
+            renderFollowupDueBanner();
+        }
+
+        // Red badge shown in the students list for a student currently
+        // overdue for her post-3rd-warning follow-up. Additive to, and
+        // independent of, the existing repeat-absence ⚠ badge above — a
+        // student can show either badge, both, or neither.
+        function getSystemsTrackingBadge(phone) {
+            if (!isFollowUpOverdue(phone)) return '';
+            return `<span class="text-[10px] bg-orange-600 text-white px-1.5 py-0.5 rounded-md font-bold shrink-0" title="تجاوزت موعد متابعة الإنذار الثالث (7 أيام)">⏰ متابعة متأخرة</span>`;
+        }
+
+        // Populates the suggestion line / stage highlight / status label /
+        // overdue note / note-input prefill inside the systems-specialist
+        // template grid for whichever student is currently selected. Called
+        // whenever the selected student changes, a message is sent, a case
+        // is closed, or the systems grid becomes visible for a role.
+        function updateSystemsCaseTracking() {
+            const wrap = document.getElementById('systems-case-tracking');
+            const suggestionEl = document.getElementById('systems-stage-suggestion');
+            if (!wrap || !suggestionEl || !selectedStudent) return;
+
+            const phone = selectedStudent.phone;
+            const stageButtonIds = {
+                systems_absence_notice1: 'systems-btn-notice1',
+                systems_absence_notice2: 'systems-btn-notice2',
+                systems_absence_warning3: 'systems-btn-warning3'
+            };
+            Object.values(stageButtonIds).forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-1');
+            });
+
+            const stageLabels = {
+                systems_absence_notice1: 'الإشعار الأول',
+                systems_absence_notice2: 'التنبيه الثاني',
+                systems_absence_warning3: 'الإنذار الثالث'
+            };
+
+            const activeEntries = getActiveStageEntries(phone);
+            const earlyLeaveCount = getRepeatEarlyLeaveCount(phone);
+            const suggestionLines = [];
+
+            if (activeEntries.length > 0) {
+                const nextStage = getNextSuggestedStage(phone);
+                if (nextStage) {
+                    suggestionLines.push(`النموذج المقترح التالي: ${stageLabels[nextStage]}`);
+                    const btn = document.getElementById(stageButtonIds[nextStage]);
+                    if (btn) btn.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-1');
+                } else {
+                    suggestionLines.push('بلغت هذه الطالبة الإنذار الثالث. تابعي الحالة أو أغلقيها أدناه.');
+                }
+            }
+            if (earlyLeaveCount >= EARLY_LEAVE_ALERT_THRESHOLD) {
+                suggestionLines.push(`تكرر الاستئذان (${earlyLeaveCount} مرات خلال آخر 30 يوماً)`);
+            }
+
+            if (suggestionLines.length > 0) {
+                suggestionEl.innerText = `💡 ${suggestionLines.join(' — ')}`;
+                suggestionEl.classList.remove('hidden');
+            } else {
+                suggestionEl.classList.add('hidden');
+            }
+
+            if (activeEntries.length === 0 && earlyLeaveCount < EARLY_LEAVE_ALERT_THRESHOLD) {
+                wrap.classList.add('hidden');
+                return;
+            }
+            wrap.classList.remove('hidden');
+
+            const caseInfo = absenceCaseLog[phone];
+            const statusLabel = document.getElementById('systems-case-status-label');
+            const overdueNote = document.getElementById('systems-followup-overdue-note');
+            const noteField = document.getElementById('systems-case-note');
+            const currentStageIdx = getCurrentStageIndex(phone);
+
+            if (statusLabel) {
+                if (activeEntries.length === 0) {
+                    statusLabel.innerText = 'لا توجد رسائل غياب/تأخر نشطة لهذه الطالبة حالياً.';
+                } else if (currentStageIdx === ABSENCE_STAGE_ORDER.length - 1) {
+                    statusLabel.innerText = 'الحالة مفتوحة - بلغت الإنذار الثالث';
+                } else {
+                    statusLabel.innerText = `آخر نموذج مُرسل: ${stageLabels[ABSENCE_STAGE_ORDER[currentStageIdx]]}`;
+                }
+            }
+
+            if (overdueNote) overdueNote.classList.toggle('hidden', !isFollowUpOverdue(phone));
+            if (noteField) noteField.value = (caseInfo && caseInfo.note) ? caseInfo.note : '';
+        }
+
+        // Full per-student timeline modal: every systems-tracking message
+        // ever sent to one student, in order, plus the case-closed note if
+        // any, so whoever is following up can see exactly where her case
+        // stands. Opened from "عرض مسار المتابعة الكامل".
+        function openAbsenceTimelineModal() {
+            if (!selectedStudent) { showToast("اختر طالبة أولاً", true); return; }
+            const modal = document.getElementById('absence-timeline-modal');
+            if (!modal) return;
+
+            const nameEl = document.getElementById('absence-timeline-student-name');
+            if (nameEl) nameEl.innerText = `${selectedStudent.name} — ${selectedStudent.phone}`;
+
+            const timelineTypes = ['systems_absence_notice1', 'systems_absence_notice2', 'systems_absence_warning3', 'systems_tardiness', 'systems_early_leave', 'absence_tardiness'];
+            const entries = messageArchive
+                .filter(e => e.phone === selectedStudent.phone && timelineTypes.includes(e.type))
+                .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+
+            const listEl = document.getElementById('absence-timeline-list');
+            if (listEl) {
+                if (entries.length === 0) {
+                    listEl.innerHTML = `<p class="text-[11px] text-slate-500 text-center py-4">لا توجد رسائل غياب/تأخر/استئذان مؤرشفة لهذه الطالبة.</p>`;
+                } else {
+                    listEl.innerHTML = entries.map(e => `
+                        <div class="bg-slate-100/80 border border-slate-200 rounded-xl px-3 py-2">
+                            <div class="flex items-center justify-between gap-2 mb-0.5">
+                                <span class="text-[11px] font-bold text-indigo-700">${TEMPLATE_TYPE_LABELS[e.type] || 'رسالة'}</span>
+                                <span class="text-[10px] text-slate-500">${formatArchiveTimestamp(e.sentAt)}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-600">${getEntrySenderLabel(e)}</p>
+                        </div>`).join('');
+                }
+                const caseInfo = absenceCaseLog[selectedStudent.phone];
+                if (caseInfo && caseInfo.status === 'closed') {
+                    listEl.innerHTML += `
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                            <div class="flex items-center justify-between gap-2 mb-0.5">
+                                <span class="text-[11px] font-bold text-emerald-700">✔ تم إغلاق الحالة</span>
+                                <span class="text-[10px] text-slate-500">${formatArchiveTimestamp(caseInfo.closedAt)}</span>
+                            </div>
+                            ${caseInfo.note ? `<p class="text-[10px] text-slate-600">${caseInfo.note}</p>` : ''}
+                        </div>`;
+                }
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAbsenceTimelineModal() {
+            const modal = document.getElementById('absence-timeline-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Top-of-page banner naming any students currently overdue for their
+        // post-3rd-warning follow-up, so it's visible without opening each
+        // student's card or the password-gated report.
+        function renderFollowupDueBanner() {
+            const banner = document.getElementById('followup-due-banner');
+            const textEl = document.getElementById('followup-due-text');
+            if (!banner || !textEl) return;
+
+            const overdueNames = students.filter(s => isFollowUpOverdue(s.phone)).map(s => s.name);
+
+            if (overdueNames.length === 0) {
+                banner.classList.add('hidden');
+                return;
+            }
+            textEl.innerText = overdueNames.length === 1
+                ? `⏰ متابعة متأخرة: ${overdueNames[0]} تجاوزت موعد متابعة الإنذار الثالث`
+                : `⏰ ${overdueNames.length} طالبات تجاوزن موعد متابعة الإنذار الثالث`;
+            banner.classList.remove('hidden');
         }
 
         // ============================================================
@@ -2648,6 +3041,120 @@
             printWindow.document.close();
             printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
             showToast("فتحت نافذة الطباعة — اختاري 'حفظ كـ PDF' من خيارات الطباعة");
+        }
+
+        // ============================================================
+        // Attendance Report ("تقرير الغياب والتأخر"): a report scoped to
+        // only the absence/tardiness/early-leave template types for one
+        // chosen month, grouped by class and by type (reusing the existing
+        // renderStatsBarList bar renderer), plus a list of students
+        // currently overdue for their post-3rd-warning follow-up.
+        // Password-gated with the same code as Monthly Export above, since
+        // it's the same sensitivity level of data; does not change that
+        // modal or its export in any way.
+        // ============================================================
+        const ATTENDANCE_REPORT_TYPES = ['absence_tardiness', 'systems_absence_notice1', 'systems_absence_notice2', 'systems_absence_warning3', 'systems_tardiness', 'systems_early_leave'];
+
+        function openAttendanceReportModal() {
+            const modal = document.getElementById('attendance-report-modal');
+            if (!modal) return;
+            document.getElementById('attendance-report-lock-step').classList.remove('hidden');
+            document.getElementById('attendance-report-unlocked-step').classList.add('hidden');
+            const errorEl = document.getElementById('attendance-report-error');
+            if (errorEl) errorEl.classList.add('hidden');
+            const pwField = document.getElementById('attendance-report-password');
+            if (pwField) pwField.value = '';
+            const monthField = document.getElementById('attendance-report-month');
+            if (monthField && !monthField.value) {
+                const now = new Date();
+                monthField.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAttendanceReportModal() {
+            const modal = document.getElementById('attendance-report-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function getAttendanceReportEntries(monthValue) {
+            if (!monthValue) return [];
+            return messageArchive.filter(e => (e.sentAt || '').slice(0, 7) === monthValue && ATTENDANCE_REPORT_TYPES.includes(e.type));
+        }
+
+        function verifyAttendanceReportPassword() {
+            const pwField = document.getElementById('attendance-report-password');
+            const errorEl = document.getElementById('attendance-report-error');
+            const entered = pwField ? pwField.value.trim() : '';
+
+            if (entered !== MONTHLY_EXPORT_PASSWORD) {
+                if (errorEl) errorEl.classList.remove('hidden');
+                if (pwField) { pwField.value = ''; pwField.focus(); }
+                return;
+            }
+            if (errorEl) errorEl.classList.add('hidden');
+
+            const monthField = document.getElementById('attendance-report-month');
+            const monthValue = monthField ? monthField.value : '';
+            const entries = getAttendanceReportEntries(monthValue);
+
+            const summaryEl = document.getElementById('attendance-report-summary');
+            if (summaryEl) {
+                summaryEl.innerText = entries.length > 0
+                    ? `${entries.length} حالة غياب/تأخر/استئذان لشهر ${formatMonthLabel(monthValue)}`
+                    : `لا توجد حالات غياب/تأخر/استئذان لشهر ${formatMonthLabel(monthValue)}`;
+            }
+
+            const overdueStudents = students.filter(s => isFollowUpOverdue(s.phone));
+            const overdueSection = document.getElementById('attendance-report-overdue-section');
+            const overdueList = document.getElementById('attendance-report-overdue-list');
+            if (overdueSection && overdueList) {
+                if (overdueStudents.length > 0) {
+                    overdueList.innerHTML = overdueStudents.map(s => `<p class="text-[11px] text-red-700">• ${s.name}</p>`).join('');
+                    overdueSection.classList.remove('hidden');
+                } else {
+                    overdueSection.classList.add('hidden');
+                }
+            }
+
+            const byType = {};
+            const byClass = {};
+            entries.forEach(e => {
+                const typeLabel = TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف';
+                byType[typeLabel] = (byType[typeLabel] || 0) + 1;
+                const classLabel = e.className || 'غير محدد';
+                byClass[classLabel] = (byClass[classLabel] || 0) + 1;
+            });
+            const byClassContainer = document.getElementById('attendance-report-by-class-container');
+            const byTypeContainer = document.getElementById('attendance-report-by-type-container');
+            if (byClassContainer) renderStatsBarList(byClassContainer, byClass, entries.length);
+            if (byTypeContainer) renderStatsBarList(byTypeContainer, byType, entries.length);
+
+            document.getElementById('attendance-report-lock-step').classList.add('hidden');
+            document.getElementById('attendance-report-unlocked-step').classList.remove('hidden');
+        }
+
+        function exportAttendanceReportExcel() {
+            if (typeof XLSX === 'undefined') { showToast("تعذر تحميل مكتبة Excel (تحققي من اتصال الإنترنت) ثم أعيدي المحاولة", true); return; }
+            const monthField = document.getElementById('attendance-report-month');
+            const monthValue = monthField ? monthField.value : '';
+            const entries = getAttendanceReportEntries(monthValue);
+            if (entries.length === 0) { showToast("لا توجد حالات لهذا الشهر للتصدير", true); return; }
+
+            const rows = entries.map(e => ({
+                'التاريخ والوقت': formatArchiveTimestamp(e.sentAt),
+                'اسم الطالبة': e.studentName || '',
+                'رقم ولي الأمر': e.phone || '',
+                'الصف': e.className || '',
+                'نوع الحالة': TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف',
+                'المرسلة': getEntrySenderLabel(e),
+                'نص الرسالة': e.message || ''
+            }));
+            const sheet = XLSX.utils.json_to_sheet(rows);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, sheet, "تقرير الغياب والتأخر");
+            XLSX.writeFile(workbook, `تقرير_الغياب_والتأخر_${monthValue}.xlsx`);
+            showToast("تم تصدير تقرير الغياب والتأخر بنجاح");
         }
 
         function saveArchiveToStorage() {
