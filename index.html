@@ -1179,6 +1179,14 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H8a2 2 0 01-2-2V5a2 2 0 012-2h6l6 6v11a2 2 0 01-2 2z"></path></svg>
                             <span>تصدير PDF</span>
                         </button>
+                        <!-- Export PDF scoped to whoever is currently identified at the top
+                             of the page (دورك الحالي + معلمة المادة + المادة عند الحاجة) —
+                             additive: does not change the two buttons above, which keep
+                             exporting the full archive exactly as before. -->
+                        <button onclick="exportArchivePDFByRole()" class="text-xs bg-slate-200 hover:bg-slate-300 text-indigo-700 border border-indigo-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="تصدير PDF لرسائلي فقط، حسب الدور (والمادة والاسم إن كنتِ معلمة مادة) المحدَّدة حالياً أعلى الصفحة">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H8a2 2 0 01-2-2V5a2 2 0 012-2h6l6 6v11a2 2 0 01-2 2z"></path></svg>
+                            <span>تصدير PDF لرسائلي</span>
+                        </button>
                         <button onclick="openMonthlyExportModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-700 border border-amber-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="تصدير رسائل شهر معيّن، محمي برقم سري">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                             <span>تصدير شهري</span>
@@ -2897,6 +2905,96 @@
             printWindow.document.close();
             printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
             showToast("فتحت نافذة الطباعة — اختاري 'حفظ كـ PDF' من خيارات الطباعة");
+        }
+
+        // ============================================================
+        // Export PDF for the currently identified staff member ("تصدير PDF
+        // لرسائلي"): a separate, additive export that filters the archive
+        // down to the messages sent under whoever is CURRENTLY identified
+        // at the top of the page — معلمة المادة (currentTeacherName) و
+        // المادة (currentSubjectName) إن كانت معلمة مادة، وإلا دورك الحالي
+        // (currentStaffRole). No extra picker: it simply reads the
+        // selections already made at the top of the page.
+        //
+        // Scoping is driven primarily by currentTeacherName rather than
+        // currentStaffRole: "دورك الحالي" is restored from localStorage on
+        // every page load and can be left on a role chosen in an earlier
+        // session (e.g. a specialist role tried out for testing), even
+        // while a subject-teacher name is currently selected in the
+        // "معلمة المادة" list. Requiring an exact role match in that case
+        // silently exported the wrong (or no) messages. Picking a name only
+        // makes sense for a subject teacher identifying herself, so a
+        // selected name always wins, regardless of the role dropdown.
+        //
+        // Does not touch exportArchivePDF() or exportArchiveExcel() above;
+        // those keep exporting the full, unfiltered archive exactly as before.
+        // ============================================================
+        function exportArchivePDFByRole() {
+            let entries;
+            let scopeLabel;
+
+            if (currentTeacherName) {
+                entries = messageArchive.filter(e =>
+                    e.teacherName === currentTeacherName &&
+                    e.subject === currentSubjectName
+                );
+                scopeLabel = `معلمة مادة — ${currentTeacherName}${currentSubjectName ? ' (' + currentSubjectName + ')' : ''}`;
+            } else {
+                const role = currentStaffRole;
+                const roleLabel = (typeof ROLE_DISPLAY_LABELS !== 'undefined' && ROLE_DISPLAY_LABELS[role]) || role;
+                if (role === 'subject_teacher') {
+                    showToast("يرجى اختيار اسمك أولاً من قائمة «معلمة المادة» أعلى الصفحة قبل التصدير", true);
+                    return;
+                }
+                entries = messageArchive.filter(e => e.signerRole === role);
+                scopeLabel = roleLabel;
+            }
+
+            if (entries.length === 0) { showToast(`لا توجد رسائل مؤرشفة لـ (${scopeLabel})`, true); return; }
+
+            const rowsHtml = entries.map(e => `
+                <tr>
+                    <td>${formatArchiveTimestamp(e.sentAt)}</td>
+                    <td>${e.studentName || ''}</td>
+                    <td>${e.phone || ''}</td>
+                    <td>${e.className || ''}</td>
+                    <td>${TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف'}</td>
+                    <td>${(getEntrySenderLabel(e) || '').replace(/</g, '&lt;')}</td>
+                    <td>${(e.message || '').replace(/</g, '&lt;')}</td>
+                </tr>`).join('');
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) { showToast("يرجى السماح بالنوافذ المنبثقة لتصدير PDF", true); return; }
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>رسائل (${scopeLabel}) - منصة كُنْ مَعَنا</title>
+                    <style>
+                        body { font-family: 'Tahoma', sans-serif; padding: 24px; color: #1e293b; }
+                        h1 { font-size: 18px; margin-bottom: 4px; }
+                        p.meta { font-size: 11px; color: #64748b; margin-top: 0; margin-bottom: 16px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: right; vertical-align: top; }
+                        th { background: #e2e8f0; }
+                    </style>
+                </head>
+                <body>
+                    <h1>الرسائل المرسلة بواسطة: ${scopeLabel} - منصة كُنْ مَعَنا</h1>
+                    <p class="meta">مدرسة خولة بنت حكيم (9-12) - تاريخ التصدير: ${new Date().toLocaleString('ar-OM')} - إجمالي السجلات: ${entries.length}</p>
+                    <table>
+                        <thead>
+                            <tr><th>التاريخ والوقت</th><th>اسم الطالبة</th><th>رقم ولي الأمر</th><th>الصف</th><th>نوع الرسالة</th><th>المرسلة / معلمة المادة</th><th>نص الرسالة</th></tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
+            showToast(`فتحت نافذة الطباعة لرسائل (${scopeLabel}) — اختاري 'حفظ كـ PDF' من خيارات الطباعة`);
         }
 
         // ============================================================
