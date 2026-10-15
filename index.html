@@ -3098,6 +3098,85 @@
         // ============================================================
         const MONTHLY_EXPORT_PASSWORD = '7772';
 
+        // Monthly export now reads from the shared Google Sheet archive
+        // ("ارشيف بدور الوظيفي رسائل كن معنا") so it includes messages sent from
+        // EVERY device, not only the ones stored on this phone/computer. Falls
+        // back to this device's local archive (the previous behaviour) only if
+        // the sheet can't be reached. The sheet is shared "anyone with the link
+        // can view", so it's read with the same gviz JSONP helper the student
+        // import already uses (no login, works on Android/iOS browsers too).
+        const MONTHLY_ARCHIVE_SHEET_ID = '10hghbIiwTaj3tv1KEUjwXDBoGQEBVrwndmu58eheRy0';
+        let monthlyExportData = null; // { monthValue, source: 'sheet'|'local', rows: [ {header: value} ] }
+
+        function normalizeDigits(text) {
+            return String(text == null ? '' : text)
+                .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+                .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0));
+        }
+
+        // Returns { monthValue: 'YYYY-MM', display } for a sheet date cell, which
+        // may arrive as text ("1:50:52 م 2026/10/12") or as a gviz Date(...) value.
+        function parseSheetArchiveDate(raw) {
+            const text = normalizeDigits(raw).trim();
+            const gviz = text.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,(\d{1,2}),(\d{1,2})(?:,(\d{1,2}))?)?/);
+            if (gviz) {
+                const y = gviz[1], m = String(parseInt(gviz[2], 10) + 1).padStart(2, '0'), d = String(gviz[3]).padStart(2, '0');
+                const time = gviz[4] !== undefined ? ` ${String(gviz[4]).padStart(2, '0')}:${String(gviz[5]).padStart(2, '0')}` : '';
+                return { monthValue: `${y}-${m}`, display: `${y}/${m}/${d}${time}` };
+            }
+            let match = text.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+            if (match) return { monthValue: `${match[1]}-${String(match[2]).padStart(2, '0')}`, display: text };
+            match = text.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); // D/M/YYYY
+            if (match) return { monthValue: `${match[3]}-${String(match[2]).padStart(2, '0')}`, display: text };
+            return null;
+        }
+
+        // Sheet columns: التاريخ والوقت | اسم الطالبة | رقم ولي الأمر | المادة | اسم المعلمة | نص الرسالة | طريقة الإرسال
+        function loadMonthlyRowsFromSheet(monthValue) {
+            return fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID).then(rows => {
+                const result = [];
+                rows.forEach(r => {
+                    if (!r || r.length < 6) return;
+                    const parsed = parseSheetArchiveDate(r[0]);
+                    if (!parsed || parsed.monthValue !== monthValue) return; // also skips the header row
+                    result.push({
+                        'التاريخ والوقت': parsed.display,
+                        'اسم الطالبة': r[1] != null ? String(r[1]) : '',
+                        'رقم ولي الأمر': r[2] != null ? String(r[2]) : '',
+                        'المادة': r[3] != null ? String(r[3]) : '',
+                        'المرسلة / معلمة المادة': (r[4] != null && String(r[4]).trim()) ? String(r[4]) : 'غير محدد',
+                        'نص الرسالة': r[5] != null ? String(r[5]) : '',
+                        'طريقة الإرسال': r[6] === 'app' ? 'تطبيق واتساب' : (r[6] === 'web' ? 'واتساب ويب' : (r[6] != null ? String(r[6]) : ''))
+                    });
+                });
+                return result;
+            });
+        }
+
+        function localMonthlyRows(monthValue) {
+            return getMonthlyArchiveEntries(monthValue).map(e => ({
+                'التاريخ والوقت': formatArchiveTimestamp(e.sentAt),
+                'اسم الطالبة': e.studentName || '',
+                'رقم ولي الأمر': e.phone || '',
+                'الصف': e.className || '',
+                'نوع الرسالة': TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف',
+                'المادة': e.subject || '',
+                'المرسلة / معلمة المادة': getEntrySenderLabel(e),
+                'نص الرسالة': e.message || ''
+            }));
+        }
+
+        function getReadyMonthlyExportData() {
+            const monthField = document.getElementById('monthly-export-month');
+            const monthValue = monthField ? monthField.value : '';
+            if (!monthlyExportData || monthlyExportData.monthValue !== monthValue) {
+                showToast("جاري تحميل رسائل الشهر من Google Sheet، انتظري لحظة ثم أعيدي المحاولة", true);
+                return null;
+            }
+            if (monthlyExportData.rows.length === 0) { showToast("لا توجد رسائل لهذا الشهر للتصدير", true); return null; }
+            return monthlyExportData;
+        }
+
         function openMonthlyExportModal() {
             const modal = document.getElementById('monthly-export-modal');
             if (!modal) return;
@@ -3134,16 +3213,30 @@
 
             const monthField = document.getElementById('monthly-export-month');
             const monthValue = monthField ? monthField.value : '';
-            const entries = getMonthlyArchiveEntries(monthValue);
             const summaryEl = document.getElementById('monthly-export-summary');
-            if (summaryEl) {
-                summaryEl.innerText = entries.length > 0
-                    ? `تم العثور على ${entries.length} رسالة لشهر ${formatMonthLabel(monthValue)}`
-                    : `لا توجد رسائل مؤرشفة لشهر ${formatMonthLabel(monthValue)}`;
-            }
+            monthlyExportData = null;
+            if (summaryEl) summaryEl.innerText = `جاري جلب رسائل ${formatMonthLabel(monthValue)} من Google Sheet (أرشيف كل الأجهزة)...`;
 
             document.getElementById('monthly-export-lock-step').classList.add('hidden');
             document.getElementById('monthly-export-unlocked-step').classList.remove('hidden');
+
+            loadMonthlyRowsFromSheet(monthValue).then(rows => {
+                monthlyExportData = { monthValue, source: 'sheet', rows };
+                if (summaryEl) {
+                    summaryEl.innerText = rows.length > 0
+                        ? `تم العثور على ${rows.length} رسالة لشهر ${formatMonthLabel(monthValue)} في Google Sheet (من كل الأجهزة)`
+                        : `لا توجد رسائل لشهر ${formatMonthLabel(monthValue)} في Google Sheet`;
+                }
+            }).catch(err => {
+                console.warn('تعذر قراءة Google Sheet للتصدير الشهري، سيتم استخدام أرشيف هذا الجهاز:', err);
+                const rows = localMonthlyRows(monthValue);
+                monthlyExportData = { monthValue, source: 'local', rows };
+                if (summaryEl) {
+                    summaryEl.innerText = rows.length > 0
+                        ? `تعذر الوصول إلى Google Sheet — تم العثور على ${rows.length} رسالة لشهر ${formatMonthLabel(monthValue)} في أرشيف هذا الجهاز فقط`
+                        : `تعذر الوصول إلى Google Sheet، ولا توجد رسائل لشهر ${formatMonthLabel(monthValue)} في أرشيف هذا الجهاز`;
+                }
+            });
         }
 
         function getMonthlyArchiveEntries(monthValue) {
@@ -3161,21 +3254,10 @@
 
         function exportMonthlyExcel() {
             if (typeof XLSX === 'undefined') { showToast("تعذر تحميل مكتبة Excel (تحققي من اتصال الإنترنت) ثم أعيدي المحاولة", true); return; }
-            const monthField = document.getElementById('monthly-export-month');
-            const monthValue = monthField ? monthField.value : '';
-            const entries = getMonthlyArchiveEntries(monthValue);
-            if (entries.length === 0) { showToast("لا توجد رسائل لهذا الشهر للتصدير", true); return; }
-
-            const rows = entries.map(e => ({
-                'التاريخ والوقت': formatArchiveTimestamp(e.sentAt),
-                'اسم الطالبة': e.studentName || '',
-                'رقم ولي الأمر': e.phone || '',
-                'الصف': e.className || '',
-                'نوع الرسالة': TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف',
-                'المادة': e.subject || '',
-                'المرسلة / معلمة المادة': getEntrySenderLabel(e),
-                'نص الرسالة': e.message || ''
-            }));
+            const data = getReadyMonthlyExportData();
+            if (!data) return;
+            const monthValue = data.monthValue;
+            const rows = data.rows;
             const sheet = XLSX.utils.json_to_sheet(rows);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, sheet, "تصدير شهري");
@@ -3184,21 +3266,16 @@
         }
 
         function exportMonthlyPDF() {
-            const monthField = document.getElementById('monthly-export-month');
-            const monthValue = monthField ? monthField.value : '';
-            const entries = getMonthlyArchiveEntries(monthValue);
-            if (entries.length === 0) { showToast("لا توجد رسائل لهذا الشهر للتصدير", true); return; }
-
-            const rowsHtml = entries.map(e => `
-                <tr>
-                    <td>${formatArchiveTimestamp(e.sentAt)}</td>
-                    <td>${e.studentName || ''}</td>
-                    <td>${e.phone || ''}</td>
-                    <td>${e.className || ''}</td>
-                    <td>${TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف'}</td>
-                    <td>${(getEntrySenderLabel(e) || '').replace(/</g, '&lt;')}</td>
-                    <td>${(e.message || '').replace(/</g, '&lt;')}</td>
-                </tr>`).join('');
+            const data = getReadyMonthlyExportData();
+            if (!data) return;
+            const monthValue = data.monthValue;
+            const entries = data.rows;
+            const headers = Object.keys(entries[0]);
+            const escapeCell = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+            const headerHtml = headers.map(h => `<th>${h}</th>`).join('');
+            const sourceLabel = data.source === 'sheet' ? 'المصدر: Google Sheet (أرشيف كل الأجهزة)' : 'المصدر: أرشيف هذا الجهاز فقط';
+            const rowsHtml = entries.map(row => `
+                <tr>${headers.map(h => `<td>${escapeCell(row[h])}</td>`).join('')}</tr>`).join('');
 
             const html = `
                 <!DOCTYPE html>
@@ -3217,10 +3294,10 @@
                 </head>
                 <body>
                     <h1>التصدير الشهري للرسائل المرسلة لأولياء الأمور - منصة كُنْ مَعَنا</h1>
-                    <p class="meta">مدرسة خولة بنت حكيم (9-12) - الشهر: ${formatMonthLabel(monthValue)} - تاريخ التصدير: ${new Date().toLocaleString('ar-OM')} - إجمالي السجلات: ${entries.length}</p>
+                    <p class="meta">مدرسة خولة بنت حكيم (9-12) - الشهر: ${formatMonthLabel(monthValue)} - تاريخ التصدير: ${new Date().toLocaleString('ar-OM')} - إجمالي السجلات: ${entries.length} - ${sourceLabel}</p>
                     <table>
                         <thead>
-                            <tr><th>التاريخ والوقت</th><th>اسم الطالبة</th><th>رقم ولي الأمر</th><th>الصف</th><th>نوع الرسالة</th><th>المرسلة / معلمة المادة</th><th>نص الرسالة</th></tr>
+                            <tr>${headerHtml}</tr>
                         </thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
