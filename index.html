@@ -1252,6 +1252,27 @@
             </div>
         </div>
 
+        <!-- Archive Lock Modal: the message archive (and everything inside it)
+             is for the school principal only, so opening it asks for the same
+             4-digit code as the monthly export. -->
+        <div id="archive-lock-modal" class="fixed inset-0 z-50 bg-slate-50/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel max-w-sm w-full p-6 rounded-3xl border border-purple-500/40 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        <span>الأرشيف خاص بمديرة المدرسة</span>
+                    </h3>
+                    <button onclick="closeArchiveLockModal()" class="text-slate-600 hover:text-slate-900">✕</button>
+                </div>
+                <div>
+                    <label for="archive-lock-password" class="text-xs font-bold text-slate-700 block mb-1">الرقم السري</label>
+                    <input type="password" inputmode="numeric" maxlength="4" id="archive-lock-password" onkeyup="if(event.key==='Enter') verifyArchiveLockPassword()" placeholder="••••" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2 text-sm text-slate-800 text-center tracking-[0.5em] focus:outline-none focus:border-purple-500 transition">
+                </div>
+                <p id="archive-lock-error" class="hidden text-[11px] text-red-600 font-bold text-center">الرقم السري غير صحيح، حاولي مجدداً</p>
+                <button onclick="verifyArchiveLockPassword()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-2.5 rounded-xl transition text-sm">فتح الأرشيف</button>
+            </div>
+        </div>
+
         <!-- Parent Reply Modal ("تسجيل رد ولي الأمر"): the teacher pastes the
              parent's WhatsApp reply to one archived message so it's kept next
              to that message. Additive — opened from the archive table and
@@ -4212,7 +4233,45 @@
         }
 
         // Message Archive Functions
+        // The archive is for the principal only: opening it needs the same code
+        // as the monthly export (MONTHLY_EXPORT_PASSWORD). Once entered, it stays
+        // open for 10 minutes on this page so the principal can view a message
+        // and come back without retyping it; reloading the page locks it again.
+        const ARCHIVE_UNLOCK_MINUTES = 10;
+        let archiveUnlockedUntil = 0;
+
+        function openArchiveLockModal() {
+            const modal = document.getElementById('archive-lock-modal');
+            if (!modal) return;
+            const pwField = document.getElementById('archive-lock-password');
+            const errorEl = document.getElementById('archive-lock-error');
+            if (pwField) pwField.value = '';
+            if (errorEl) errorEl.classList.add('hidden');
+            modal.classList.remove('hidden');
+            if (pwField) setTimeout(() => pwField.focus(), 50);
+        }
+
+        function closeArchiveLockModal() {
+            const modal = document.getElementById('archive-lock-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function verifyArchiveLockPassword() {
+            const pwField = document.getElementById('archive-lock-password');
+            const errorEl = document.getElementById('archive-lock-error');
+            const entered = pwField ? pwField.value.trim() : '';
+            if (entered !== MONTHLY_EXPORT_PASSWORD) {
+                if (errorEl) errorEl.classList.remove('hidden');
+                if (pwField) { pwField.value = ''; pwField.focus(); }
+                return;
+            }
+            archiveUnlockedUntil = Date.now() + ARCHIVE_UNLOCK_MINUTES * 60 * 1000;
+            closeArchiveLockModal();
+            openArchiveModal();
+        }
+
         function openArchiveModal() {
+            if (Date.now() > archiveUnlockedUntil) { openArchiveLockModal(); return; }
             const modal = document.getElementById('message-archive-modal');
             if (modal) modal.classList.remove('hidden');
             const searchInput = document.getElementById('archive-search-input');
@@ -4277,6 +4336,8 @@
         // exactly as before (full archive, manually searchable), so nothing
         // already working changes for that mode.
         function getArchiveScopedEntries() {
+            // The principal is the one person authorised to see every message.
+            if (currentStaffRole === 'principal') return { entries: messageArchive, scopeLabel: null };
             if (!currentTeacherName && currentStaffRole && currentStaffRole !== 'subject_teacher') {
                 return {
                     entries: messageArchive.filter(e => e.signerRole === currentStaffRole),
