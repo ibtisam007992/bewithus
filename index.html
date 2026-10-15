@@ -1252,6 +1252,38 @@
             </div>
         </div>
 
+        <!-- Parent Reply Modal ("تسجيل رد ولي الأمر"): the teacher pastes the
+             parent's WhatsApp reply to one archived message so it's kept next
+             to that message. Additive — opened from the archive table and
+             the student's message history; sits above the archive modal. -->
+        <div id="parent-reply-modal" class="fixed inset-0 z-[60] bg-slate-50/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+            <div class="glass-panel max-w-md w-full p-6 rounded-3xl border border-emerald-500/40 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                        <span>رد ولي الأمر</span>
+                    </h3>
+                    <button onclick="closeParentReplyModal()" class="text-slate-600 hover:text-slate-900">✕</button>
+                </div>
+                <p id="parent-reply-meta" class="text-xs font-bold text-slate-700"></p>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-500 mb-1">الرسالة المرسلة</p>
+                    <p id="parent-reply-original" class="text-[11px] text-slate-600 bg-slate-100 border border-slate-200 rounded-xl p-2.5 max-h-28 overflow-y-auto whitespace-pre-line"></p>
+                </div>
+                <div>
+                    <label for="parent-reply-text" class="text-[11px] font-bold text-slate-700 block mb-1">الصقي رد ولي الأمر من واتساب</label>
+                    <textarea id="parent-reply-text" rows="5" placeholder="مثال: شكراً أستاذة، سنتابع معها في البيت" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 transition"></textarea>
+                </div>
+                <p id="parent-reply-saved-at" class="hidden text-[10px] text-emerald-700"></p>
+                <p id="parent-reply-sync-note" class="text-[10px] text-slate-500"></p>
+                <div class="flex items-center gap-2">
+                    <button onclick="saveParentReply()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition text-sm">حفظ الرد</button>
+                    <button id="parent-reply-delete-btn" onclick="deleteParentReply()" class="hidden bg-slate-200 hover:bg-slate-300 text-rose-700 border border-rose-500/30 font-bold py-2.5 px-4 rounded-xl transition text-sm">حذف الرد</button>
+                    <button onclick="closeParentReplyModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 px-4 rounded-xl transition text-sm">إلغاء</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Clear Archive Modal: permanently deletes archived messages (either
              one chosen month, or the whole archive), gated behind the same
              4-digit password used for the monthly export, since deleting is
@@ -1502,6 +1534,14 @@
         // Script deployment, bound to a Google Sheet in your Drive. See the setup
         // guide shared with you for the exact steps and script to paste.
         const ARCHIVE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxqOKzwww1X7tk1ix5pBJaYpBdUJoWNGzWVugtMHI6FoxDobsTaxvHXoG9HoXPvW9N4/exec";
+
+        // Parent replies ("ردود أولياء الأمور") go to a SEPARATE Apps Script web
+        // app that writes to its own tab in the same archive spreadsheet, so the
+        // existing archive backup script above is never touched. Leave empty
+        // until that script is deployed: replies are then kept on this device
+        // only (and still appear in the archive and its exports).
+        const PARENT_REPLY_WEBAPP_URL = "";
+        const PARENT_REPLY_SHEET_TAB = "ردود أولياء الأمور";
 
         // Live sync for student roster changes: when a student is added or
         // her phone number is edited, this writes the change directly back
@@ -1989,7 +2029,7 @@
             showToast(`فتح محادثة واتساب مع: ${staffRole}`);
         }
 
-        function fetchGoogleSheetJSONP(fileId) {
+        function fetchGoogleSheetJSONP(fileId, sheetName) {
             return new Promise((resolve, reject) => {
                 const callbackName = 'gviz_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
                 const script = document.createElement('script');
@@ -2018,7 +2058,8 @@
                     } catch (err) { reject(err); }
                 };
 
-                script.src = `https://docs.google.com/spreadsheets/d/${fileId}/gviz/tq?tqx=responseHandler:${callbackName}`;
+                script.src = `https://docs.google.com/spreadsheets/d/${fileId}/gviz/tq?tqx=responseHandler:${callbackName}`
+                    + (sheetName ? `&sheet=${encodeURIComponent(sheetName)}` : '');
                 script.onerror = function() {
                     clearTimeout(timeoutId);
                     delete window[callbackName];
@@ -2485,6 +2526,7 @@
                             <span class="text-[10px] text-slate-500">${formatArchiveTimestamp(entry.sentAt)}</span>
                         </div>
                         <p class="text-[11px] text-slate-700">${previewText}</p>
+                        ${entry.parentReply ? `<p class="text-[11px] text-emerald-700 mt-1 border-t border-slate-200 pt-1"><span class="font-bold">رد ولي الأمر:</span> ${escapeReplyHtml(entry.parentReply.replace(/\n/g, ' ').slice(0, 90))}${entry.parentReply.length > 90 ? '…' : ''}</p>` : ''}
                     </button>`;
             }).join('');
         }
@@ -2899,7 +2941,9 @@
                 'نوع الرسالة': TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف',
                 'المادة': e.subject || '',
                 'المرسلة / معلمة المادة': getEntrySenderLabel(e),
-                'نص الرسالة': e.message || ''
+                'نص الرسالة': e.message || '',
+                'رد ولي الأمر': e.parentReply || '',
+                'تاريخ تسجيل الرد': e.parentReplyAt ? formatArchiveTimestamp(e.parentReplyAt) : ''
             }));
             const sheet = XLSX.utils.json_to_sheet(rows);
             const workbook = XLSX.utils.book_new();
@@ -2970,6 +3014,7 @@
                     <td>${TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف'}</td>
                     <td>${(getEntrySenderLabel(e) || '').replace(/</g, '&lt;')}</td>
                     <td>${(e.message || '').replace(/</g, '&lt;')}</td>
+                    <td>${escapeReplyHtml(e.parentReply || '')}</td>
                 </tr>`).join('');
 
             const html = `
@@ -2992,7 +3037,7 @@
                     <p class="meta">مدرسة خولة بنت حكيم (9-12) - تاريخ التصدير: ${new Date().toLocaleString('ar-OM')} - إجمالي السجلات: ${messageArchive.length}</p>
                     <table>
                         <thead>
-                            <tr><th>التاريخ والوقت</th><th>اسم الطالبة</th><th>رقم ولي الأمر</th><th>الصف</th><th>نوع الرسالة</th><th>المرسلة / معلمة المادة</th><th>نص الرسالة</th></tr>
+                            <tr><th>التاريخ والوقت</th><th>اسم الطالبة</th><th>رقم ولي الأمر</th><th>الصف</th><th>نوع الرسالة</th><th>المرسلة / معلمة المادة</th><th>نص الرسالة</th><th>رد ولي الأمر</th></tr>
                         </thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
@@ -3057,6 +3102,7 @@
                     <td>${TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف'}</td>
                     <td>${(getEntrySenderLabel(e) || '').replace(/</g, '&lt;')}</td>
                     <td>${(e.message || '').replace(/</g, '&lt;')}</td>
+                    <td>${escapeReplyHtml(e.parentReply || '')}</td>
                 </tr>`).join('');
 
             const html = `
@@ -3079,7 +3125,7 @@
                     <p class="meta">مدرسة خولة بنت حكيم (9-12) - تاريخ التصدير: ${new Date().toLocaleString('ar-OM')} - إجمالي السجلات: ${entries.length}</p>
                     <table>
                         <thead>
-                            <tr><th>التاريخ والوقت</th><th>اسم الطالبة</th><th>رقم ولي الأمر</th><th>الصف</th><th>نوع الرسالة</th><th>المرسلة / معلمة المادة</th><th>نص الرسالة</th></tr>
+                            <tr><th>التاريخ والوقت</th><th>اسم الطالبة</th><th>رقم ولي الأمر</th><th>الصف</th><th>نوع الرسالة</th><th>المرسلة / معلمة المادة</th><th>نص الرسالة</th><th>رد ولي الأمر</th></tr>
                         </thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
@@ -3132,8 +3178,75 @@
         }
 
         // Sheet columns: التاريخ والوقت | اسم الطالبة | رقم ولي الأمر | المادة | اسم المعلمة | نص الرسالة | طريقة الإرسال
+        // Sheet date text ("1:50:52 م 2026/10/12") or gviz Date(...) -> the
+        // local "YYYY/MM/DD HH:MM:SS" used by getArchiveReplyKey().
+        function sheetDateToReplyKeyDate(raw) {
+            const text = normalizeDigits(raw).trim();
+            const p = n => String(n).padStart(2, '0');
+            const gviz = text.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2}),(\d{1,2}),(\d{1,2}),(\d{1,2})/);
+            if (gviz) return `${gviz[1]}/${p(+gviz[2] + 1)}/${p(gviz[3])} ${p(gviz[4])}:${p(gviz[5])}:${p(gviz[6])}`;
+            const date = text.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+            const time = text.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+            if (!date || !time) return null;
+            let h = parseInt(time[1], 10);
+            if (/م|PM/i.test(text) && h < 12) h += 12;
+            if (/ص|AM/i.test(text) && h === 12) h = 0;
+            return `${date[1]}/${p(date[2])}/${p(date[3])} ${p(h)}:${p(time[2])}:${p(time[3] || 0)}`;
+        }
+
+        // Replies tab (written by the separate replies script): key | ... | reply | reply date.
+        // Any failure (tab not created yet, offline) simply means "no replies".
+        function loadParentRepliesMapFromSheet() {
+            if (!PARENT_REPLY_WEBAPP_URL) return Promise.resolve({});
+            return fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID, PARENT_REPLY_SHEET_TAB).then(rows => {
+                const map = {};
+                rows.forEach(r => {
+                    if (!r || r.length < 8) return;
+                    const key = normalizeDigits(r[0]).trim();
+                    if (!/^\d+\|\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/.test(key)) return; // header / other tabs
+                    map[key] = { reply: r[7] != null ? String(r[7]) : '', replyAt: r[8] != null ? String(r[8]) : '' };
+                });
+                return map;
+            }).catch(() => ({}));
+        }
+
         function loadMonthlyRowsFromSheet(monthValue) {
-            return fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID).then(rows => {
+            return Promise.all([
+                fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID),
+                loadParentRepliesMapFromSheet()
+            ]).then(([rows, repliesMap]) => {
+                // Replies saved on THIS device fill in when the sheet has none for that message.
+                const localReplies = {};
+                messageArchive.forEach(e => {
+                    if (e.parentReply) localReplies[getArchiveReplyKey(e.phone, new Date(e.sentAt))] = {
+                        reply: e.parentReply, replyAt: formatArchiveTimestamp(e.parentReplyAt)
+                    };
+                });
+                // Index by phone -> [{t, reply, replyAt}] and match the nearest
+                // time within 3 minutes, since the sheet's timestamp may be taken
+                // a few seconds after the device's send time.
+                const keyToParts = key => {
+                    const m = key.match(/^(\d+)\|(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+                    return m ? { phone: m[1], t: new Date(+m[2], +m[3] - 1, +m[4], +m[5], +m[6], +m[7]).getTime() } : null;
+                };
+                const replyIndex = {};
+                [localReplies, repliesMap].forEach(source => {
+                    Object.keys(source).forEach(key => {
+                        const parts = keyToParts(key);
+                        if (!parts) return;
+                        (replyIndex[parts.phone] = replyIndex[parts.phone] || []).push(Object.assign({ t: parts.t }, source[key]));
+                    });
+                });
+                const findReply = key => {
+                    const parts = keyToParts(key);
+                    if (!parts || !replyIndex[parts.phone]) return null;
+                    let best = null;
+                    replyIndex[parts.phone].forEach(c => {
+                        const diff = Math.abs(c.t - parts.t);
+                        if (diff <= 180000 && (!best || diff <= best.diff)) best = Object.assign({ diff }, c);
+                    });
+                    return best;
+                };
                 const result = [];
                 rows.forEach(r => {
                     if (!r || r.length < 6) return;
@@ -3146,8 +3259,19 @@
                         'المادة': r[3] != null ? String(r[3]) : '',
                         'المرسلة / معلمة المادة': (r[4] != null && String(r[4]).trim()) ? String(r[4]) : 'غير محدد',
                         'نص الرسالة': r[5] != null ? String(r[5]) : '',
-                        'طريقة الإرسال': r[6] === 'app' ? 'تطبيق واتساب' : (r[6] === 'web' ? 'واتساب ويب' : (r[6] != null ? String(r[6]) : ''))
+                        'طريقة الإرسال': r[6] === 'app' ? 'تطبيق واتساب' : (r[6] === 'web' ? 'واتساب ويب' : (r[6] != null ? String(r[6]) : '')),
+                        'رد ولي الأمر': '',
+                        'تاريخ تسجيل الرد': ''
                     });
+                    const keyDate = sheetDateToReplyKeyDate(r[0]);
+                    if (keyDate) {
+                        const key = `${normalizeDigits(r[2]).replace(/\D/g, '')}|${keyDate}`;
+                        const found = findReply(key);
+                        if (found) {
+                            result[result.length - 1]['رد ولي الأمر'] = found.reply;
+                            result[result.length - 1]['تاريخ تسجيل الرد'] = found.replyAt;
+                        }
+                    }
                 });
                 return result;
             });
@@ -3162,7 +3286,9 @@
                 'نوع الرسالة': TEMPLATE_TYPE_LABELS[e.type] || 'غير مصنف',
                 'المادة': e.subject || '',
                 'المرسلة / معلمة المادة': getEntrySenderLabel(e),
-                'نص الرسالة': e.message || ''
+                'نص الرسالة': e.message || '',
+                'رد ولي الأمر': e.parentReply || '',
+                'تاريخ تسجيل الرد': e.parentReplyAt ? formatArchiveTimestamp(e.parentReplyAt) : ''
             }));
         }
 
@@ -4205,7 +4331,12 @@
                         <td class="p-2.5 text-slate-600 whitespace-nowrap">${getEntrySenderLabel(entry)}</td>
                         <td class="p-2.5 text-slate-600">${previewText}</td>
                         <td class="p-2.5 text-center whitespace-nowrap">
-                            <button onclick="viewArchiveMessage(${entry.id})" class="bg-slate-200 text-cyan-700 border border-cyan-600/40 hover:bg-slate-300 px-2.5 py-1 rounded-lg font-bold text-xs">عرض</button>
+                            <div class="flex flex-col items-stretch gap-1">
+                                <button onclick="viewArchiveMessage(${entry.id})" class="bg-slate-200 text-cyan-700 border border-cyan-600/40 hover:bg-slate-300 px-2.5 py-1 rounded-lg font-bold text-xs">عرض</button>
+                                ${entry.parentReply
+                                    ? `<button onclick="openParentReplyModal(${entry.id})" title="${escapeReplyHtml(entry.parentReply)}" class="bg-emerald-50 text-emerald-700 border border-emerald-500/40 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-bold text-xs">✓ تم الرد</button>`
+                                    : `<button onclick="openParentReplyModal(${entry.id})" class="bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200 px-2.5 py-1 rounded-lg font-bold text-xs">تسجيل الرد</button>`}
+                            </div>
                         </td>
                     </tr>`;
             }).join('');
@@ -4223,6 +4354,121 @@
             if (textArea) textArea.value = entry.message;
             closeArchiveModal();
             showToast(`تم عرض الرسالة المؤرشفة الخاصة بـ ${entry.studentName} في محرر الرسائل`);
+        }
+
+        // ============================================================
+        // Parent replies ("تسجيل رد ولي الأمر"): WhatsApp replies arrive on the
+        // sender's own phone, so the platform can't read them automatically.
+        // The teacher pastes the reply here and it's stored on the archive
+        // entry itself (parentReply / parentReplyAt), shown in the archive,
+        // the student's message history and every archive export, and — once
+        // PARENT_REPLY_WEBAPP_URL is set — backed up to its own sheet tab.
+        // ============================================================
+        let editingReplyEntryId = null;
+
+        function escapeReplyHtml(text) {
+            return String(text == null ? '' : text)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Local "YYYY/MM/DD HH:MM:SS" — also the matching key format used to
+        // pair a reply with its message row in the Google Sheet archive.
+        function formatReplyKeyDate(date) {
+            const p = n => String(n).padStart(2, '0');
+            return `${date.getFullYear()}/${p(date.getMonth() + 1)}/${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+        }
+
+        function getArchiveReplyKey(phone, sentDate) {
+            return `${normalizeDigits(phone).replace(/\D/g, '')}|${formatReplyKeyDate(sentDate)}`;
+        }
+
+        function openParentReplyModal(entryId) {
+            const entry = messageArchive.find(e => e.id === entryId);
+            const modal = document.getElementById('parent-reply-modal');
+            if (!entry || !modal) return;
+            editingReplyEntryId = entryId;
+
+            document.getElementById('parent-reply-meta').innerText =
+                `${entry.studentName || ''} — أُرسلت ${formatArchiveTimestamp(entry.sentAt)}`;
+            document.getElementById('parent-reply-original').innerText = entry.message || '';
+            const textArea = document.getElementById('parent-reply-text');
+            textArea.value = entry.parentReply || '';
+
+            const savedAtEl = document.getElementById('parent-reply-saved-at');
+            if (entry.parentReply && entry.parentReplyAt) {
+                savedAtEl.innerText = `آخر حفظ للرد: ${formatArchiveTimestamp(entry.parentReplyAt)}`;
+                savedAtEl.classList.remove('hidden');
+            } else {
+                savedAtEl.classList.add('hidden');
+            }
+            document.getElementById('parent-reply-delete-btn').classList.toggle('hidden', !entry.parentReply);
+            document.getElementById('parent-reply-sync-note').innerText = PARENT_REPLY_WEBAPP_URL
+                ? `يُحفظ الرد هنا وفي Google Sheet (ورقة «${PARENT_REPLY_SHEET_TAB}»).`
+                : 'يُحفظ الرد على هذا الجهاز، ويظهر في الأرشيف وملفات التصدير.';
+
+            modal.classList.remove('hidden');
+            setTimeout(() => textArea.focus(), 50);
+        }
+
+        function closeParentReplyModal() {
+            const modal = document.getElementById('parent-reply-modal');
+            if (modal) modal.classList.add('hidden');
+            editingReplyEntryId = null;
+        }
+
+        function applyParentReplyChange(entry) {
+            saveArchiveToStorage();
+            refreshArchiveViewIfOpen();
+            if (selectedStudent) renderStudentMessageHistory(selectedStudent);
+            backupParentReplyToGoogleSheet(entry); // fire-and-forget
+        }
+
+        function saveParentReply() {
+            const entry = messageArchive.find(e => e.id === editingReplyEntryId);
+            if (!entry) { closeParentReplyModal(); return; }
+            const text = (document.getElementById('parent-reply-text').value || '').trim();
+            if (!text) { showToast("الصقي رد ولي الأمر أولاً، أو اضغطي «حذف الرد» لإزالته", true); return; }
+            entry.parentReply = text;
+            entry.parentReplyAt = new Date().toISOString();
+            applyParentReplyChange(entry);
+            closeParentReplyModal();
+            showToast(`تم حفظ رد ولي أمر الطالبة ${entry.studentName || ''}`);
+        }
+
+        function deleteParentReply() {
+            const entry = messageArchive.find(e => e.id === editingReplyEntryId);
+            if (!entry) { closeParentReplyModal(); return; }
+            delete entry.parentReply;
+            delete entry.parentReplyAt;
+            applyParentReplyChange(entry);
+            closeParentReplyModal();
+            showToast("تم حذف رد ولي الأمر");
+        }
+
+        // Same no-cors/text-plain pattern as backupArchiveEntryToGoogleSheet().
+        // An empty "reply" tells the script to remove that reply's row.
+        function backupParentReplyToGoogleSheet(entry) {
+            if (!PARENT_REPLY_WEBAPP_URL) return Promise.resolve();
+            const sentDate = new Date(entry.sentAt);
+            const payload = {
+                key: getArchiveReplyKey(entry.phone, sentDate),
+                sentAtText: formatReplyKeyDate(sentDate),
+                studentName: entry.studentName || '',
+                phone: entry.phone || '',
+                subject: entry.subject || '',
+                sender: getEntrySenderLabel(entry),
+                messagePreview: (entry.message || '').slice(0, 300),
+                reply: entry.parentReply || '',
+                replyAtText: entry.parentReplyAt ? formatReplyKeyDate(new Date(entry.parentReplyAt)) : ''
+            };
+            return fetch(PARENT_REPLY_WEBAPP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).catch(err => {
+                console.warn('تعذر نسخ رد ولي الأمر احتياطياً إلى Google Sheet:', err);
+            });
         }
 
         function selectStudentById(studentId) {
