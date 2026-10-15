@@ -1137,13 +1137,17 @@
                             <span>أرشيف الرسائل المرسلة لأولياء الأمور</span>
                         </h3>
                         <p id="archive-backup-status" class="text-[10px] text-slate-500 mt-0.5">النسخ الاحتياطي على Google Sheet: غير مفعّل</p>
+                        <!-- Shown only when the active role (دورك الحالي) restricts this
+                             view to that role's own sent messages — additive, hidden by
+                             default; see renderArchiveTable()'s scope logic. -->
+                        <p id="archive-scope-label" class="hidden text-[10px] text-indigo-700 font-bold mt-0.5"></p>
                     </div>
                     <button onclick="closeArchiveModal()" class="text-slate-600 hover:text-slate-900">✕</button>
                 </div>
 
                 <div class="relative">
                     <svg class="w-4 h-4 absolute right-3.5 top-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <input type="text" id="archive-search-input" onkeyup="filterArchive()" placeholder="بحث باسم الطالبة أو المادة..." class="w-full bg-slate-100/80 border border-slate-300/80 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-800 focus:outline-none focus:border-purple-500 transition placeholder-slate-500">
+                    <input type="text" id="archive-search-input" onkeyup="filterArchive()" placeholder="بحث باسم الطالبة أو المعلمة أو المادة..." class="w-full bg-slate-100/80 border border-slate-300/80 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-800 focus:outline-none focus:border-purple-500 transition placeholder-slate-500">
                 </div>
 
                 <div class="max-h-[420px] overflow-y-auto pr-1">
@@ -1844,6 +1848,20 @@
         function changeTeacherName(value) {
             currentTeacherName = value;
             syncTeacherSignatureInTextarea();
+            refreshArchiveViewIfOpen();
+        }
+
+        // If the message-archive modal happens to be open while the active
+        // role/teacher changes, re-render it immediately so the role-based
+        // scoping in renderArchiveTable() stays in sync without needing to
+        // close and reopen the modal. No-op (and no visible change) when the
+        // modal is closed or not yet in the page.
+        function refreshArchiveViewIfOpen() {
+            const modal = document.getElementById('message-archive-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                const searchInput = document.getElementById('archive-search-input');
+                renderArchiveTable(searchInput ? searchInput.value : '');
+            }
         }
 
         // Keeps the signature line visible in the message preview itself
@@ -2283,6 +2301,7 @@
                 if (selectedStudent) applyTemplate(value);
                 if (selectedStudent) updateSystemsCaseTracking();
             }
+            refreshArchiveViewIfOpen();
             showToast(`الدور الحالي: ${ROLE_DISPLAY_LABELS[value] || value}`);
         }
 
@@ -2839,6 +2858,36 @@
         // ============================================================
         // Archive Export ("تصدير الأرشيف كملف Excel/PDF رسمي")
         // ============================================================
+
+        // Robust Excel-file download for ALL devices (desktop, mobile
+        // phones, tablets). XLSX.writeFile() already downloads correctly
+        // on modern phone/tablet browsers, but some in-app browsers
+        // (WhatsApp, Instagram, older Android WebViews) block or silently
+        // swallow the download it triggers. This wrapper catches that and
+        // falls back to building the file as a Blob and opening it in a
+        // new tab, so the device's own "حفظ" / "Save to Files" / Share
+        // sheet can save it even when the automatic download fails.
+        function writeExcelFile(workbook, filename) {
+            try {
+                XLSX.writeFile(workbook, filename);
+            } catch (err) {
+                try {
+                    const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 30000);
+                } catch (err2) {
+                    showToast("تعذّر تصدير ملف Excel على هذا الجهاز — جرّبي متصفحاً آخر", true);
+                }
+            }
+        }
+
         function exportArchiveExcel() {
             if (typeof XLSX === 'undefined') { showToast("تعذر تحميل مكتبة Excel (تحققي من اتصال الإنترنت) ثم أعيدي المحاولة", true); return; }
             if (messageArchive.length === 0) { showToast("لا توجد رسائل في الأرشيف للتصدير", true); return; }
@@ -2856,8 +2905,58 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, sheet, "أرشيف الرسائل");
             const dateStamp = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(workbook, `أرشيف_رسائل_كن_معنا_${dateStamp}.xlsx`);
+            writeExcelFile(workbook, `أرشيف_رسائل_كن_معنا_${dateStamp}.xlsx`);
             showToast("تم تصدير الأرشيف كملف Excel بنجاح");
+        }
+
+        // ============================================================
+        // Reliable print-to-PDF helper for ALL devices (desktop, mobile
+        // phones, tablets). The three "تصدير PDF" buttons below used to
+        // open a new blank browser tab via window.open('', '_blank') and
+        // write the report into it. Mobile browsers (and many in-app
+        // browsers such as WhatsApp's) block that popup by default, so
+        // on phones and tablets the button silently did nothing or showed
+        // the "اسمحي بالنوافذ المنبثقة" warning with no easy way to allow
+        // it. This helper instead prints through a hidden <iframe> inside
+        // the CURRENT page — no new window/tab is ever opened, so there is
+        // nothing for a popup blocker to block. The device's native print
+        // sheet opens on top of the current screen on every platform
+        // (phone, tablet, or desktop), and "Save as PDF" — or, on iPhone
+        // and iPad, the Share sheet's "Save to Files" — is available there
+        // exactly as before.
+        // ============================================================
+        function printHtmlDocument(htmlString) {
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+
+            const removeIframe = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+
+            iframe.onload = () => {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.onafterprint = removeIframe;
+                    iframe.contentWindow.print();
+                } catch (err) {
+                    showToast("تعذّر فتح نافذة الطباعة — جرّبي مرة أخرى", true);
+                    removeIframe();
+                    return;
+                }
+                // Safety-net cleanup for browsers that never fire 'afterprint'
+                // (some mobile browsers) — leaves plenty of time to finish
+                // the print / Save-to-Files flow first.
+                setTimeout(removeIframe, 60000);
+            };
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(htmlString);
+            doc.close();
         }
 
         function exportArchivePDF() {
@@ -2873,9 +2972,7 @@
                     <td>${(e.message || '').replace(/</g, '&lt;')}</td>
                 </tr>`).join('');
 
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) { showToast("يرجى السماح بالنوافذ المنبثقة لتصدير PDF", true); return; }
-            printWindow.document.write(`
+            const html = `
                 <!DOCTYPE html>
                 <html dir="rtl" lang="ar">
                 <head>
@@ -2901,9 +2998,8 @@
                     </table>
                 </body>
                 </html>
-            `);
-            printWindow.document.close();
-            printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
+            `;
+            printHtmlDocument(html);
             showToast("فتحت نافذة الطباعة — اختاري 'حفظ كـ PDF' من خيارات الطباعة");
         }
 
@@ -2963,9 +3059,7 @@
                     <td>${(e.message || '').replace(/</g, '&lt;')}</td>
                 </tr>`).join('');
 
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) { showToast("يرجى السماح بالنوافذ المنبثقة لتصدير PDF", true); return; }
-            printWindow.document.write(`
+            const html = `
                 <!DOCTYPE html>
                 <html dir="rtl" lang="ar">
                 <head>
@@ -2991,9 +3085,8 @@
                     </table>
                 </body>
                 </html>
-            `);
-            printWindow.document.close();
-            printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
+            `;
+            printHtmlDocument(html);
             showToast(`فتحت نافذة الطباعة لرسائل (${scopeLabel}) — اختاري 'حفظ كـ PDF' من خيارات الطباعة`);
         }
 
@@ -3086,7 +3179,7 @@
             const sheet = XLSX.utils.json_to_sheet(rows);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, sheet, "تصدير شهري");
-            XLSX.writeFile(workbook, `تصدير_شهري_كن_معنا_${monthValue}.xlsx`);
+            writeExcelFile(workbook, `تصدير_شهري_كن_معنا_${monthValue}.xlsx`);
             showToast("تم تصدير رسائل الشهر كملف Excel بنجاح");
         }
 
@@ -3107,9 +3200,7 @@
                     <td>${(e.message || '').replace(/</g, '&lt;')}</td>
                 </tr>`).join('');
 
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) { showToast("يرجى السماح بالنوافذ المنبثقة لتصدير PDF", true); return; }
-            printWindow.document.write(`
+            const html = `
                 <!DOCTYPE html>
                 <html dir="rtl" lang="ar">
                 <head>
@@ -3135,9 +3226,8 @@
                     </table>
                 </body>
                 </html>
-            `);
-            printWindow.document.close();
-            printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
+            `;
+            printHtmlDocument(html);
             showToast("فتحت نافذة الطباعة — اختاري 'حفظ كـ PDF' من خيارات الطباعة");
         }
 
@@ -3251,7 +3341,7 @@
             const sheet = XLSX.utils.json_to_sheet(rows);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, sheet, "تقرير الغياب والتأخر");
-            XLSX.writeFile(workbook, `تقرير_الغياب_والتأخر_${monthValue}.xlsx`);
+            writeExcelFile(workbook, `تقرير_الغياب_والتأخر_${monthValue}.xlsx`);
             showToast("تم تصدير تقرير الغياب والتأخر بنجاح");
         }
 
@@ -3974,19 +4064,50 @@
             return entry.teacherName || 'غير محدد';
         }
 
+        // Restricts the on-screen archive to the currently active role's own
+        // sent messages, mirroring the scoping already used by
+        // exportArchivePDFByRole(): any staff role other than "معلمة مادة"
+        // (subject_teacher) — principal, vice_principal, nurse, social_worker,
+        // psychologist, systems_specialist, homeroom_teacher, career_counselor —
+        // sees only entries whose signerRole matches, as long as no subject
+        // teacher name is currently selected. Subject-teacher mode is left
+        // exactly as before (full archive, manually searchable), so nothing
+        // already working changes for that mode.
+        function getArchiveScopedEntries() {
+            if (!currentTeacherName && currentStaffRole && currentStaffRole !== 'subject_teacher') {
+                return {
+                    entries: messageArchive.filter(e => e.signerRole === currentStaffRole),
+                    scopeLabel: (typeof ROLE_DISPLAY_LABELS !== 'undefined' && ROLE_DISPLAY_LABELS[currentStaffRole]) || currentStaffRole
+                };
+            }
+            return { entries: messageArchive, scopeLabel: null };
+        }
+
         function renderArchiveTable(filterText = '') {
             const tbody = document.getElementById('archive-table-body');
             const emptyState = document.getElementById('archive-empty-state');
             const badge = document.getElementById('archive-count-badge');
-            if (badge) badge.innerText = messageArchive.length;
+            const scopeLabelEl = document.getElementById('archive-scope-label');
             if (!tbody) return;
+
+            const { entries: scopedEntries, scopeLabel } = getArchiveScopedEntries();
+            if (badge) badge.innerText = scopedEntries.length;
+            if (scopeLabelEl) {
+                if (scopeLabel) {
+                    scopeLabelEl.innerText = `عرض رسائلك فقط (الدور الحالي: ${scopeLabel}) — من إجمالي ${messageArchive.length} رسالة مؤرشفة`;
+                    scopeLabelEl.classList.remove('hidden');
+                } else {
+                    scopeLabelEl.classList.add('hidden');
+                }
+            }
 
             const normalizedFilter = filterText.trim().toLowerCase();
             const filtered = normalizedFilter
-                ? messageArchive.filter(entry =>
+                ? scopedEntries.filter(entry =>
                     (entry.studentName || '').toLowerCase().includes(normalizedFilter) ||
-                    (entry.subject || '').toLowerCase().includes(normalizedFilter))
-                : messageArchive;
+                    (entry.subject || '').toLowerCase().includes(normalizedFilter) ||
+                    (entry.teacherName || '').toLowerCase().includes(normalizedFilter))
+                : scopedEntries;
 
             if (filtered.length === 0) {
                 tbody.innerHTML = '';
