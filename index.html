@@ -5742,6 +5742,8 @@
         let parentReplyLinksReady = false;
         let lastReplySyncAt = 0;
         const PARENT_REPLY_LINK_LABEL = 'للرد على المدرسة بنقرة واحدة:';
+        // Short link (r.html on this same site redirects to the replies script).
+        const PARENT_REPLY_SHORT_BASE = 'https://ibtisam007992.github.io/bewithus/r?';
         const QUICK_REPLIES_TEACHER_GENERAL = [
             ['شكراً لجهودكم', 'شكراً لجهودكم الطيبة ومتابعتكم المستمرة لابنتي، جزاكم الله خيراً.'],
             ['سنتابع معها في البيت', 'نقدّر اهتمامكم وحرصكم، وسنتابع معها في البيت.'],
@@ -5767,7 +5769,7 @@
         }
 
         function attachReplyLink(message, token) {
-            return `${message}\n\n${PARENT_REPLY_LINK_LABEL}\n${PARENT_REPLY_WEBAPP_URL}?r=${token}`;
+            return `${message}\n\n${PARENT_REPLY_LINK_LABEL}\n${PARENT_REPLY_SHORT_BASE}${token}`;
         }
 
         function registerReplyLink(entry) {
