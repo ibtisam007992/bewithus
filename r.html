@@ -18,9 +18,11 @@ a{color:#1f6fc5;font-weight:700}
 <script>
   // Short reply link: /bewithus/r?TOKEN -> the replies Apps Script page.
   var SCRIPT = 'https://script.google.com/macros/s/AKfycbznLNA-DDcueKreqoE4qWC5N_gUjYaea_RyOz8Jie_6Vbr9Wez2Vrr5BPLmLEOaSN2cXw/exec';
-  var token = (location.search || '').replace(/^\?/, '').replace(/^r=/, '').replace(/[^a-z0-9]/g, '');
+  var q = (location.search || '').replace(/^\?/, '');
+  var isParentPage = /^p=/.test(q);                       // r?p=TOKEN -> parent's school-communication page
+  var token = q.replace(/^[rp]=/, '').replace(/[^a-z0-9]/g, '');
   if (token) {
-    location.replace(SCRIPT + '?r=' + token);
+    location.replace(SCRIPT + (isParentPage ? '?p=' : '?r=') + token);
   } else {
     document.getElementById('msg').textContent = 'الرابط غير مكتمل. يمكنكم الرد مباشرة عبر واتساب.';
   }

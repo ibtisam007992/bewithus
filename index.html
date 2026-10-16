@@ -292,6 +292,30 @@
         }
         @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
     </style>
+    <style id="v5-ui">
+        .xw-input{font-family:inherit;font-size:14px;border:1px solid #cbd5e1;border-radius:10px;padding:7px 10px;background:#fff;color:#0f172a}
+        .xw-table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:13px}
+        .xw-table td,.xw-table th{padding:8px 10px;text-align:right;background:#fff}
+        .xw-table th{background:#f1f5f9;color:#475569;font-weight:700}
+        .xw-table tr td:first-child,.xw-table tr th:first-child{border-radius:0 10px 10px 0}
+        .xw-table tr td:last-child,.xw-table tr th:last-child{border-radius:10px 0 0 10px}
+        .gr-card{border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;background:#fff;margin-bottom:8px}
+        .gr-card textarea{width:100%;font-family:inherit;font-size:14px;line-height:1.7;border:1px solid #cbd5e1;border-radius:10px;padding:8px;margin-top:6px;min-height:110px}
+        .gr-card .t{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+        .ld-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+        .ld-box{border:1px solid #e2e8f0;border-radius:16px;padding:12px 14px;background:#fff}
+        .ld-box h4{margin:0 0 8px;font-size:.95rem;color:#0b2545}
+        .ld-bar{display:flex;align-items:center;gap:8px;font-size:12px;margin:4px 0}
+        .ld-bar .lb{width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155}
+        .ld-bar .tr{flex:1;height:12px;background:#f1f5f9;border-radius:6px;overflow:hidden}
+        .ld-bar .fl{height:100%;background:#0b2545;border-radius:6px}
+        .ld-bar .v{width:44px;text-align:left;font-weight:700;color:#0f172a}
+        .ld-heat{border-collapse:collapse;font-size:11px;width:100%}
+        .ld-heat td,.ld-heat th{border:1px solid #fff;padding:4px;text-align:center}
+        .ld-heat th{color:#64748b;font-weight:700;background:#f8fafc}
+        .ld-heat td.n{text-align:right;white-space:nowrap;color:#334155;background:#f8fafc}
+        .lg-admin-link{display:block;text-align:center;margin-top:8px;font-size:12px;color:#64748b;background:none;border:0;text-decoration:underline;cursor:pointer;font-family:inherit}
+    </style>
 </head>
 <body class="min-h-screen relative selection:bg-cyan-500 selection:text-white">
     <script>
@@ -362,6 +386,8 @@
                 <input id="login-password" type="password" placeholder="••••••">
                 <p id="login-error" class="lg-err"></p>
                 <button type="submit">دخول</button>
+                <p id="login-v5-hint" class="lg-foot" style="display:none">لمن لديها حساب خاص: الاسم وكلمة المرور فقط، ويُحدَّد الدور تلقائياً.</p>
+                <button type="button" class="lg-admin-link" onclick="openAdminDialog()">إدارة حسابات الموظفات (لمسؤولة المنصة)</button>
                 <p class="lg-foot">يبقى الدخول فعّالاً حتى إغلاق نافذة المتصفح أو تسجيل الخروج.</p>
             </form>
         </div>
@@ -374,7 +400,7 @@
             if (_lg && _lg.name && _lg.role) document.getElementById('login-gate').classList.add('hidden-gate');
         } catch (e) {}
     </script>
-    <div id="login-user-pill"><span class="lg-name">مرحباً، <b id="login-user-name"></b> — <span id="login-user-role"></span></span><button type="button" id="install-app-btn" onclick="installPlatformApp()" style="display:none;color:#0369a1">تثبيت على الجوال</button><button type="button" onclick="logoutStaff()">تسجيل الخروج</button></div>
+    <div id="login-user-pill"><span class="lg-name">مرحباً، <b id="login-user-name"></b> — <span id="login-user-role"></span></span><button type="button" onclick="openPasswordDialog(false)" style="color:#334155">كلمة المرور</button><button type="button" id="install-app-btn" onclick="installPlatformApp()" style="display:none;color:#0369a1">تثبيت على الجوال</button><button type="button" onclick="logoutStaff()">تسجيل الخروج</button></div>
 
     <div id="canvas-container"></div>
 
@@ -519,6 +545,13 @@
                      warning passed its 7-day follow-up deadline without the
                      case being closed. Hidden when there are none. Populated by
                      renderFollowupDueBanner(). -->
+                <!-- Leadership tools (principal / vice principal) -->
+                <div class="v5-lead xw-chips" style="display:none;margin:0">
+                    <button class="xw-btn primary" onclick="openLeaderDashboard(false)">📊 لوحة القيادة</button>
+                    <button class="xw-btn" onclick="openAnnouncements()">📢 تعاميم المدرسة</button>
+                    <button class="xw-btn" onclick="openEarlyWarning()">⚠ الإنذار المبكر</button>
+                </div>
+
                 <!-- Early warning banner: leadership roles only, filled by refreshEarlyWarningBanner() -->
                 <div id="early-warning-banner"><span id="early-warning-text"></span><button class="xw-btn warn" onclick="openEarlyWarning()">عرض الحالات</button></div>
 
@@ -604,6 +637,8 @@
                             <span>لوحة الإحصائيات</span>
                         </button>
                     </div>
+
+                    <button type="button" class="sp-open-btn" onclick="openGradesDialog()">✨ رسائل الدرجات المخصّصة للصف كله (من ملف Excel بالذكاء الاصطناعي)</button>
 
                     <!-- Bulk Selection Toolbar: appears once one or more students are
                          checked, to send the current template to all of them at once -->
@@ -695,6 +730,7 @@
                         </div>
 
                         <button type="button" class="sp-open-btn" onclick="openStudentProfile()">📋 ملف الطالبة الشامل — رسائل جميع المعلمات وردود ولي الأمر</button>
+                        <button type="button" class="sp-open-btn" onclick="insertParentLink()">🔗 إضافة رابط «سجل تواصل المدرسة» لولي الأمر إلى الرسالة</button>
 
                         <!-- Per-Student Message History: last few messages sent to this
                              student's parent, so a quick glance avoids repeating the
@@ -1732,6 +1768,114 @@
                     <button class="xw-btn primary" id="sp-ai-btn" onclick="summarizeStudentProfile()">ملخص ذكي للحالة (Gemini)</button>
                     <button class="xw-btn" onclick="printStudentProfile()">تصدير PDF</button>
                     <button class="xw-btn" onclick="closeStudentProfile()">إغلاق</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Accounts admin ("إدارة الحسابات") ===== -->
+        <div id="admin-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="adm-title">
+            <div class="xw-panel">
+                <div class="xw-head"><div><h3 id="adm-title">إدارة حسابات الموظفات</h3><div class="xw-sub">لكل موظفة كلمة مرور خاصة. البيانات محفوظة في السكربت لا في المنصة.</div></div>
+                    <button class="xw-x" onclick="closeDialog('admin-dialog')" aria-label="إغلاق">✕</button></div>
+                <div class="xw-body">
+                    <div id="adm-lock" class="xw-filter">
+                        <label for="adm-code">رمز الإدارة:</label>
+                        <input id="adm-code" type="password" class="xw-input" onkeyup="if(event.key==='Enter') adminLoad()">
+                        <button class="xw-btn primary" onclick="adminLoad()">فتح</button>
+                        <span id="adm-err" class="xw-meta" style="color:#be123c"></span>
+                    </div>
+                    <div id="adm-main" style="display:none">
+                        <div class="xw-kpis" id="adm-kpis"></div>
+                        <div class="xw-chips">
+                            <button class="xw-btn primary" onclick="adminBulkCreate()">إنشاء حسابات لجميع الموظفات</button>
+                            <button class="xw-btn" onclick="adminAddOne()">إضافة حساب</button>
+                            <button class="xw-btn warn" id="adm-shared-btn" onclick="adminToggleShared()"></button>
+                            <button class="xw-btn" onclick="adminAudit()">سجل الدخول</button>
+                        </div>
+                        <div id="adm-created" style="display:none" class="xw-ai"></div>
+                        <input id="adm-search" class="xw-input" placeholder="بحث بالاسم…" oninput="adminRender()" style="width:100%;margin:8px 0">
+                        <div id="adm-list"></div>
+                    </div>
+                </div>
+                <div class="xw-foot"><button class="xw-btn" onclick="closeDialog('admin-dialog')">إغلاق</button></div>
+            </div>
+        </div>
+
+        <!-- ===== Change password ===== -->
+        <div id="password-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="pw-title">
+            <div class="xw-panel" style="max-width:420px">
+                <div class="xw-head"><div><h3 id="pw-title">تغيير كلمة المرور</h3><div class="xw-sub" id="pw-sub">اختاري كلمة مرور خاصة بكِ (٦ خانات على الأقل).</div></div>
+                    <button class="xw-x" onclick="closeDialog('password-dialog')" aria-label="إغلاق">✕</button></div>
+                <div class="xw-body" style="display:flex;flex-direction:column;gap:10px">
+                    <label>كلمة المرور الحالية<input id="pw-old" type="password" class="xw-input" style="width:100%"></label>
+                    <label>كلمة المرور الجديدة<input id="pw-new" type="password" class="xw-input" style="width:100%"></label>
+                    <label>تأكيد كلمة المرور الجديدة<input id="pw-new2" type="password" class="xw-input" style="width:100%"></label>
+                    <span id="pw-err" class="xw-meta" style="color:#be123c"></span>
+                </div>
+                <div class="xw-foot"><button class="xw-btn primary" onclick="submitPasswordChange()">حفظ</button><button class="xw-btn" onclick="closeDialog('password-dialog')">لاحقاً</button></div>
+            </div>
+        </div>
+
+        <!-- ===== Announcements ("تعاميم المدرسة") ===== -->
+        <div id="announce-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="an-title">
+            <div class="xw-panel" style="max-width:720px">
+                <div class="xw-head"><div><h3 id="an-title">تعاميم المدرسة لأولياء الأمور</h3><div class="xw-sub">تظهر في «سجل تواصل المدرسة» لكل ولي أمر لمدة ٦٠ يوماً.</div></div>
+                    <button class="xw-x" onclick="closeDialog('announce-dialog')" aria-label="إغلاق">✕</button></div>
+                <div class="xw-body">
+                    <div id="an-form" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+                        <input id="an-title-in" class="xw-input" placeholder="عنوان التعميم" maxlength="120">
+                        <textarea id="an-text-in" class="xw-input" rows="4" placeholder="نص التعميم" maxlength="1500"></textarea>
+                        <button class="xw-btn primary" onclick="publishAnnouncement()" style="align-self:flex-start">نشر التعميم</button>
+                    </div>
+                    <div id="an-list"></div>
+                </div>
+                <div class="xw-foot"><button class="xw-btn" onclick="closeDialog('announce-dialog')">إغلاق</button></div>
+            </div>
+        </div>
+
+        <!-- ===== Grade messages for a whole class ("رسائل الدرجات") ===== -->
+        <div id="grades-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="gr-title">
+            <div class="xw-panel">
+                <div class="xw-head"><div><h3 id="gr-title">رسائل الدرجات المخصّصة للصف</h3><div class="xw-sub" id="gr-sub">ارفعي ملف درجات الاختبار، فيكتب المساعد لكل طالبة رسالة خاصة بدرجتها، ثم راجعيها وأرسليها.</div></div>
+                    <button class="xw-x" onclick="closeDialog('grades-dialog')" aria-label="إغلاق">✕</button></div>
+                <div class="xw-body">
+                    <div id="gr-step1">
+                        <div class="xw-filter">
+                            <label class="xw-btn" style="display:inline-block">اختيار ملف الدرجات (Excel أو CSV)<input type="file" id="gr-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="gradesReadFile(event)"></label>
+                            <span id="gr-file-name" class="xw-meta"></span>
+                        </div>
+                        <div id="gr-map" style="display:none">
+                            <div class="xw-filter">
+                                <label>عمود الاسم <select id="gr-col-name"></select></label>
+                                <label>عمود الدرجة <select id="gr-col-score"></select></label>
+                                <label>عمود الملاحظات (اختياري) <select id="gr-col-notes"></select></label>
+                                <label>الدرجة الكلية <input id="gr-total" type="number" value="20" class="xw-input" style="width:80px"></label>
+                                <label>اسم الاختبار <input id="gr-exam" class="xw-input" placeholder="مثال: الاختبار القصير الأول" style="width:220px"></label>
+                            </div>
+                            <div id="gr-match" class="xw-meta" style="margin-bottom:10px"></div>
+                            <button class="xw-btn primary" id="gr-generate-btn" onclick="gradesGenerate()">توليد الرسائل بالذكاء الاصطناعي</button>
+                        </div>
+                    </div>
+                    <div id="gr-review"></div>
+                </div>
+                <div class="xw-foot" id="gr-foot" style="display:none">
+                    <button class="xw-btn primary" onclick="gradesSend('web')">إرسال المحدد عبر واتساب ويب بالتتابع</button>
+                    <button class="xw-btn" onclick="gradesSend('app')">عبر تطبيق واتساب</button>
+                    <span id="gr-count" class="xw-meta"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Leadership dashboard ("لوحة القيادة") ===== -->
+        <div id="leader-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="ld-title">
+            <div class="xw-panel" style="max-width:1200px">
+                <div class="xw-head"><div><h3 id="ld-title">لوحة القيادة</h3><div class="xw-sub" id="ld-sub">صورة شاملة لتواصل المدرسة مع أولياء الأمور.</div></div>
+                    <button class="xw-x" onclick="closeDialog('leader-dialog')" aria-label="إغلاق">✕</button></div>
+                <div class="xw-body" id="ld-body"></div>
+                <div class="xw-foot">
+                    <button class="xw-btn primary" onclick="printLeaderDashboard()">تصدير PDF</button>
+                    <button class="xw-btn" onclick="sendMonthlyNow()">إرسال التقرير الشهري الآن إلى بريد المديرة</button>
+                    <button class="xw-btn" onclick="openLeaderDashboard(true)">تحديث</button>
                 </div>
             </div>
         </div>
@@ -2859,6 +3003,7 @@
                 bulkQueueActive = false;
                 if (progress) progress.classList.add('hidden');
                 clearBulkSelection();
+                bulkCustomMessages = null;
                 showToast(`تم إرسال ${totalSent} رسالة بنجاح`);
                 bulkQueue = [];
                 bulkQueueIndex = 0;
@@ -2867,7 +3012,7 @@
 
             const student = bulkQueue[bulkQueueIndex];
             const classLabel = document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '';
-            let message = composeMessageForStudent(activeTemplateType, student);
+            let message = (bulkCustomMessages && bulkCustomMessages[student.id]) || composeMessageForStudent(activeTemplateType, student);
             const replyToken = newReplyTokenIfReady();
             if (replyToken) message = attachReplyLink(message, replyToken);
             const encodedMsg = encodeURIComponent(message);
@@ -2921,6 +3066,7 @@
             if (progress) progress.classList.add('hidden');
             bulkQueue = [];
             bulkQueueIndex = 0;
+            bulkCustomMessages = null;
             clearBulkSelection();
             if (sentSoFar > 0) showToast(`تم إرسال ${sentSoFar} رسالة، وتم إيقاف الإرسال الجماعي`);
         }
@@ -3565,7 +3711,7 @@
         // the code can pull a monthly report (separate from, and does not
         // change, the full-archive Excel/PDF export buttons above).
         // ============================================================
-        const MONTHLY_EXPORT_PASSWORD = '7772';
+        let MONTHLY_EXPORT_PASSWORD = '7772'; // replaced by a server-checked PIN once the script is v5
 
         // Monthly export now reads from the shared Google Sheet archive
         // ("ارشيف بدور الوظيفي رسائل كن معنا") so it includes messages sent from
@@ -5905,7 +6051,7 @@
             if (!PARENT_REPLY_WEBAPP_URL) return Promise.resolve(false);
             return fetch(`${PARENT_REPLY_WEBAPP_URL}?ping=1`, { cache: 'no-store' })
                 .then(r => r.text())
-                .then(t => { const v = parseInt((t.trim().match(/^v(\d+)$/) || [])[1] || '0', 10); parentReplyLinksReady = v >= 2; aiProxyReady = v >= 3; return parentReplyLinksReady; })
+                .then(t => { const v = parseInt((t.trim().match(/^v(\d+)$/) || [])[1] || '0', 10); parentReplyLinksReady = v >= 2; aiProxyReady = v >= 3; scriptV = v; if (v >= 5) MONTHLY_EXPORT_PASSWORD = 'x' + Math.random().toString(36).slice(2) + Date.now(); return parentReplyLinksReady; })
                 .catch(() => false);
         }
 
@@ -6577,6 +6723,540 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
             });
             try { updateHeaderSummary(); } catch (e) {}
         });
+
+        // ============================================================
+        // Version 5: individual accounts + server-checked data access.
+        // When the replies script answers v5+, the login, report PINs and
+        // every Google Sheet read go through the script with a signed session
+        // token; the archive and class files no longer need to be public.
+        // ============================================================
+        let scriptV = 0;
+        let staffSession = null;          // { token, name, role, mode, mustChange }
+        const SESSION_KEY = 'bewithus_session';
+        try { staffSession = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { staffSession = null; }
+
+        const scriptReady = (async () => { try { await checkReplyLinkSupport(); } catch (e) {} return scriptV; })();
+
+        async function api(action, payload, noSession) {
+            const body = Object.assign({ action }, payload || {});
+            if (!noSession) body.session = staffSession ? staffSession.token : '';
+            const res = await fetch(PARENT_REPLY_WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+            const text = await res.text();
+            let data; try { data = JSON.parse(text); } catch (e) { data = { ok: text === 'saved' || text === 'deleted' || text === 'registered', raw: text }; }
+            if (data && data.error === 'session' && !noSession) {
+                showToast('انتهت الجلسة، سجّلي الدخول مرة أخرى', true);
+                endSession();
+                throw new Error('session');
+            }
+            return data;
+        }
+
+        function saveSession(s) {
+            staffSession = s;
+            try { s ? sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)) : sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+        }
+        function endSession() {
+            saveSession(null);
+            try { sessionStorage.removeItem(STAFF_LOGIN_KEY); } catch (e) {}
+            setTimeout(() => location.reload(), 600);
+        }
+
+        // ---- login through the script ----
+        submitLoginGate = async function (event) {
+            if (event) event.preventDefault();
+            const name = (document.getElementById('login-name').value || '').replace(/\s+/g, ' ').trim();
+            const role = document.getElementById('login-role').value;
+            const pwEl = document.getElementById('login-password');
+            const pw = pwEl.value.trim();
+            const err = document.getElementById('login-error');
+            const fail = (msg) => { err.innerText = msg; err.style.display = 'block'; };
+            if (name.length < 2) return fail('يرجى كتابة الاسم');
+            if (!pw) return fail('اكتبي كلمة المرور');
+            const btn = document.querySelector('#login-gate button[type=submit]');
+            if (btn) { btn.disabled = true; btn.dataset.t = btn.innerText; btn.innerText = 'جاري التحقق…'; }
+            try {
+                await scriptReady;
+                if (scriptV < 5) {
+                    // the script has not been updated yet: keep the previous behaviour
+                    if (!role) return fail('يرجى اختيار الدور الوظيفي');
+                    if (pw !== STAFF_LOGIN_PASSWORD) { pwEl.value = ''; return fail('الرقم السري غير صحيح، حاولي مجدداً'); }
+                    const info = { name, role };
+                    try { sessionStorage.setItem(STAFF_LOGIN_KEY, JSON.stringify(info)); } catch (e) {}
+                    err.style.display = 'none';
+                    applyStaffLogin(info);
+                    showToast(`أهلاً ${name} — تم تسجيل الدخول`);
+                    return;
+                }
+                const r = await api('login', { name, role, password: pw }, true);
+                if (!r.ok) { pwEl.value = ''; pwEl.focus(); return fail(r.error || 'تعذر الدخول'); }
+                err.style.display = 'none';
+                saveSession({ token: r.token, name: r.name, role: r.role, mode: r.mode, mustChange: r.mustChange });
+                const info = { name: r.name, role: r.role };
+                try { sessionStorage.setItem(STAFF_LOGIN_KEY, JSON.stringify(info)); } catch (e) {}
+                applyStaffLogin(info);
+                showToast(`أهلاً ${r.name} — تم تسجيل الدخول`);
+                if (r.mustChange) setTimeout(() => openPasswordDialog(true), 600);
+            } catch (e) {
+                fail('تعذر الاتصال، تأكدي من الإنترنت وحاولي مجدداً');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = btn.dataset.t || 'دخول'; }
+            }
+        };
+
+        // A login saved before the update, or without a server session, must log in again.
+        scriptReady.then(v => {
+            if (v < 5) return;
+            let saved = null; try { saved = JSON.parse(sessionStorage.getItem(STAFF_LOGIN_KEY) || 'null'); } catch (e) {}
+            if (saved && !(staffSession && staffSession.token)) {
+                try { sessionStorage.removeItem(STAFF_LOGIN_KEY); } catch (e) {}
+                location.reload();
+            }
+            const hint = document.getElementById('login-v5-hint');
+            if (hint) hint.style.display = 'block';
+        });
+
+        // ---- every sheet read goes through the script when possible ----
+        (function () {
+            const gviz = fetchGoogleSheetJSONP;
+            fetchGoogleSheetJSONP = async function (fileId, sheetName) {
+                await scriptReady;
+                if (scriptV >= 5 && staffSession && staffSession.token) {
+                    const r = await api('read', { id: fileId, tab: sheetName || '' });
+                    if (r.ok) return r.rows;
+                    if (r.error !== 'forbidden') throw new Error(r.error || 'read failed');
+                }
+                return gviz(fileId, sheetName);
+            };
+        })();
+
+        // ---- the report PIN is checked by the script, not in this page ----
+        [['verifyMonthlyExportPassword', 'monthly-export-password', 'تصدير شهري'],
+         ['verifyPilotDashboardPassword', 'pilot-password', 'لوحة متابعة التجربة'],
+         ['verifyAttendanceReportPassword', 'attendance-report-password', 'تقرير الغياب'],
+         ['verifyClearArchivePassword', 'clear-archive-password', 'مسح الأرشيف'],
+         ['verifyFullBackupPassword', 'full-backup-password', 'نسخة احتياطية']].forEach(([fn, fieldId, what]) => {
+            const original = window[fn];
+            if (typeof original !== 'function') return;
+            window[fn] = async function () {
+                await scriptReady;
+                if (scriptV < 5 || !staffSession) return original.apply(this, arguments);
+                const field = document.getElementById(fieldId);
+                const pin = field ? field.value.trim() : '';
+                let ok = false;
+                try { ok = (await api('pin', { pin, what })).ok; } catch (e) { return; }
+                if (field) field.value = ok ? MONTHLY_EXPORT_PASSWORD : '';
+                return original.apply(this, arguments);
+            };
+        });
+
+        // ---- the session token travels with every write to the script ----
+        (function () {
+            const originalFetch = window.fetch.bind(window);
+            window.fetch = function (url, opts) {
+                try {
+                    if (typeof url === 'string' && url.indexOf(PARENT_REPLY_WEBAPP_URL) === 0 && opts && opts.method === 'POST' && staffSession && staffSession.token && typeof opts.body === 'string') {
+                        const body = JSON.parse(opts.body);
+                        if (!body.session) { body.session = staffSession.token; opts = Object.assign({}, opts, { body: JSON.stringify(body) }); }
+                    }
+                } catch (e) {}
+                return originalFetch(url, opts);
+            };
+        })();
+
+        // ---- dialogs helpers ----
+        function openDialog(id) { document.getElementById(id).classList.add('open'); }
+        function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
+        const isLeadership = () => ['principal', 'vice_principal'].includes(currentStaffRole);
+
+        // ---- change password ----
+        function openPasswordDialog(forced) {
+            document.getElementById('pw-sub').innerText = forced
+                ? 'هذه كلمة مرور مؤقتة من الإدارة؛ اختاري كلمة مرور خاصة بكِ (٦ خانات على الأقل).'
+                : 'اختاري كلمة مرور خاصة بكِ (٦ خانات على الأقل).';
+            ['pw-old', 'pw-new', 'pw-new2'].forEach(id => { document.getElementById(id).value = ''; });
+            document.getElementById('pw-err').innerText = '';
+            openDialog('password-dialog');
+        }
+        async function submitPasswordChange() {
+            const o = document.getElementById('pw-old').value, n = document.getElementById('pw-new').value, n2 = document.getElementById('pw-new2').value;
+            const err = document.getElementById('pw-err');
+            if (!staffSession || staffSession.mode !== 'account') { err.innerText = 'تغيير كلمة المرور متاح لمن لديها حساب خاص.'; return; }
+            if (n.length < 6) { err.innerText = 'كلمة المرور الجديدة ٦ خانات على الأقل'; return; }
+            if (n !== n2) { err.innerText = 'التأكيد لا يطابق كلمة المرور الجديدة'; return; }
+            const r = await api('changePassword', { old: o, password: n });
+            if (!r.ok) { err.innerText = r.error || 'تعذر الحفظ'; return; }
+            staffSession.mustChange = false; saveSession(staffSession);
+            closeDialog('password-dialog');
+            showToast('تم تغيير كلمة المرور');
+        }
+
+        // ---- accounts admin ----
+        let adminState = { code: '', accounts: [], shared: true };
+        function openAdminDialog() {
+            document.getElementById('adm-lock').style.display = 'flex';
+            document.getElementById('adm-main').style.display = 'none';
+            document.getElementById('adm-err').innerText = '';
+            openDialog('admin-dialog');
+        }
+        async function adminCall(op, extra) {
+            await scriptReady;
+            if (scriptV < 5) return { ok: false, error: 'حدّثي سكربت الردود إلى الإصدار 5 أولاً' };
+            return api('admin', Object.assign({ code: adminState.code, op }, extra || {}), true);
+        }
+        async function adminLoad() {
+            adminState.code = document.getElementById('adm-code').value.trim() || adminState.code;
+            const r = await adminCall('list');
+            if (!r.ok) { document.getElementById('adm-err').innerText = r.error || 'تعذر الفتح'; return; }
+            adminState.accounts = r.accounts; adminState.shared = r.shared;
+            document.getElementById('adm-lock').style.display = 'none';
+            document.getElementById('adm-main').style.display = 'block';
+            adminRender();
+        }
+        function adminRender() {
+            const a = adminState.accounts;
+            const roleLabel = r => (ROLE_DISPLAY_LABELS[r] || r);
+            document.getElementById('adm-kpis').innerHTML =
+                `<div class="xw-kpi"><div class="n">${a.length}</div><div class="l">حساب</div></div>` +
+                `<div class="xw-kpi"><div class="n">${a.filter(x => x.lastLogin).length}</div><div class="l">دخلت مرة على الأقل</div></div>` +
+                `<div class="xw-kpi"><div class="n">${a.filter(x => x.mustChange).length}</div><div class="l">لم تغيّر كلمة المرور المؤقتة</div></div>` +
+                `<div class="xw-kpi"><div class="n">${adminState.shared ? 'مفعّلة' : 'موقوفة'}</div><div class="l">كلمة الدخول المشتركة</div></div>`;
+            document.getElementById('adm-shared-btn').innerText = adminState.shared ? 'إيقاف كلمة الدخول المشتركة' : 'إعادة تفعيل كلمة الدخول المشتركة';
+            const q = normalizeStaffName(document.getElementById('adm-search').value || '');
+            const rows = a.filter(x => !q || normalizeStaffName(x.name).includes(q));
+            document.getElementById('adm-list').innerHTML = !rows.length ? '<div class="xw-empty">لا توجد حسابات بعد — اضغطي «إنشاء حسابات لجميع الموظفات».</div>' :
+                `<table class="xw-table"><thead><tr><th>الاسم</th><th>الدور</th><th>آخر دخول</th><th>الحالة</th><th></th></tr></thead><tbody>${rows.map(x => `
+                    <tr><td><b>${pilotEsc(x.name)}</b></td><td>${pilotEsc(roleLabel(x.role))}</td><td>${pilotEsc(x.lastLogin || '—')}</td>
+                    <td>${x.active ? (x.mustChange ? '<span class="xw-chip concern">كلمة مؤقتة</span>' : '<span class="xw-chip positive">فعّال</span>') : '<span class="xw-chip absence">موقوف</span>'}</td>
+                    <td style="white-space:nowrap"><button class="xw-btn" onclick='adminReset(${JSON.stringify(x.name)})'>كلمة مرور جديدة</button>
+                        <button class="xw-btn ${x.active ? 'warn' : 'ok'}" onclick='adminSetActive(${JSON.stringify(x.name)}, ${!x.active})'>${x.active ? 'إيقاف' : 'تفعيل'}</button></td></tr>`).join('')}</tbody></table>`;
+        }
+        function showCreated(list, title) {
+            const box = document.getElementById('adm-created');
+            if (!list.length) { box.style.display = 'none'; showToast('لا توجد حسابات جديدة لإنشائها'); return; }
+            window.__createdAccounts = list;
+            box.style.display = 'block';
+            box.innerHTML = `<b>${title}</b> — هذه كلمات المرور تظهر مرة واحدة فقط، اطبعيها أو صدّريها الآن:\n` +
+                list.map(c => `• ${pilotEsc(c.name)} (${pilotEsc(ROLE_DISPLAY_LABELS[c.role] || c.role || '')}): ${c.password}`).join('\n') +
+                `\n<button class="xw-btn primary" onclick="printCredentialCards()">طباعة بطاقات الدخول</button> <button class="xw-btn" onclick="exportCredentials()">تصدير Excel</button>`;
+        }
+        async function adminBulkCreate() {
+            const staff = getAllStaff().map(s => ({ name: s.name, role: s.role || (s.subject ? 'subject_teacher' : '') })).filter(s => s.role);
+            if (!confirm(`سيتم إنشاء حسابات لـ ${staff.length} موظفة ليس لديهن حساب بعد، بكلمات مرور مؤقتة من ٦ أرقام. متابعة؟`)) return;
+            const r = await adminCall('bulkCreate', { staff });
+            if (!r.ok) { showToast(r.error || 'تعذر الإنشاء', true); return; }
+            showCreated(r.created.map(c => Object.assign(c, { role: c.role })), `تم إنشاء ${r.created.length} حساب`);
+            adminLoad();
+        }
+        async function adminAddOne() {
+            const name = prompt('اسم الموظفة كما في الكشف:'); if (!name) return;
+            const roles = Object.keys(ROLE_DISPLAY_LABELS).filter(k => ['subject_teacher', 'principal', 'vice_principal', 'nurse', 'social_worker', 'systems_specialist', 'psychologist', 'homeroom_teacher', 'career_counselor'].includes(k));
+            const pick = prompt('الدور (اكتبي الرقم):\n' + roles.map((k, i) => `${i + 1}) ${ROLE_DISPLAY_LABELS[k]}`).join('\n'), '1');
+            const role = roles[Number(pick) - 1]; if (!role) return;
+            const r = await adminCall('add', { name, role });
+            if (!r.ok) { showToast(r.error, true); return; }
+            showCreated([{ name: r.name, role, password: r.password }], 'تمت إضافة الحساب');
+            adminLoad();
+        }
+        async function adminReset(name) {
+            if (!confirm(`إنشاء كلمة مرور مؤقتة جديدة لـ ${name}؟`)) return;
+            const r = await adminCall('reset', { name });
+            if (!r.ok) { showToast(r.error, true); return; }
+            const acc = adminState.accounts.find(a => a.name === r.name) || {};
+            showCreated([{ name: r.name, role: acc.role, password: r.password }], 'كلمة مرور جديدة');
+            adminLoad();
+        }
+        async function adminSetActive(name, active) {
+            const r = await adminCall('setActive', { name, active });
+            if (!r.ok) { showToast(r.error, true); return; }
+            adminLoad();
+        }
+        async function adminToggleShared() {
+            const turnOn = !adminState.shared;
+            if (!turnOn && !confirm('بعد الإيقاف لن تستطيع الدخول إلا من لديها حساب خاص. هل أنشأتِ حسابات الجميع ووزعتِ كلماتهن؟')) return;
+            const r = await adminCall('shared', { on: turnOn });
+            if (!r.ok) { showToast(r.error, true); return; }
+            adminLoad();
+        }
+        async function adminAudit() {
+            const r = await adminCall('audit');
+            if (!r.ok) { showToast(r.error, true); return; }
+            const box = document.getElementById('adm-created');
+            box.style.display = 'block';
+            box.innerHTML = '<b>آخر عمليات الدخول والإدارة</b>\n' + (r.rows.map(x => `${pilotEsc(x[0])} — ${pilotEsc(x[1])} — ${pilotEsc(x[2])}${x[3] ? ' (' + pilotEsc(x[3]) + ')' : ''}`).join('\n') || 'لا يوجد');
+        }
+        function printCredentialCards() {
+            const list = window.__createdAccounts || [];
+            const cards = list.map(c => `<div class="card"><div class="s">منصة «كُن معنا» — ${pilotEsc('مدرسة خولة بنت حكيم (9-12)')}</div>
+                <div class="n">${pilotEsc(c.name)}</div><div class="r">${pilotEsc(ROLE_DISPLAY_LABELS[c.role] || '')}</div>
+                <div class="p">كلمة المرور المؤقتة: <b>${c.password}</b></div><div class="u">ibtisam007992.github.io/bewithus — غيّري كلمة المرور بعد أول دخول</div></div>`).join('');
+            printHtmlDocument(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>
+                body{font-family:Tahoma,Arial;margin:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+                .card{border:1.5px dashed #0b2545;border-radius:10px;padding:10px 12px;page-break-inside:avoid}
+                .s{font-size:10px;color:#1f6fc5}.n{font-size:15px;font-weight:700;margin-top:4px}.r{font-size:11px;color:#475569}
+                .p{margin-top:6px;font-size:13px}.p b{font-size:16px;letter-spacing:2px}.u{font-size:9px;color:#64748b;margin-top:4px}</style></head>
+                <body><div class="grid">${cards}</div></body></html>`);
+        }
+        function exportCredentials() {
+            const list = window.__createdAccounts || [];
+            const ws = XLSX.utils.json_to_sheet(list.map(c => ({ 'الاسم': c.name, 'الدور': ROLE_DISPLAY_LABELS[c.role] || c.role, 'كلمة المرور المؤقتة': c.password })));
+            ws['!views'] = [{ RTL: true }];
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'الحسابات');
+            XLSX.writeFile(wb, 'حسابات_منصة_كن_معنا.xlsx');
+        }
+
+        // ---- parent page link ----
+        async function getParentLink(phone) {
+            await scriptReady;
+            if (scriptV < 5) { showToast('حدّثي سكربت الردود إلى الإصدار 5 أولاً', true); return null; }
+            const r = await api('parentLink', { phone });
+            return r.ok ? r.url : null;
+        }
+        async function insertParentLink() {
+            if (!selectedStudent) { showToast('اختاري الطالبة أولاً', true); return; }
+            const url = await getParentLink(selectedStudent.phone);
+            if (!url) return;
+            const ta = document.getElementById('whatsapp-text');
+            if (ta && !ta.value.includes(url)) ta.value = `${ta.value.trim()}\n\nسجل تواصل المدرسة مع ابنتكم (كل الرسائل والتعاميم):\n${url}`;
+            try { await navigator.clipboard.writeText(url); } catch (e) {}
+            showToast('أُضيف رابط سجل ولي الأمر إلى الرسالة (ونُسخ)');
+        }
+
+        // ---- announcements ----
+        async function openAnnouncements() {
+            openDialog('announce-dialog');
+            document.getElementById('an-form').style.display = isLeadership() ? 'flex' : 'none';
+            const list = document.getElementById('an-list');
+            list.innerHTML = '<div class="xw-empty">جاري التحميل…</div>';
+            await scriptReady;
+            if (scriptV < 5) { list.innerHTML = '<div class="xw-empty">حدّثي سكربت الردود إلى الإصدار 5 لتفعيل التعاميم.</div>'; return; }
+            const r = await api('announcements');
+            list.innerHTML = (r.items || []).map(a => `<div class="xw-card" style="border-right-color:#f2b705"><div class="t"><span class="name">${pilotEsc(a.title)}</span>
+                <span class="xw-meta">${pilotEsc(a.at)} · ${pilotEsc(a.by)}</span></div><div style="white-space:pre-line;font-size:14px;margin-top:6px">${pilotEsc(a.text)}</div>
+                ${isLeadership() ? `<div class="xw-chips"><button class="xw-btn warn" onclick="removeAnnouncement(${a.row})">حذف</button></div>` : ''}</div>`).join('') || '<div class="xw-empty">لا توجد تعاميم بعد.</div>';
+        }
+        async function publishAnnouncement() {
+            const title = document.getElementById('an-title-in').value.trim(), text = document.getElementById('an-text-in').value.trim();
+            const r = await api('announce', { title, text });
+            if (!r.ok) { showToast(r.error || 'تعذر النشر', true); return; }
+            document.getElementById('an-title-in').value = ''; document.getElementById('an-text-in').value = '';
+            showToast('نُشر التعميم — يظهر في صفحات أولياء الأمور');
+            openAnnouncements();
+        }
+        async function removeAnnouncement(row) {
+            if (!confirm('حذف هذا التعميم؟')) return;
+            await api('announce', { remove: row });
+            openAnnouncements();
+        }
+
+        // ---- grade messages for a whole class ----
+        let gradesState = null;
+        let bulkCustomMessages = null;
+        function openGradesDialog() {
+            if (!students.length) { showToast('استوردي سجل الصف أولاً', true); return; }
+            gradesState = null;
+            document.getElementById('gr-file').value = '';
+            document.getElementById('gr-file-name').innerText = '';
+            document.getElementById('gr-map').style.display = 'none';
+            document.getElementById('gr-review').innerHTML = '';
+            document.getElementById('gr-foot').style.display = 'none';
+            document.getElementById('gr-sub').innerText = `الصف الحالي: ${document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : ''} (${students.length} طالبة) — مادة ${currentSubjectName}`;
+            openDialog('grades-dialog');
+        }
+        function gradesReadFile(ev) {
+            const f = ev.target.files[0]; if (!f) return;
+            document.getElementById('gr-file-name').innerText = f.name;
+            const reader = new FileReader();
+            reader.onload = e => {
+                let rows;
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+                } catch (err) { showToast('تعذرت قراءة الملف', true); return; }
+                rows = rows.filter(r => r.some(c => String(c).trim()));
+                if (rows.length < 2) { showToast('الملف فارغ', true); return; }
+                // header = first row that has text in most cells
+                const header = rows[0].map((h, i) => String(h).trim() || `عمود ${i + 1}`);
+                const data = rows.slice(1);
+                const opts = header.map((h, i) => `<option value="${i}">${pilotEsc(h)}</option>`).join('');
+                const guess = (re) => header.findIndex(h => re.test(h));
+                const nameIdx = Math.max(0, guess(/اسم|الطالبة|name/i));
+                const isNum = i => data.filter(r => r[i] !== '' && !isNaN(parseFloat(String(r[i]).replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632)))).length >= data.length * 0.6;
+                let scoreIdx = guess(/درجة|الدرجة|المجموع|score|mark/i); if (scoreIdx < 0) scoreIdx = header.findIndex((h, i) => i !== nameIdx && isNum(i));
+                const notesIdx = guess(/ملاحظ|note/i);
+                document.getElementById('gr-col-name').innerHTML = opts; document.getElementById('gr-col-name').value = nameIdx;
+                document.getElementById('gr-col-score').innerHTML = opts; document.getElementById('gr-col-score').value = Math.max(0, scoreIdx);
+                document.getElementById('gr-col-notes').innerHTML = '<option value="-1">— بدون —</option>' + opts; document.getElementById('gr-col-notes').value = notesIdx;
+                gradesState = { header, data };
+                ['gr-col-name', 'gr-col-score', 'gr-col-notes', 'gr-total'].forEach(id => { document.getElementById(id).onchange = gradesMatch; });
+                document.getElementById('gr-map').style.display = 'block';
+                gradesMatch();
+            };
+            reader.readAsArrayBuffer(f);
+        }
+        function gradesMatch() {
+            if (!gradesState) return;
+            const ni = +document.getElementById('gr-col-name').value, si = +document.getElementById('gr-col-score').value, oi = +document.getElementById('gr-col-notes').value;
+            const norm = s => normalizeStaffName(String(s)).replace(/\s+/g, '');
+            const matched = [], unmatched = [];
+            gradesState.data.forEach(r => {
+                const nm = String(r[ni] || '').trim(); if (!nm) return;
+                const score = parseFloat(String(r[si]).replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632));
+                const n = norm(nm);
+                const st = students.find(s => norm(s.name) === n) || students.find(s => norm(s.name).startsWith(n) || n.startsWith(norm(s.name)))
+                    || students.find(s => { const a = normalizeStaffName(s.name).split(' ').slice(0, 2).join(''); return a && a === normalizeStaffName(nm).split(' ').slice(0, 2).join(''); });
+                (st ? matched : unmatched).push({ student: st, name: nm, score: isNaN(score) ? null : score, notes: oi >= 0 ? String(r[oi] || '').trim() : '' });
+            });
+            gradesState.matched = matched;
+            document.getElementById('gr-match').innerHTML = `تمت مطابقة <b>${matched.length}</b> طالبة مع سجل الصف` +
+                (unmatched.length ? ` — لم تُطابق ${unmatched.length}: ${unmatched.slice(0, 6).map(u => pilotEsc(u.name)).join('، ')}${unmatched.length > 6 ? '…' : ''}` : '');
+        }
+        async function gradesGenerate() {
+            if (!gradesState || !gradesState.matched || !gradesState.matched.length) { showToast('لا توجد طالبات مطابقة', true); return; }
+            const total = +document.getElementById('gr-total').value || 20;
+            const exam = document.getElementById('gr-exam').value.trim() || 'الاختبار';
+            const list = gradesState.matched.filter(m => m.score != null);
+            const review = document.getElementById('gr-review');
+            review.innerHTML = `<div class="xw-empty">جاري كتابة ${list.length} رسالة… (حوالي ${Math.ceil(list.length / 10) * 8} ثانية)</div>`;
+            setAiButtonBusy('gr-generate-btn', true, 'جاري التوليد…');
+            const out = [];
+            try {
+                for (let i = 0; i < list.length; i += 10) {
+                    const batch = list.slice(i, i + 10);
+                    const input = batch.map((m, k) => ({ id: k, name: m.student.name, score: m.score, total, notes: m.notes }));
+                    const data = await geminiGenerate({
+                        systemInstruction: { parts: [{ text: AI_SCHOOL_CONTEXT }] },
+                        contents: [{ role: 'user', parts: [{ text:
+`اكتب لكل طالبة في القائمة رسالة واتساب مستقلة لولي أمرها عن نتيجتها في "${exam}" بمادة ${currentSubjectName}.
+- ${aiSenderLine()}
+- القائمة (JSON): ${JSON.stringify(input)}
+قواعد: ابدأ كل رسالة بـ "السلام عليكم ورحمة الله وبركاته،" ثم "ولي أمر الطالبة {الاسم} المحترم،"، واذكر الدرجة كما هي (score من total)، ونبرة تناسب النسبة: تهنئة صادقة للمتفوقات (90٪ فأكثر)، وتشجيع مع توصية واحدة محددة لمن هي بين 60٪ و89٪، ودعوة لطيفة للمتابعة مع خطة بسيطة لمن هي دون 60٪. استخدم الملاحظات إن وُجدت ولا تخترع غيرها. من 45 إلى 90 كلمة. لا توقيع.` }] }],
+                        generationConfig: { temperature: 0.6, responseMimeType: 'application/json',
+                            responseSchema: { type: 'ARRAY', items: { type: 'OBJECT', properties: { id: { type: 'NUMBER' }, message: { type: 'STRING' } }, required: ['id', 'message'] } } }
+                    });
+                    const text = ((data.candidates || [])[0] || {}).content.parts.map(p => p.text || '').join('');
+                    let arr = []; try { arr = JSON.parse(text); } catch (e) {}
+                    batch.forEach((m, k) => { const hit = arr.find(a => Number(a.id) === k); out.push(Object.assign({}, m, { message: hit ? hit.message.trim() : '' })); });
+                    review.querySelector('.xw-empty') && (review.querySelector('.xw-empty').innerText = `تمت كتابة ${out.length} من ${list.length}…`);
+                }
+            } catch (e) {
+                showToast(e.message || 'تعذر التوليد', true);
+            } finally {
+                setAiButtonBusy('gr-generate-btn', false);
+            }
+            if (!out.length) { review.innerHTML = ''; return; }
+            gradesState.out = out;
+            review.innerHTML = out.map((m, i) => {
+                const pct = Math.round(m.score / total * 100);
+                return `<div class="gr-card"><div class="t"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="gr-pick" data-i="${i}" ${m.message ? 'checked' : ''}> <b>${pilotEsc(m.student.name)}</b></label>
+                    <span class="xw-chip ${pct >= 90 ? 'positive' : pct >= 60 ? '' : 'concern'}">${m.score} / ${total} (${pct}٪)</span></div>
+                    <textarea id="gr-msg-${i}">${pilotEsc(m.message || '')}</textarea></div>`;
+            }).join('');
+            document.getElementById('gr-foot').style.display = 'flex';
+            document.getElementById('gr-count').innerText = `${out.filter(m => m.message).length} رسالة جاهزة — راجعيها قبل الإرسال`;
+        }
+        function gradesSend(mode) {
+            const picks = Array.from(document.querySelectorAll('.gr-pick:checked')).map(c => +c.dataset.i);
+            if (!picks.length) { showToast('حددي رسالة واحدة على الأقل', true); return; }
+            bulkCustomMessages = {};
+            const queue = [];
+            picks.forEach(i => {
+                const m = gradesState.out[i];
+                const text = document.getElementById(`gr-msg-${i}`).value.trim();
+                if (!text) return;
+                const sig = currentTeacherName ? `\n\nمعلمة مادة (${currentSubjectName}): ${currentTeacherName}` : '';
+                bulkCustomMessages[m.student.id] = text + (text.includes('معلمة مادة (') ? '' : sig);
+                queue.push(m.student);
+            });
+            closeDialog('grades-dialog');
+            bulkQueue = queue; bulkQueueIndex = 0; bulkQueueMode = mode; bulkQueueActive = true;
+            activeTemplateType = 'exam';
+            openNextBulkMessage();
+        }
+
+        // ---- leadership dashboard ----
+        let leaderCache = null;
+        async function openLeaderDashboard(force) {
+            openDialog('leader-dialog');
+            const body = document.getElementById('ld-body');
+            body.innerHTML = '<div class="xw-empty">جاري تحليل بيانات المدرسة…</div>';
+            let list = [], ratings = [], roster = null;
+            try {
+                [list, roster] = await Promise.all([loadSchoolMessages(force), loadPilotRosterMap(false).catch(() => null)]);
+                const rep = await fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID, PARENT_REPLY_SHEET_TAB).catch(() => []);
+                rep.forEach(r => { const v = Number(r && r[10]); if (v >= 1 && v <= 5) ratings.push(v); });
+            } catch (e) { body.innerHTML = '<div class="xw-empty">تعذر جلب البيانات.</div>'; return; }
+            const now = new Date();
+            const mStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime(), pStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+            const thisM = list.filter(m => m.t >= mStart), prevM = list.filter(m => m.t >= pStart && m.t < mStart);
+            const rate = arr => arr.length ? Math.round(arr.filter(m => m.reply).length / arr.length * 100) : 0;
+            const delta = prevM.length ? Math.round((thisM.length - prevM.length) / prevM.length * 100) : null;
+            const clsOf = m => (m.className || (roster && roster.map[m.phone] ? roster.map[m.phone][0].cls : '') || 'غير محدد');
+            // weekly series (12 weeks)
+            const wk = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x.getTime(); };
+            const weeks = []; for (let i = 11; i >= 0; i--) weeks.push(wk(Date.now() - i * 7 * 86400000));
+            const series = weeks.map(w => { const a = list.filter(m => wk(m.t) === w); return { w, n: a.length, r: rate(a) }; });
+            const maxN = Math.max(1, ...series.map(s => s.n));
+            const W = 560, H = 170, px = i => 30 + i * ((W - 50) / 11), py = v => H - 25 - v * (H - 45);
+            const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="الرسائل ونسبة الردود أسبوعياً">
+                ${series.map((s, i) => `<rect x="${px(i) - 10}" y="${py(s.n / maxN)}" width="20" height="${H - 25 - py(s.n / maxN)}" rx="4" fill="#1f6fc5" opacity=".85"><title>${s.n} رسالة</title></rect>`).join('')}
+                <polyline fill="none" stroke="#f2b705" stroke-width="3" points="${series.map((s, i) => `${px(i)},${py(s.r / 100)}`).join(' ')}"/>
+                ${series.map((s, i) => `<circle cx="${px(i)}" cy="${py(s.r / 100)}" r="3.5" fill="#f2b705"><title>${s.r}٪ ردود</title></circle>`).join('')}
+                ${series.map((s, i) => i % 2 ? '' : `<text x="${px(i)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#64748b">${new Date(s.w).getDate()}/${new Date(s.w).getMonth() + 1}</text>`).join('')}
+                </svg><div class="xw-meta">الأعمدة الزرقاء: عدد الرسائل · الخط الذهبي: نسبة الردود</div>`;
+            // heatmap class × last 8 weeks
+            const w8 = weeks.slice(-8);
+            const classes = {};
+            list.filter(m => m.t >= w8[0]).forEach(m => { const c = clsOf(m); (classes[c] = classes[c] || {})[wk(m.t)] = ((classes[c] || {})[wk(m.t)] || 0) + 1; });
+            const cmax = Math.max(1, ...Object.values(classes).flatMap(o => Object.values(o)));
+            const heat = `<table class="ld-heat"><tr><th>الصف</th>${w8.map(w => `<th>${new Date(w).getDate()}/${new Date(w).getMonth() + 1}</th>`).join('')}</tr>
+                ${Object.keys(classes).sort((a, b) => a.localeCompare(b, 'ar')).map(c => `<tr><td class="n">${pilotEsc(c)}</td>${w8.map(w => { const v = classes[c][w] || 0; const a = v ? 0.15 + 0.85 * v / cmax : 0; return `<td style="background:rgba(11,37,69,${a.toFixed(2)});color:${a > .5 ? '#fff' : '#0f172a'}">${v || ''}</td>`; }).join('')}</tr>`).join('')}</table>
+                <div class="xw-meta">الأغمق = تواصل أكثر. الصفوف الفاتحة تحتاج تشجيع معلماتها.</div>`;
+            const bars = (obj, fmt) => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => { const mx = Math.max(...Object.values(obj)); return `<div class="ld-bar"><span class="lb" title="${pilotEsc(k)}">${pilotEsc(k)}</span><span class="tr"><span class="fl" style="display:block;width:${(v / mx * 100).toFixed(0)}%"></span></span><span class="v">${fmt ? fmt(v) : v}</span></div>`; }).join('');
+            const bySubj = {}, bySender = {}, cats = { positive: 0, concern: 0, absence: 0, info: 0 };
+            thisM.forEach(m => { bySubj[m.subject || '—'] = (bySubj[m.subject || '—'] || 0) + 1; const s = m.sender.split(' — ')[0]; bySender[s] = (bySender[s] || 0) + 1; cats[m.category]++; });
+            const flagged = computeEarlyWarning(list, 30, 3);
+            const avg = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : '—';
+            const kpi = (n, l) => `<div class="xw-kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+            body.innerHTML = `<div class="xw-kpis">
+                ${kpi(thisM.length, 'رسائل هذا الشهر' + (delta == null ? '' : ` (${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta)}٪ عن الشهر الماضي)`))}
+                ${kpi(rate(thisM) + '٪', 'نسبة الردود هذا الشهر')}${kpi(avg + (ratings.length ? ' / 5' : ''), `رضا أولياء الأمور (${ratings.length} تقييم)`)}
+                ${kpi(Object.keys(bySender).length, 'موظفة أرسلت هذا الشهر')}${kpi(flagged.length, 'طالبة في الإنذار المبكر (٣٠ يوماً)')}</div>
+                <div class="ld-grid">
+                    <div class="ld-box"><h4>الرسائل ونسبة الردود — آخر ١٢ أسبوعاً</h4>${svg}</div>
+                    <div class="ld-box"><h4>نوع التواصل هذا الشهر</h4>${bars({ 'ثناء وتميز': cats.positive, 'متابعة أكاديمية/سلوكية': cats.concern, 'غياب/تأخر/استئذان': cats.absence, 'إشعار عام': cats.info })}
+                        <div class="xw-meta">نسبة الثناء إلى المتابعة: ${cats.concern + cats.absence ? (cats.positive / (cats.concern + cats.absence)).toFixed(1) : '—'} — كلما ارتفعت كان التواصل إيجابياً أكثر.</div></div>
+                    <div class="ld-box" style="grid-column:1/-1"><h4>خريطة التواصل حسب الصف — آخر ٨ أسابيع</h4>${heat}</div>
+                    <div class="ld-box"><h4>حسب المادة (هذا الشهر)</h4>${bars(bySubj) || '<div class="xw-meta">لا توجد بيانات</div>'}</div>
+                    <div class="ld-box"><h4>أكثر الموظفات تواصلاً (هذا الشهر)</h4>${bars(bySender) || '<div class="xw-meta">لا توجد بيانات</div>'}</div>
+                </div>`;
+            leaderCache = { html: body.innerHTML };
+        }
+        function printLeaderDashboard() {
+            if (!leaderCache) return;
+            printHtmlDocument(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>
+                body{font-family:Tahoma,Arial;padding:16px;color:#0f172a}h1{font-size:18px;color:#0b2545}
+                ${document.getElementById('early-warning-and-profile').textContent}${document.getElementById('v5-ui').textContent}
+                .ld-box{page-break-inside:avoid}</style></head><body><h1>لوحة القيادة — منصة «كُن معنا» — ${new Date().toLocaleDateString('ar-OM')}</h1>${leaderCache.html}</body></html>`);
+        }
+        async function sendMonthlyNow() {
+            const r = await api('sendMonthly');
+            showToast(r.ok ? 'أُرسل التقرير الشهري إلى بريد المديرة' : (r.error || 'تعذر الإرسال'), !r.ok);
+        }
+
+        // ---- entry points: buttons shown by role ----
+        function refreshV5Buttons() {
+            const lead = loggedInStaff && isLeadership();
+            document.querySelectorAll('.v5-lead').forEach(el => { el.style.display = lead ? '' : 'none'; });
+        }
+        (function () {
+            const original = applyStaffLogin;
+            applyStaffLogin = function () {
+                const r = original.apply(this, arguments);
+                try { refreshV5Buttons(); } catch (e) {}
+                return r;
+            };
+        })();
+        window.addEventListener('load', () => { try { refreshV5Buttons(); } catch (e) {} });
 
     </script>
 </body>
