@@ -3500,7 +3500,7 @@
                     if (!r || r.length < 8) return;
                     const key = normalizeDigits(r[0]).trim();
                     if (!/^\d+\|\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/.test(key)) return; // header / other tabs
-                    map[key] = { reply: r[7] != null ? String(r[7]) : '', replyAt: r[8] != null ? String(r[8]) : '' };
+                    map[key] = { reply: r[7] != null ? String(r[7]) : '', replyAt: r[8] != null ? (sheetDateToReplyKeyDate(r[8]) || String(r[8])) : '' };
                 });
                 return map;
             }).catch(() => ({}));
@@ -3753,8 +3753,11 @@
         function pilotNormName(raw) {
             return String(raw || '').replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, '');
         }
-        function pilotKeyDate(text) { // "YYYY/MM/DD HH:MM:SS" -> Date
-            const m = String(text || '').match(/(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+        function pilotKeyDate(text) { // "YYYY/MM/DD HH:MM:SS" or a sheet Date(y,m,d,h,mi,s) -> Date
+            const t = String(text || '');
+            const g = t.match(/Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,(\d{1,2}),(\d{1,2})(?:,(\d{1,2}))?)?/);
+            if (g) return new Date(+g[1], +g[2], +g[3], +(g[4] || 0), +(g[5] || 0), +(g[6] || 0));
+            const m = t.match(/(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
             return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
         }
         function pilotWeekStart(date) { // school week starts on Sunday
