@@ -5807,10 +5807,13 @@
                     const reply = r[7] != null ? String(r[7]).trim() : '';
                     if (reply) map[key] = { reply, replyAt: r[8] != null ? normalizeDigits(r[8]) : '', source: r[9] != null ? String(r[9]) : '' };
                 });
+                const near = {};
+                Object.keys(map).forEach(k => { const m = k.match(/^(\d+)\|(.+)$/); const d = m && pilotKeyDate(m[2]); if (d) (near[m[1]] = near[m[1]] || []).push({ t: d.getTime(), hit: map[k] }); });
+                const nearestReply = e => { let best = null; (near[normalizeDigits(e.phone).replace(/\D/g, '')] || []).forEach(c => { const diff = Math.abs(c.t - new Date(e.sentAt).getTime()); if (diff <= 180000 && (!best || diff < best.diff)) best = { diff, hit: c.hit }; }); return best ? best.hit : null; };
                 let changed = 0;
                 messageArchive.forEach(e => {
                     if (!e.phone || !e.sentAt) return;
-                    const hit = map[getArchiveReplyKey(e.phone, new Date(e.sentAt))];
+                    const hit = map[getArchiveReplyKey(e.phone, new Date(e.sentAt))] || nearestReply(e);
                     if (!hit || hit.reply === e.parentReply) return;
                     const fromParent = hit.source.indexOf('ولي الأمر') !== -1;
                     if (e.parentReply && !fromParent) return; // keep this device's own teacher-recorded reply
@@ -6013,6 +6016,118 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
                 showToast(e.message || 'تعذر إعداد التوصية', true);
             }
         };
+
+        // ============================================================
+        // Shared archive across devices: messages the logged-in person sent
+        // from any device are pulled from the archive Google Sheet into this
+        // device's archive (the principal gets everyone's). Copies are kept
+        // for the last 60 days and marked fromSheet so they are never sent
+        // back to the sheet.
+        // ============================================================
+        let lastSheetArchiveSyncAt = 0;
+        const SHEET_ARCHIVE_DAYS = 60;
+
+        function senderMatchesLoggedIn(sender) {
+            if (currentStaffRole === 'principal') return true;
+            if (!loggedInStaff) return false;
+            const name = normalizeStaffName(String(sender || '').split(' — ')[0]);
+            return !!name && name === normalizeStaffName(loggedInStaff.name);
+        }
+
+        function roleFromSenderLabel(sender) {
+            const label = (String(sender || '').split(' — ')[1] || '').trim();
+            if (!label) return '';
+            if (label.indexOf('معلمة') === 0) return 'subject_teacher';
+            return Object.keys(ROLE_DISPLAY_LABELS).find(k => ROLE_DISPLAY_LABELS[k] === label) || '';
+        }
+
+        async function syncArchiveFromSheet(force) {
+            if (!loggedInStaff) return 0;
+            if (!force && Date.now() - lastSheetArchiveSyncAt < 60000) return 0;
+            lastSheetArchiveSyncAt = Date.now();
+
+            // A shared device: drop other people's copies before syncing this person's.
+            const keepBefore = messageArchive.length;
+            messageArchive = messageArchive.filter(e => !e.fromSheet || senderMatchesLoggedIn(e.teacherName));
+            let changed = keepBefore !== messageArchive.length;
+
+            let rows;
+            try { rows = await fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID); } catch (e) { rows = null; }
+            let added = 0;
+            if (rows) {
+                const cutoff = Date.now() - SHEET_ARCHIVE_DAYS * 86400000;
+                const byPhone = {};
+                messageArchive.forEach(e => { const p = pilotNormPhone(e.phone); (byPhone[p] = byPhone[p] || []).push(e); });
+                const rosterMap = pilotRosterCache ? pilotRosterCache.map : null;
+                rows.forEach(r => {
+                    if (!r || r.length < 6) return;
+                    const date = pilotKeyDate(sheetDateToReplyKeyDate(r[0]));
+                    if (!date || isNaN(date) || date.getTime() < cutoff) return;
+                    const sender = r[4] != null ? String(r[4]).trim() : '';
+                    if (!senderMatchesLoggedIn(sender)) return;
+                    const phone = pilotNormPhone(r[2]);
+                    if (!phone) return;
+                    const t = date.getTime();
+                    const sheetKey = `${phone}|${t}`;
+                    const list = byPhone[phone] || [];
+                    if (list.some(e => e.sheetKey === sheetKey || Math.abs(new Date(e.sentAt).getTime() - t) <= 180000)) return;
+                    const entry = {
+                        id: t * 1000 + (parseInt(phone.slice(-3), 10) || 0),
+                        studentName: r[1] != null ? String(r[1]) : '',
+                        phone,
+                        subject: r[3] != null ? String(r[3]) : '',
+                        teacherName: sender || 'غير محدد',
+                        type: '',
+                        signerRole: roleFromSenderLabel(sender),
+                        className: rosterMap && rosterMap[phone] ? rosterMap[phone][0].cls : '',
+                        message: r[5] != null ? String(r[5]) : '',
+                        mode: r[6] === 'app' ? 'app' : 'web',
+                        sentAt: date.toISOString(),
+                        fromSheet: true,
+                        sheetKey
+                    };
+                    messageArchive.push(entry);
+                    (byPhone[phone] = byPhone[phone] || []).push(entry);
+                    added++;
+                });
+                const n = messageArchive.length;
+                messageArchive = messageArchive.filter(e => !e.fromSheet || new Date(e.sentAt).getTime() >= cutoff);
+                if (added || n !== messageArchive.length) changed = true;
+            }
+
+            if (changed) {
+                messageArchive.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+                try { saveArchiveToStorage(); }
+                catch (e) {
+                    // Storage full: keep only this device's own messages.
+                    messageArchive = messageArchive.filter(x => !x.fromSheet);
+                    try { saveArchiveToStorage(); } catch (_) {}
+                }
+                updateStats();
+                refreshArchiveViewIfOpen();
+                if (added) showToast(`أُضيفت ${added} رسالة من أجهزة أخرى إلى الأرشيف`);
+            }
+            if (added) await syncRepliesFromSheet(true);
+            return added;
+        }
+
+        (function () {
+            const originalOpenArchive = openArchiveModal;
+            openArchiveModal = function () {
+                const r = originalOpenArchive.apply(this, arguments);
+                syncArchiveFromSheet(false);
+                return r;
+            };
+            const originalApplyLogin = applyStaffLogin;
+            applyStaffLogin = function () {
+                const r = originalApplyLogin.apply(this, arguments);
+                setTimeout(() => syncArchiveFromSheet(true), 1500);
+                return r;
+            };
+        })();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') syncArchiveFromSheet(false);
+        });
 
     </script>
 </body>
