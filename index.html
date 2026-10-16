@@ -5784,7 +5784,7 @@
                     studentName: entry.studentName || '',
                     subject: entry.subject || '',
                     sender: getEntrySenderLabel(entry),
-                    sentAtText: formatReplyKeyDate(sentDate),
+                    sentAtText: `${sentDate.getDate()}/${sentDate.getMonth() + 1}/${sentDate.getFullYear()} الساعة ${String(sentDate.getHours()).padStart(2, '0')}:${String(sentDate.getMinutes()).padStart(2, '0')}`,
                     messagePreview: (entry.message || '').split(`\n\n${PARENT_REPLY_LINK_LABEL}`)[0].slice(0, 300),
                     type: entry.type || ''
                 })
