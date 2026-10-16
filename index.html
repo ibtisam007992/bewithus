@@ -14,8 +14,6 @@
     
     <!-- Google Fonts: Tajawal -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Cairo:wght@600;700&display=swap" rel="stylesheet">
-    <!-- Three.js CDN for 3D graphics -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- SheetJS CDN for parsing Excel files and Drive Sheets -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -262,6 +260,38 @@
         #early-warning-banner span{font-size:.85rem;font-weight:700;color:#9a3412}
         @media (max-width:640px){.xw-overlay{padding:6px}.xw-head,.xw-body,.xw-foot{padding-left:12px;padding-right:12px}}
     </style>
+    <style id="ux-polish">
+        /* ---- Calm static background (replaces the animated 3D particles) ---- */
+        #canvas-container{background-image:radial-gradient(rgba(11,37,69,.06) 1.2px,transparent 1.6px);background-size:26px 26px}
+
+        /* ---- Readability: AI assistant tiles & phone badge (light mode) ---- */
+        body:not(.dark-mode) #ai-suite{background:linear-gradient(90deg,#f5f3ff,#f8fafc 50%,#eef2ff)}
+        body:not(.dark-mode) #ai-suite button{font-size:.85rem;font-weight:700}
+        body:not(.dark-mode) #ai-suite button[class*="purple"]{background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe}
+        body:not(.dark-mode) #ai-suite button[class*="indigo"]{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+        body:not(.dark-mode) #ai-suite button[class*="pink"]{background:#fdf2f8;color:#9d174d;border-color:#fbcfe8}
+        body:not(.dark-mode) #ai-suite button[class*="blue"]{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
+        body:not(.dark-mode) #ai-suite button[class*="emerald"]{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+        body:not(.dark-mode) #ai-suite button[class*="cyan"]{background:#ecfeff;color:#155e75;border-color:#a5f3fc}
+        body:not(.dark-mode) #ai-suite button:hover{filter:brightness(.96)}
+        body:not(.dark-mode) #ai-suite .ai-engine-badge{background:#ede9fe;color:#5b21b6;border-color:#ddd6fe}
+        body:not(.dark-mode) #selected-student-phone{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+
+        /* ---- Keyboard focus that is always visible ---- */
+        :focus-visible{outline:3px solid #f2b705 !important;outline-offset:2px}
+
+        /* ---- Mobile: compact top bar ---- */
+        #hdr-summary{display:none}
+        @media (max-width:767px){
+            header.sticky{position:relative !important}
+            body.has-login-pill header #hdr-row1{display:none}
+            body.has-login-pill header.hdr-open #hdr-row1{display:flex}
+            body.has-login-pill #hdr-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(241,245,249,.9);border:1px solid #cbd5e1;border-radius:14px;padding:8px 12px;font-size:.85rem;color:#0f172a;font-weight:700}
+            #hdr-summary span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+            #hdr-summary button{flex-shrink:0;font-family:inherit;font-size:.8rem;font-weight:700;color:#1e3a8a;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 10px}
+        }
+        @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
+    </style>
 </head>
 <body class="min-h-screen relative selection:bg-cyan-500 selection:text-white">
     <script>
@@ -374,9 +404,12 @@
         <header class="glass-panel sticky top-0 z-40 border-b border-slate-300/60 px-4 lg:px-8 py-3">
             <div class="max-w-7xl mx-auto flex flex-col gap-3">
 
+                <!-- Mobile summary of the selectors below (shown after login on phones) -->
+                <div id="hdr-summary"><span id="hdr-summary-text"></span><button type="button" id="hdr-summary-btn" onclick="toggleHeaderDetails()" aria-expanded="false" aria-controls="hdr-row1">تفاصيل ▾</button></div>
+
                 <!-- Row 1: Subject / Teacher / Active Role selectors — wrap freely so
                      none of them ever get squeezed or cut off at any screen width -->
-                <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+                <div id="hdr-row1" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
 
                 <!-- Subject Switcher Dropdown -->
                 <div class="flex items-center bg-slate-100/90 p-2 rounded-2xl border border-slate-300/80 shadow-inner gap-2 w-full sm:w-auto">
@@ -680,13 +713,13 @@
                         </div>
 
                         <!-- Gemini AI Tools Toolbar -->
-                        <div class="mb-4 bg-gradient-to-r from-purple-950/60 via-slate-100/80 to-indigo-950/60 p-3.5 rounded-2xl border border-purple-500/30 shadow-lg">
+                        <div id="ai-suite" class="mb-4 bg-gradient-to-r from-purple-950/60 via-slate-100/80 to-indigo-950/60 p-3.5 rounded-2xl border border-purple-500/30 shadow-lg">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-bold text-purple-700 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-purple-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                     <span>مساعد الذكاء الاصطناعي (Gemini AI Suite)</span>
                                 </span>
-                                <span class="text-[10px] bg-purple-900/60 text-purple-200 px-2 py-0.5 rounded-full border border-purple-700/50">محرك جيميناي الفائق</span>
+                                <span class="ai-engine-badge text-[10px] bg-purple-900/60 text-purple-200 px-2 py-0.5 rounded-full border border-purple-700/50">محرك جيميناي الفائق</span>
                             </div>
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                                 <button onclick="openAiDraftModal()" class="text-xs bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 p-2 rounded-xl border border-purple-500/40 flex items-center justify-center gap-1.5 transition" title="صياغة رسالة ولي الأمر بذكاء">
@@ -4421,7 +4454,6 @@
 
         window.onload = function() {
             initData();
-            init3D();
             initBannerInteraction();
         };
         // Separate listener (runs after the handler above) so the login gate
@@ -6511,6 +6543,40 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
                 return r;
             };
         })();
+
+        // ---- UX polish: mobile header summary + accessible names for icon buttons ----
+        function updateHeaderSummary() {
+            const el = document.getElementById('hdr-summary-text');
+            if (!el) return;
+            const role = (ROLE_DISPLAY_LABELS && ROLE_DISPLAY_LABELS[currentStaffRole]) || '';
+            el.innerText = currentStaffRole === 'subject_teacher'
+                ? `${currentSubjectName} · ${(currentTeacherName || '').split(' — ')[0]}`
+                : `${role}${loggedInStaff ? ' · ' + loggedInStaff.name : ''}`;
+        }
+        function toggleHeaderDetails() {
+            const h = document.querySelector('header.sticky');
+            if (!h) return;
+            const open = h.classList.toggle('hdr-open');
+            const b = document.getElementById('hdr-summary-btn');
+            if (b) { b.innerText = open ? 'إخفاء ▴' : 'تفاصيل ▾'; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        }
+        (function () {
+            ['changeSubject', 'changeTeacherName', 'changeStaffRole', 'applyStaffLogin'].forEach(name => {
+                const original = window[name];
+                if (typeof original !== 'function') return;
+                window[name] = function () {
+                    const r = original.apply(this, arguments);
+                    try { updateHeaderSummary(); } catch (e) {}
+                    return r;
+                };
+            });
+        })();
+        window.addEventListener('load', () => {
+            document.querySelectorAll('button[title]').forEach(b => {
+                if (!b.getAttribute('aria-label') && !b.textContent.trim()) b.setAttribute('aria-label', b.getAttribute('title'));
+            });
+            try { updateHeaderSummary(); } catch (e) {}
+        });
 
     </script>
 </body>
