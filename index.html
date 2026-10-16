@@ -4563,7 +4563,8 @@
         }
 
         function openArchiveModal() {
-            if (Date.now() > archiveUnlockedUntil) { openArchiveLockModal(); return; }
+            // Archive password lock removed at the user's request: the archive
+            // opens directly again (the lock modal code is kept but no longer used).
             const modal = document.getElementById('message-archive-modal');
             if (modal) modal.classList.remove('hidden');
             const searchInput = document.getElementById('archive-search-input');
