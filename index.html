@@ -229,6 +229,66 @@
         } catch (e) {}
     </script>
 
+    <!-- Staff login gate: shown when the platform opens, until a name, a
+         role and the staff password are entered. Self-contained styles so it
+         renders correctly even before the rest of the page's CSS loads.
+         Additive: on success it only applies the chosen role (and, for a
+         subject teacher, her subject + name) through the existing
+         changeStaffRole / changeSubject / changeTeacherName functions. -->
+    <style>
+        #login-gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;
+            background:radial-gradient(900px 600px at 80% 10%,rgba(94,234,212,.45),transparent 60%),radial-gradient(800px 600px at 10% 90%,rgba(196,181,253,.55),transparent 60%),#f5f0ff;
+            direction:rtl;font-family:inherit;overflow-y:auto}
+        #login-gate.hidden-gate{display:none}
+        #login-gate .lg-card{width:100%;max-width:440px;background:#fff;border-radius:28px;box-shadow:0 30px 80px rgba(76,29,149,.18);overflow:hidden;border:1px solid rgba(13,148,136,.18)}
+        #login-gate .lg-banner{display:block;width:100%;height:auto;max-height:170px;object-fit:cover;background:#eef6ff}
+        #login-gate .lg-body{padding:22px 26px 26px}
+        #login-gate h2{margin:0 0 4px;font-size:21px;font-weight:800;color:#0f172a}
+        #login-gate .lg-sub{margin:0 0 18px;font-size:13px;color:#64748b}
+        #login-gate label{display:block;font-size:13px;font-weight:700;color:#334155;margin:12px 0 6px}
+        #login-gate input,#login-gate select{width:100%;box-sizing:border-box;padding:11px 14px;border-radius:14px;border:1.5px solid #cbd5e1;background:#f8fafc;
+            font-size:15px;color:#0f172a;font-family:inherit;outline:none}
+        #login-gate input:focus,#login-gate select:focus{border-color:#0d9488;background:#fff;box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+        #login-gate .lg-err{display:none;margin-top:12px;font-size:13px;font-weight:700;color:#dc2626;text-align:center}
+        #login-gate button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:14px;cursor:pointer;font-size:16px;font-weight:800;color:#fff;
+            background:linear-gradient(90deg,#0d9488,#6d28d9);font-family:inherit}
+        #login-gate button:hover{filter:brightness(1.06)}
+        #login-gate .lg-foot{margin-top:14px;font-size:12px;color:#94a3b8;text-align:center}
+        #login-user-pill{position:fixed;bottom:18px;right:18px;z-index:45;display:none;align-items:center;gap:10px;background:#fff;border:1px solid rgba(13,148,136,.3);
+            border-radius:999px;padding:7px 8px 7px 14px;box-shadow:0 10px 28px rgba(15,23,42,.14);font-size:13px;color:#0f172a;direction:rtl;max-width:calc(100vw - 36px)}
+        #login-user-pill b{color:#0d9488}
+        #login-user-pill span.lg-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        #login-user-pill button{border:0;background:#f1f5f9;color:#be123c;font-weight:700;border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap}
+    </style>
+    <div id="login-gate" role="dialog" aria-modal="true" aria-labelledby="login-gate-title">
+        <div class="lg-card">
+            <img id="login-gate-banner" class="lg-banner" alt="منصة كن معنا">
+            <form class="lg-body" onsubmit="submitLoginGate(event)" autocomplete="off">
+                <h2 id="login-gate-title">تسجيل دخول الموظفة</h2>
+                <p class="lg-sub">منصة «كُن معنا» — مدرسة خولة بنت حكيم للبنات <span style="white-space:nowrap">(9–12)</span></p>
+                <label for="login-name">الاسم</label>
+                <input id="login-name" list="login-name-list" placeholder="اكتبي اسمك">
+                <datalist id="login-name-list"></datalist>
+                <label for="login-role">الدور الوظيفي</label>
+                <select id="login-role"></select>
+                <label for="login-password">الرقم السري</label>
+                <input id="login-password" type="password" placeholder="••••••">
+                <p id="login-error" class="lg-err"></p>
+                <button type="submit">دخول</button>
+                <p class="lg-foot">يبقى الدخول فعّالاً حتى إغلاق نافذة المتصفح أو تسجيل الخروج.</p>
+            </form>
+        </div>
+    </div>
+    <script>
+        // Already logged in during this browser session → hide the gate at once
+        // (the rest of the login state is applied by initLoginGate() on load).
+        try {
+            var _lg = JSON.parse(sessionStorage.getItem('bewithus_staff_login') || 'null');
+            if (_lg && _lg.name && _lg.role) document.getElementById('login-gate').classList.add('hidden-gate');
+        } catch (e) {}
+    </script>
+    <div id="login-user-pill"><span class="lg-name">مرحباً، <b id="login-user-name"></b> — <span id="login-user-role"></span></span><button type="button" onclick="logoutStaff()">تسجيل الخروج</button></div>
+
     <div id="canvas-container"></div>
 
     <div class="relative z-10 flex flex-col min-h-screen">
@@ -3700,6 +3760,112 @@
             init3D();
             initBannerInteraction();
         };
+        // Separate listener (runs after the handler above) so the login gate
+        // still works even if something above fails, e.g. the 3D library CDN.
+        window.addEventListener('load', function() {
+            try { initLoginGate(); } catch (e) { console.warn('login gate:', e); }
+        });
+
+        // ============================================================
+        // Staff login gate ("صفحة دخول الموظفة"): name + role + shared
+        // staff password, asked once per browser session (sessionStorage),
+        // then applied through the existing role/subject/teacher setters.
+        // ============================================================
+        const STAFF_LOGIN_PASSWORD = 'kh123';
+        const STAFF_LOGIN_KEY = 'bewithus_staff_login';
+
+        function findTeacherByName(name) {
+            const clean = (name || '').replace(/\s+/g, ' ').trim();
+            if (!clean) return null;
+            for (const subject of Object.keys(TEACHER_SUBJECT_MAP)) {
+                for (const t of TEACHER_SUBJECT_MAP[subject]) {
+                    if (t.name === clean || `${t.name} — ${t.position}` === clean) return { subject, teacher: t };
+                }
+            }
+            return null;
+        }
+
+        function applyStaffLogin(info) {
+            const roleSelect = document.getElementById('active-role-select');
+            if (roleSelect) roleSelect.value = info.role;
+            changeStaffRole(info.role);
+            if (info.role === 'subject_teacher') {
+                const found = findTeacherByName(info.name);
+                if (found) {
+                    const subjectSelect = document.getElementById('subject-select');
+                    if (subjectSelect && Array.from(subjectSelect.options).some(o => o.value === found.subject)) {
+                        subjectSelect.value = found.subject;
+                        changeSubject(found.subject);
+                    }
+                    const teacherSelect = document.getElementById('teacher-select');
+                    const value = `${found.teacher.name} — ${found.teacher.position}`;
+                    if (teacherSelect && Array.from(teacherSelect.options).some(o => o.value === value)) {
+                        teacherSelect.value = value;
+                        changeTeacherName(value);
+                    }
+                }
+            }
+            document.getElementById('login-user-name').innerText = info.name;
+            document.getElementById('login-user-role').innerText = (ROLE_DISPLAY_LABELS[info.role] || info.role);
+            document.getElementById('login-user-pill').style.display = 'flex';
+            document.getElementById('login-gate').classList.add('hidden-gate');
+        }
+
+        function initLoginGate() {
+            const gate = document.getElementById('login-gate');
+            if (!gate) return;
+            const banner = document.getElementById('top-banner-img');
+            const gateBanner = document.getElementById('login-gate-banner');
+            if (banner && gateBanner) gateBanner.src = banner.src; else if (gateBanner) gateBanner.style.display = 'none';
+
+            const roleSource = document.getElementById('active-role-select');
+            const roleSelect = document.getElementById('login-role');
+            if (roleSource && roleSelect) {
+                roleSelect.innerHTML = '<option value="" disabled selected>اختاري دورك</option>' +
+                    Array.from(roleSource.options).map(o => `<option value="${o.value}">${o.text}</option>`).join('');
+            }
+            const list = document.getElementById('login-name-list');
+            if (list) {
+                const names = new Set();
+                Object.values(TEACHER_SUBJECT_MAP).forEach(arr => arr.forEach(t => names.add(t.name)));
+                list.innerHTML = Array.from(names).map(n => `<option value="${n}"></option>`).join('');
+            }
+
+            let saved = null;
+            try { saved = JSON.parse(sessionStorage.getItem(STAFF_LOGIN_KEY) || 'null'); } catch (e) { saved = null; }
+            if (saved && saved.name && saved.role) {
+                applyStaffLogin(saved);
+            } else {
+                gate.classList.remove('hidden-gate');
+                setTimeout(() => { const n = document.getElementById('login-name'); if (n) n.focus(); }, 50);
+            }
+        }
+
+        function submitLoginGate(event) {
+            if (event) event.preventDefault();
+            const name = (document.getElementById('login-name').value || '').replace(/\s+/g, ' ').trim();
+            const role = document.getElementById('login-role').value;
+            const pw = document.getElementById('login-password').value.trim();
+            const err = document.getElementById('login-error');
+            const fail = (msg) => { err.innerText = msg; err.style.display = 'block'; };
+            if (name.length < 2) return fail('يرجى كتابة الاسم');
+            if (!role) return fail('يرجى اختيار الدور الوظيفي');
+            if (pw !== STAFF_LOGIN_PASSWORD) {
+                document.getElementById('login-password').value = '';
+                document.getElementById('login-password').focus();
+                return fail('الرقم السري غير صحيح، حاولي مجدداً');
+            }
+            err.style.display = 'none';
+            const info = { name, role };
+            try { sessionStorage.setItem(STAFF_LOGIN_KEY, JSON.stringify(info)); } catch (e) {}
+            applyStaffLogin(info);
+            showToast(`أهلاً ${name} — تم تسجيل الدخول`);
+        }
+
+        function logoutStaff() {
+            try { sessionStorage.removeItem(STAFF_LOGIN_KEY); } catch (e) {}
+            location.reload();
+        }
 
         function initBannerInteraction() {
             const banner = document.getElementById('top-banner-wrapper');
