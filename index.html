@@ -215,6 +215,53 @@
     </style>
     <!-- Precompiled Tailwind utilities (replaces the Tailwind CDN runtime for faster loading) -->
     <link rel="stylesheet" href="tw.css">
+    <style id="early-warning-and-profile">
+        /* Early warning + student profile (self-contained, no utility classes needed) */
+        .xw-overlay{position:fixed;inset:0;z-index:55;background:rgba(248,250,252,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;align-items:stretch;justify-content:center;padding:12px}
+        .xw-overlay.open{display:flex}
+        .xw-panel{background:rgba(255,255,255,.96);border:1px solid rgba(15,23,42,.08);border-radius:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);width:100%;max-width:1100px;display:flex;flex-direction:column;overflow:hidden}
+        .xw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #e2e8f0}
+        .xw-head h3{margin:0;font-size:1.15rem;font-weight:700;color:#0f172a}
+        .xw-sub{font-size:.8rem;color:#64748b;margin-top:2px}
+        .xw-x{background:none;border:0;font-size:1.3rem;color:#475569;cursor:pointer;padding:4px 8px}
+        .xw-body{flex:1;min-height:0;overflow:auto;padding:16px 20px}
+        .xw-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;padding:12px 20px;border-top:1px solid #e2e8f0}
+        .xw-btn{font-family:inherit;font-size:.82rem;font-weight:700;border-radius:12px;padding:8px 14px;cursor:pointer;border:1px solid #cbd5e1;background:#f1f5f9;color:#334155}
+        .xw-btn:hover{background:#e2e8f0}
+        .xw-btn.primary{background:#0b2545;border-color:#0b2545;color:#fff}
+        .xw-btn.warn{background:#fff7ed;border-color:#fdba74;color:#9a3412}
+        .xw-btn.ok{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
+        .xw-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+        .xw-kpi{border:1px solid #e2e8f0;border-radius:16px;padding:10px 12px;background:#fff}
+        .xw-kpi .n{font-size:24px;font-weight:700;color:#0f172a;line-height:1.2}
+        .xw-kpi .l{font-size:12px;color:#64748b}
+        .xw-card{border:1px solid #e2e8f0;border-right:5px solid #f59e0b;border-radius:16px;padding:12px 14px;background:#fff;margin-bottom:10px}
+        .xw-card.high{border-right-color:#e11d48}
+        .xw-card .t{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+        .xw-card .name{font-weight:700;color:#0f172a;font-size:1rem}
+        .xw-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+        .xw-chip{font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0}
+        .xw-chip.concern{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+        .xw-chip.absence{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+        .xw-chip.positive{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+        .xw-meta{font-size:12px;color:#64748b}
+        .xw-empty{text-align:center;color:#64748b;padding:30px 10px}
+        .xw-tl{position:relative;margin:0;padding:0;list-style:none}
+        .xw-tl li{border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin-bottom:8px;background:#fff}
+        .xw-tl .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;font-size:13px;color:#334155}
+        .xw-tl .msg{font-size:13px;color:#334155;white-space:pre-line;margin-top:6px;max-height:4.6em;overflow:hidden}
+        .xw-tl .msg.full{max-height:none}
+        .xw-tl .rep{font-size:13px;color:#065f46;background:#ecfdf5;border-radius:10px;padding:6px 10px;margin-top:6px}
+        .xw-ai{border:1px solid #c7d2fe;background:#eef2ff;color:#312e81;border-radius:14px;padding:12px 14px;margin-bottom:14px;white-space:pre-line;font-size:14px;line-height:1.7;display:none}
+        .xw-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;font-size:13px;color:#334155}
+        .xw-filter select{font-family:inherit;font-size:13px;border:1px solid #cbd5e1;border-radius:10px;padding:5px 8px;background:#fff}
+        .sp-open-btn{width:100%;margin-bottom:10px;font-family:inherit;font-size:.8rem;font-weight:700;color:#1e3a8a;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:8px 10px;cursor:pointer}
+        .sp-open-btn:hover{background:#dbeafe}
+        #early-warning-banner{display:none;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#fff7ed;border:1px solid #fdba74;border-radius:16px;padding:10px 12px}
+        #early-warning-banner.show{display:flex}
+        #early-warning-banner span{font-size:.85rem;font-weight:700;color:#9a3412}
+        @media (max-width:640px){.xw-overlay{padding:6px}.xw-head,.xw-body,.xw-foot{padding-left:12px;padding-right:12px}}
+    </style>
 </head>
 <body class="min-h-screen relative selection:bg-cyan-500 selection:text-white">
     <script>
@@ -262,6 +309,7 @@
         /* The name pill never covers a window's buttons: hidden while any window is open,
            smaller on phones, and the page gets room at the bottom so nothing sits under it. */
         body:has([id$="-modal"]:not(.hidden)) #login-user-pill{display:none !important}
+        body:has(.xw-overlay.open) #login-user-pill{display:none !important}
         body.has-login-pill{padding-bottom:72px}
         @media (max-width:640px){
             #login-user-pill{bottom:10px;right:10px;left:10px;justify-content:space-between;padding:5px 6px 5px 10px;font-size:12px}
@@ -438,6 +486,9 @@
                      warning passed its 7-day follow-up deadline without the
                      case being closed. Hidden when there are none. Populated by
                      renderFollowupDueBanner(). -->
+                <!-- Early warning banner: leadership roles only, filled by refreshEarlyWarningBanner() -->
+                <div id="early-warning-banner"><span id="early-warning-text"></span><button class="xw-btn warn" onclick="openEarlyWarning()">عرض الحالات</button></div>
+
                 <div id="followup-due-banner" class="hidden bg-red-50 border border-red-300 rounded-2xl p-3 flex items-center justify-between gap-2 flex-wrap">
                     <p id="followup-due-text" class="text-xs font-bold text-red-700 flex items-center gap-1.5">⏰</p>
                     <button onclick="openAttendanceReportModal()" class="text-[10px] bg-red-600 hover:bg-red-500 text-white px-2.5 py-1 rounded-lg font-bold transition shrink-0">عرض التفاصيل</button>
@@ -609,6 +660,8 @@
                                 <span id="status-tag" class="text-xs bg-emerald-950 text-emerald-400 px-3 py-1 rounded-xl border border-emerald-800">الحالة: نشط</span>
                             </div>
                         </div>
+
+                        <button type="button" class="sp-open-btn" onclick="openStudentProfile()">📋 ملف الطالبة الشامل — رسائل جميع المعلمات وردود ولي الأمر</button>
 
                         <!-- Per-Student Message History: last few messages sent to this
                              student's parent, so a quick glance avoids repeating the
@@ -1305,6 +1358,9 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
                             <span>لوحة متابعة التجربة</span>
                         </button>
+                        <button onclick="openEarlyWarning()" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-700 border border-orange-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="طالبات وصلتهن رسائل متابعة متكررة من عدة معلمات">
+                            <span>⚠ الإنذار المبكر</span>
+                        </button>
                         <button onclick="openClearArchiveModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-rose-700 border border-rose-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="مسح رسائل من الأرشيف، محمي برقم سري">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             <span>مسح الأرشيف</span>
@@ -1572,7 +1628,7 @@
                         </div>
                     </div>
                     <p id="pilot-status" class="text-xs text-slate-600 text-center"></p>
-                    <div id="pilot-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    <div id="pilot-kpis" class="grid grid-cols-2 md:grid-cols-5 gap-2"></div>
                     <div>
                         <h4 class="text-sm font-bold text-slate-800 mb-2">نسبة الردود أسبوعياً</h4>
                         <div id="pilot-weekly"></div>
@@ -1586,6 +1642,63 @@
                         <div id="pilot-by-teacher" class="overflow-x-auto"></div>
                     </div>
                     <div id="pilot-notes" class="text-[11px] text-slate-500 leading-relaxed bg-slate-100 rounded-xl p-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Early warning ("الإنذار المبكر") -->
+        <div id="early-warning-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="ew-title">
+            <div class="xw-panel">
+                <div class="xw-head">
+                    <div>
+                        <h3 id="ew-title">الإنذار المبكر — طالبات يحتجن متابعة</h3>
+                        <div class="xw-sub" id="ew-sub">طالبات وصلت أولياء أمورهن ٣ رسائل متابعة أو أكثر خلال آخر ١٤ يوماً، من جميع المعلمات والموظفات.</div>
+                    </div>
+                    <button class="xw-x" onclick="closeEarlyWarning()" aria-label="إغلاق">✕</button>
+                </div>
+                <div class="xw-body">
+                    <div class="xw-filter">
+                        <label for="ew-days">الفترة:</label>
+                        <select id="ew-days" onchange="renderEarlyWarning()">
+                            <option value="14" selected>آخر ١٤ يوماً</option>
+                            <option value="30">آخر ٣٠ يوماً</option>
+                        </select>
+                        <label for="ew-min">الحد الأدنى:</label>
+                        <select id="ew-min" onchange="renderEarlyWarning()">
+                            <option value="2">رسالتان</option>
+                            <option value="3" selected>٣ رسائل</option>
+                            <option value="4">٤ رسائل</option>
+                        </select>
+                        <label><input type="checkbox" id="ew-show-done" onchange="renderEarlyWarning()"> إظهار الحالات المعالَجة</label>
+                    </div>
+                    <div id="ew-list"></div>
+                </div>
+                <div class="xw-foot">
+                    <button class="xw-btn" onclick="loadEarlyWarning(true)">تحديث</button>
+                    <button class="xw-btn" onclick="closeEarlyWarning()">إغلاق</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student profile ("ملف الطالبة الشامل") -->
+        <div id="student-profile-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="sp-title">
+            <div class="xw-panel">
+                <div class="xw-head">
+                    <div>
+                        <h3 id="sp-title">ملف الطالبة الشامل</h3>
+                        <div class="xw-sub" id="sp-sub"></div>
+                    </div>
+                    <button class="xw-x" onclick="closeStudentProfile()" aria-label="إغلاق">✕</button>
+                </div>
+                <div class="xw-body">
+                    <div id="sp-kpis" class="xw-kpis"></div>
+                    <div id="sp-ai" class="xw-ai"></div>
+                    <div id="sp-timeline"></div>
+                </div>
+                <div class="xw-foot">
+                    <button class="xw-btn primary" id="sp-ai-btn" onclick="summarizeStudentProfile()">ملخص ذكي للحالة (Gemini)</button>
+                    <button class="xw-btn" onclick="printStudentProfile()">تصدير PDF</button>
+                    <button class="xw-btn" onclick="closeStudentProfile()">إغلاق</button>
                 </div>
             </div>
         </div>
@@ -3910,7 +4023,9 @@
                     });
                 });
             }
-            return { messages, source, roster };
+            const ratings = [];
+            (replyRows || []).forEach(r => { const v = Number(r && r[10]); if (v >= 1 && v <= 5) ratings.push(v); });
+            return { messages, source, roster, ratings };
         }
 
         async function loadPilotDashboard(force) {
@@ -3979,7 +4094,9 @@
                 kpi('نسبة الردود', `${rate}٪`, rate >= PILOT_TARGET_RATE ? `تحقق الهدف (${PILOT_TARGET_RATE}٪)` : `الهدف ${PILOT_TARGET_RATE}٪`, rateCls) +
                 kpi('الرسائل المرسلة', msgs.length, `${totalReplies} رسالة وصلها رد`) +
                 kpi('متوسط زمن الرد', avgHours == null ? '—' : (avgHours < 24 ? `${avgHours.toFixed(1)} ساعة` : `${(avgHours / 24).toFixed(1)} يوم`), 'من الإرسال إلى تسجيل الرد') +
-                kpi('المعلمات المرسِلات', byTeacher.length, `${lastWeek.teachers} في آخر أسبوع · ${byClass.filter(c => c.key !== 'غير محدد').length} صفاً`);
+                kpi('المعلمات المرسِلات', byTeacher.length, `${lastWeek.teachers} في آخر أسبوع · ${byClass.filter(c => c.key !== 'غير محدد').length} صفاً`) +
+                kpi('رضا أولياء الأمور', loaded.ratings.length ? `${(loaded.ratings.reduce((a, b) => a + b, 0) / loaded.ratings.length).toFixed(1)} / 5` : '—',
+                    loaded.ratings.length ? `من ${loaded.ratings.length} تقييم عبر رابط الرد` : 'لا توجد تقييمات بعد', loaded.ratings.length && loaded.ratings.reduce((a, b) => a + b, 0) / loaded.ratings.length >= 4 ? 'text-emerald-700' : 'text-slate-900');
 
             // weekly bars
             document.getElementById('pilot-weekly').innerHTML = `<div class="space-y-1.5">` + weekly.map((w, i) => {
@@ -6128,6 +6245,272 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') syncArchiveFromSheet(false);
         });
+
+        // ============================================================
+        // School-wide message history (all staff, all devices) from the
+        // archive Google Sheet + replies tab, plus this device's archive
+        // (which knows each message's exact template type). Used by the early
+        // warning list and the student profile. Cached for 2 minutes.
+        // ============================================================
+        let schoolMessagesCache = null;
+        const EW_LEADERSHIP_ROLES = ['principal', 'vice_principal', 'social_worker', 'psychologist', 'systems_specialist', 'homeroom_teacher'];
+        const EW_DONE_KEY = 'bewithus_ew_done';
+
+        function categorizeMessage(type, text) {
+            const t = String(text || '');
+            if (type) {
+                if (['praise'].includes(type)) return 'positive';
+                if (['absence_tardiness', 'systems_absence_notice1', 'systems_absence_notice2', 'systems_absence_warning3', 'systems_tardiness', 'systems_early_leave'].includes(type)) return 'absence';
+                if (['homework', 'parent_summit', 'admin_social'].includes(type)) return 'concern';
+                if (type === 'exam') return /يحتاج|ضعف|تدن|مراجعة|تحسين/.test(t) ? 'concern' : 'positive';
+            }
+            if (/غياب|تغيب|تأخر|التأخر|استئذان|خروج مبكر|إنذار/.test(t)) return 'absence';
+            if (/واجب|لم تسلّم|لم تسلم|تقصير|إهمال|ضعف|تراجع|تدني|يحتاج إلى مراجعة|مقابلة|زيارة المدرسة|الأخصائية|ملاحظات سلوكية|سلوك/.test(t)) return 'concern';
+            if (/تفوق|تميز|الممتازة|ثناء|شكر وتقدير|أحسنت|ممتاز/.test(t)) return 'positive';
+            return 'info';
+        }
+        const CATEGORY_LABELS = { concern: 'متابعة أكاديمية/سلوكية', absence: 'غياب/تأخر/استئذان', positive: 'ثناء وتميز', info: 'إشعار عام' };
+
+        async function loadSchoolMessages(force) {
+            if (!force && schoolMessagesCache && Date.now() - schoolMessagesCache.at < 120000) return schoolMessagesCache.list;
+            const [rows, replyRows] = await Promise.all([
+                fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID).catch(() => []),
+                fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID, PARENT_REPLY_SHEET_TAB).catch(() => [])
+            ]);
+            const replies = {};
+            (replyRows || []).forEach(r => {
+                if (!r || r.length < 8) return;
+                const m = normalizeDigits(r[0]).trim().match(/^(\d+)\|(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})$/);
+                const text = r[7] != null ? String(r[7]).trim() : '';
+                if (!m || !text) return;
+                const d = pilotKeyDate(m[2]);
+                (replies[pilotNormPhone(m[1])] = replies[pilotNormPhone(m[1])] || []).push({ t: d ? d.getTime() : 0, text, at: pilotKeyDate(normalizeDigits(r[8])) });
+            });
+            const findReply = (phone, t) => {
+                let best = null;
+                (replies[phone] || []).forEach(c => { const diff = Math.abs(c.t - t); if (diff <= 180000 && (!best || diff < best.diff)) best = Object.assign({ diff }, c); });
+                return best;
+            };
+            const local = messageArchive.filter(e => !e.fromSheet && e.sentAt);
+            const list = [];
+            (rows || []).forEach(r => {
+                if (!r || r.length < 6) return;
+                const date = pilotKeyDate(sheetDateToReplyKeyDate(r[0]));
+                if (!date || isNaN(date)) return;
+                const phone = pilotNormPhone(r[2]);
+                const t = date.getTime();
+                const own = local.find(e => pilotNormPhone(e.phone) === phone && Math.abs(new Date(e.sentAt).getTime() - t) <= 180000);
+                const message = r[5] != null ? String(r[5]) : '';
+                const rep = findReply(phone, t);
+                list.push({
+                    t, date, phone,
+                    student: r[1] != null ? String(r[1]) : '',
+                    subject: r[3] != null ? String(r[3]) : '',
+                    sender: (r[4] != null && String(r[4]).trim()) ? String(r[4]).trim() : 'غير محدد',
+                    message,
+                    category: categorizeMessage(own ? own.type : '', message),
+                    reply: rep ? rep.text : (own && own.parentReply) || '',
+                    className: own && own.className && own.className !== 'الصف المُستورد' ? own.className : ''
+                });
+            });
+            // messages on this device that never reached the sheet (offline sends)
+            local.forEach(e => {
+                const t = new Date(e.sentAt).getTime(); const phone = pilotNormPhone(e.phone);
+                if (list.some(m => m.phone === phone && Math.abs(m.t - t) <= 180000)) return;
+                list.push({ t, date: new Date(t), phone, student: e.studentName || '', subject: e.subject || '', sender: getEntrySenderLabel(e),
+                    message: e.message || '', category: categorizeMessage(e.type, e.message), reply: e.parentReply || '', className: e.className || '' });
+            });
+            list.sort((a, b) => b.t - a.t);
+            schoolMessagesCache = { at: Date.now(), list };
+            return list;
+        }
+
+        function fmtDay(d) { return d.toLocaleDateString('ar-OM', { day: 'numeric', month: 'short' }); }
+        function fmtDateTime(d) { return d.toLocaleString('ar-OM', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+
+        // ---------- الإنذار المبكر ----------
+        function getEwDone() { try { return JSON.parse(localStorage.getItem(EW_DONE_KEY) || '{}'); } catch (e) { return {}; } }
+        function setEwDone(map) { try { localStorage.setItem(EW_DONE_KEY, JSON.stringify(map)); } catch (e) {} }
+
+        function computeEarlyWarning(list, days, min) {
+            const since = Date.now() - days * 86400000;
+            const byPhone = {};
+            list.forEach(m => {
+                if (m.t < since || (m.category !== 'concern' && m.category !== 'absence')) return;
+                (byPhone[m.phone] = byPhone[m.phone] || []).push(m);
+            });
+            return Object.keys(byPhone).map(phone => {
+                const items = byPhone[phone];
+                const senders = Array.from(new Set(items.map(m => m.sender.split(' — ')[0])));
+                const absences = items.filter(m => m.category === 'absence').length;
+                return { phone, student: items[0].student, className: (items.find(m => m.className) || {}).className || '', items, senders, absences,
+                         last: items[0].t, replied: items.filter(m => m.reply).length,
+                         level: (items.length >= min + 2 || senders.length >= 3) ? 'high' : 'mid' };
+            }).filter(c => c.items.length >= min).sort((a, b) => b.items.length - a.items.length || b.last - a.last);
+        }
+
+        async function loadEarlyWarning(force) {
+            const box = document.getElementById('ew-list');
+            if (box) box.innerHTML = '<div class="xw-empty">جاري تحليل رسائل جميع المعلمات…</div>';
+            try { await loadSchoolMessages(force); } catch (e) {}
+            renderEarlyWarning();
+        }
+
+        function renderEarlyWarning() {
+            const box = document.getElementById('ew-list');
+            if (!box || !schoolMessagesCache) return;
+            const days = Number(document.getElementById('ew-days').value || 14);
+            const min = Number(document.getElementById('ew-min').value || 3);
+            const showDone = document.getElementById('ew-show-done').checked;
+            const done = getEwDone();
+            const cases = computeEarlyWarning(schoolMessagesCache.list, days, min)
+                .filter(c => showDone || !(done[c.phone] && done[c.phone] > Date.now() - 14 * 86400000));
+            if (!cases.length) { box.innerHTML = '<div class="xw-empty">لا توجد حالات تستدعي المتابعة في هذه الفترة.</div>'; return; }
+            box.innerHTML = cases.map(c => {
+                const cats = {};
+                c.items.forEach(m => { cats[m.category] = (cats[m.category] || 0) + 1; });
+                const isDone = done[c.phone];
+                return `<div class="xw-card ${c.level === 'high' ? 'high' : ''}">
+                    <div class="t">
+                        <span class="name">${pilotEsc(c.student)}</span>
+                        <span class="xw-meta">${c.className ? pilotEsc(c.className) + ' · ' : ''}آخر رسالة ${fmtDay(new Date(c.last))}${isDone ? ' · ✓ عولجت' : ''}</span>
+                    </div>
+                    <div class="xw-chips">
+                        <span class="xw-chip ${c.level === 'high' ? 'absence' : 'concern'}">${c.items.length} رسائل متابعة</span>
+                        ${cats.absence ? `<span class="xw-chip absence">${cats.absence} غياب/تأخر</span>` : ''}
+                        ${cats.concern ? `<span class="xw-chip concern">${cats.concern} أكاديمية/سلوكية</span>` : ''}
+                        <span class="xw-chip">${c.senders.length} مرسِلة</span>
+                        <span class="xw-chip ${c.replied ? 'positive' : ''}">ردود ولي الأمر: ${c.replied}/${c.items.length}</span>
+                    </div>
+                    <div class="xw-meta">من: ${c.senders.map(pilotEsc).join('، ')}</div>
+                    <div class="xw-chips" style="margin-bottom:0">
+                        <button class="xw-btn primary" onclick="openStudentProfile('${c.phone}', ${JSON.stringify(c.student).replace(/"/g, '&quot;')})">ملف الطالبة الشامل</button>
+                        <button class="xw-btn warn" onclick="copyReferralSummary('${c.phone}')">نسخ ملخص إحالة للأخصائية</button>
+                        <button class="xw-btn ok" onclick="toggleEwDone('${c.phone}')">${isDone ? 'إلغاء «عولجت»' : 'تمت المعالجة'}</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleEwDone(phone) {
+            const done = getEwDone();
+            if (done[phone]) delete done[phone]; else done[phone] = Date.now();
+            setEwDone(done);
+            renderEarlyWarning();
+            refreshEarlyWarningBanner();
+        }
+
+        function copyReferralSummary(phone) {
+            const days = Number(document.getElementById('ew-days').value || 14);
+            const c = computeEarlyWarning(schoolMessagesCache.list, days, 1).find(x => x.phone === phone);
+            if (!c) return;
+            const lines = c.items.slice().reverse().map(m => `• ${fmtDay(m.date)} — ${m.sender.split(' — ')[0]} (${m.subject || '—'}): ${CATEGORY_LABELS[m.category]}${m.reply ? ' — رد ولي الأمر: ' + m.reply.replace(/\s+/g, ' ').slice(0, 80) : ' — لا يوجد رد مسجّل'}`);
+            const text = `إحالة طالبة للمتابعة\nالطالبة: ${c.student}${c.className ? '\nالصف: ' + c.className : ''}\nعدد رسائل المتابعة خلال ${days} يوماً: ${c.items.length} (من ${c.senders.length} مرسِلة)\n\n${lines.join('\n')}\n\nأُعدّت من منصة «كُن معنا».`;
+            navigator.clipboard.writeText(text).then(() => showToast('تم نسخ ملخص الإحالة — الصقيه في رسالة للأخصائية الاجتماعية'))
+                .catch(() => showToast('تعذر النسخ تلقائياً', true));
+        }
+
+        function openEarlyWarning() {
+            document.getElementById('early-warning-dialog').classList.add('open');
+            loadEarlyWarning(false);
+        }
+        function closeEarlyWarning() { document.getElementById('early-warning-dialog').classList.remove('open'); }
+
+        async function refreshEarlyWarningBanner() {
+            const banner = document.getElementById('early-warning-banner');
+            if (!banner) return;
+            if (!loggedInStaff || !EW_LEADERSHIP_ROLES.includes(currentStaffRole)) { banner.classList.remove('show'); return; }
+            try { await loadSchoolMessages(false); } catch (e) { return; }
+            const done = getEwDone();
+            const n = computeEarlyWarning(schoolMessagesCache.list, 14, 3).filter(c => !(done[c.phone] && done[c.phone] > Date.now() - 14 * 86400000)).length;
+            document.getElementById('early-warning-text').innerText = `⚠ ${n} طالبة تحتاج متابعة (٣ رسائل متابعة أو أكثر خلال أسبوعين)`;
+            banner.classList.toggle('show', n > 0);
+        }
+
+        // ---------- ملف الطالبة الشامل ----------
+        let profileState = null;
+
+        async function openStudentProfile(phone, name) {
+            if (!phone && selectedStudent) { phone = selectedStudent.phone; name = selectedStudent.name; }
+            if (!phone) { showToast('اختاري الطالبة أولاً', true); return; }
+            phone = pilotNormPhone(phone);
+            const modal = document.getElementById('student-profile-dialog');
+            modal.classList.add('open');
+            document.getElementById('sp-title').innerText = `ملف الطالبة الشامل — ${name || ''}`;
+            document.getElementById('sp-sub').innerText = 'جاري جمع رسائل جميع المعلمات والموظفات…';
+            document.getElementById('sp-kpis').innerHTML = '';
+            document.getElementById('sp-timeline').innerHTML = '';
+            const ai = document.getElementById('sp-ai'); ai.style.display = 'none'; ai.innerText = '';
+            let list = [];
+            try { list = await loadSchoolMessages(false); } catch (e) {}
+            const items = list.filter(m => m.phone === phone);
+            const studentName = name || (items[0] && items[0].student) || '';
+            profileState = { phone, name: studentName, items };
+            const cls = (items.find(m => m.className) || {}).className || (pilotRosterCache && pilotRosterCache.map[phone] ? pilotRosterCache.map[phone][0].cls : '');
+            document.getElementById('sp-title').innerText = `ملف الطالبة الشامل — ${studentName}`;
+            document.getElementById('sp-sub').innerText = `${cls ? cls + ' · ' : ''}رقم ولي الأمر: ${phone} · ${items.length} رسالة من ${new Set(items.map(m => m.sender.split(' — ')[0])).size} مرسِلة`;
+            const count = c => items.filter(m => m.category === c).length;
+            const replied = items.filter(m => m.reply).length;
+            const kpi = (n, l) => `<div class="xw-kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+            document.getElementById('sp-kpis').innerHTML =
+                kpi(items.length, 'إجمالي الرسائل') + kpi(count('positive'), 'ثناء وتميز') + kpi(count('concern'), 'متابعة أكاديمية/سلوكية') +
+                kpi(count('absence'), 'غياب/تأخر/استئذان') + kpi(items.length ? Math.round(replied / items.length * 100) + '٪' : '—', 'نسبة ردود ولي الأمر');
+            if (!items.length) { document.getElementById('sp-timeline').innerHTML = '<div class="xw-empty">لا توجد رسائل مسجّلة لهذه الطالبة بعد.</div>'; return; }
+            document.getElementById('sp-timeline').innerHTML = '<ul class="xw-tl">' + items.map((m, i) => `
+                <li>
+                    <div class="top">
+                        <span><b>${fmtDateTime(m.date)}</b> · ${pilotEsc(m.sender)}${m.subject ? ' · ' + pilotEsc(m.subject) : ''}</span>
+                        <span class="xw-chip ${m.category}">${CATEGORY_LABELS[m.category]}</span>
+                    </div>
+                    <div class="msg" id="sp-msg-${i}" onclick="this.classList.toggle('full')" title="اضغطي لعرض الرسالة كاملة">${pilotEsc(stripReplyLinkLine(m.message))}</div>
+                    ${m.reply ? `<div class="rep"><b>رد ولي الأمر:</b> ${pilotEsc(m.reply)}</div>` : ''}
+                </li>`).join('') + '</ul>';
+        }
+
+        function closeStudentProfile() { document.getElementById('student-profile-dialog').classList.remove('open'); }
+
+        async function summarizeStudentProfile() {
+            if (!profileState || !profileState.items.length) { showToast('لا توجد رسائل لتلخيصها', true); return; }
+            const ai = document.getElementById('sp-ai');
+            const lines = profileState.items.slice(0, 40).reverse().map(m =>
+                `- ${fmtDay(m.date)} | ${m.sender.split(' — ')[0]} | ${m.subject || '—'} | ${CATEGORY_LABELS[m.category]} | ${stripReplyLinkLine(m.message).replace(/\s+/g, ' ').slice(0, 260)}${m.reply ? ' | رد ولي الأمر: ' + m.reply.replace(/\s+/g, ' ').slice(0, 120) : ''}`).join('\n');
+            setAiButtonBusy('sp-ai-btn', true, 'جاري إعداد الملخص…');
+            try {
+                const text = await geminiText(
+                    'أنت مساعد تربوي داخلي لإدارة مدرسة بنات في سلطنة عُمان. تكتب ملخصاً مهنياً موجزاً للأخصائية الاجتماعية والإدارة (ليس لولي الأمر)، بالعربية الفصحى، دون تشخيصات نفسية أو أحكام قاسية، ودون اختراع أي معلومة غير موجودة في السجل. لا تستخدم Markdown ولا نجوماً.',
+                    `سجل الرسائل المرسلة لولي أمر الطالبة ${profileState.name} (الأقدم أولاً):\n${lines}\n\nاكتب: 1) ملخص الحالة في سطرين. 2) الأنماط الملاحظة (مواد/أنواع متكررة، تجاوب ولي الأمر). 3) ثلاث خطوات متابعة مقترحة ومحددة للمدرسة. بنود مرقمة قصيرة، لا تزيد عن 130 كلمة.`, 0.4);
+                ai.innerText = text;
+                ai.style.display = 'block';
+            } catch (e) {
+                showToast(e.message || 'تعذر إعداد الملخص', true);
+            } finally {
+                setAiButtonBusy('sp-ai-btn', false);
+            }
+        }
+
+        function printStudentProfile() {
+            if (!profileState) return;
+            const ai = document.getElementById('sp-ai');
+            const rows = profileState.items.map(m => `<tr><td>${fmtDateTime(m.date)}</td><td>${pilotEsc(m.sender)}</td><td>${pilotEsc(m.subject)}</td><td>${CATEGORY_LABELS[m.category]}</td><td>${pilotEsc(stripReplyLinkLine(m.message))}</td><td>${pilotEsc(m.reply || '—')}</td></tr>`).join('');
+            const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>ملف الطالبة ${pilotEsc(profileState.name)}</title>
+                <style>body{font-family:Tahoma,Arial,sans-serif;padding:24px;color:#0f172a}h1{font-size:20px;margin:0 0 4px}p.meta{color:#475569;font-size:12px;margin:0 0 14px}
+                .ai{border:1px solid #c7d2fe;background:#eef2ff;padding:10px;border-radius:8px;white-space:pre-line;font-size:13px;margin-bottom:14px}
+                table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cbd5e1;padding:6px;vertical-align:top;text-align:right}th{background:#0b2545;color:#fff}td:nth-child(5){white-space:pre-line}</style></head><body>
+                <h1>ملف الطالبة الشامل — ${pilotEsc(profileState.name)}</h1>
+                <p class="meta">${pilotEsc(document.getElementById('sp-sub').innerText)} — مدرسة خولة بنت حكيم (9-12) — ${new Date().toLocaleDateString('ar-OM')}</p>
+                ${ai.style.display === 'block' ? `<div class="ai"><b>الملخص الذكي:</b>\n${pilotEsc(ai.innerText)}</div>` : ''}
+                <table><thead><tr><th>التاريخ</th><th>المرسلة</th><th>المادة</th><th>النوع</th><th>الرسالة</th><th>رد ولي الأمر</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+            printHtmlDocument(html);
+        }
+
+        (function () {
+            const originalApplyLogin = applyStaffLogin;
+            applyStaffLogin = function () {
+                const r = originalApplyLogin.apply(this, arguments);
+                setTimeout(refreshEarlyWarningBanner, 2500);
+                return r;
+            };
+        })();
 
     </script>
 </body>
