@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Installable app (PWA) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b2545">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="كُنْ مَعَنا">
     <title>منصة كُنْ مَعَنا - مدرسة خولة بنت حكيم (9-12)</title>
     
     <!-- Tailwind CSS CDN -->
@@ -308,7 +315,7 @@
             if (_lg && _lg.name && _lg.role) document.getElementById('login-gate').classList.add('hidden-gate');
         } catch (e) {}
     </script>
-    <div id="login-user-pill"><span class="lg-name">مرحباً، <b id="login-user-name"></b> — <span id="login-user-role"></span></span><button type="button" onclick="logoutStaff()">تسجيل الخروج</button></div>
+    <div id="login-user-pill"><span class="lg-name">مرحباً، <b id="login-user-name"></b> — <span id="login-user-role"></span></span><button type="button" id="install-app-btn" onclick="installPlatformApp()" style="display:none;color:#0369a1">تثبيت على الجوال</button><button type="button" onclick="logoutStaff()">تسجيل الخروج</button></div>
 
     <div id="canvas-container"></div>
 
@@ -471,6 +478,27 @@
                     </div>
                 </div>
 
+                <!-- "إنجازي هذا الأسبوع": the logged-in staff member's own messages
+                     this week (from this device) and their recorded-reply rate
+                     against the pilot target. Filled by refreshActivationWidgets(). -->
+                <div id="my-week-card" class="hidden glass-card p-4 rounded-2xl border border-sky-500/30">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span class="font-bold text-slate-900" style="font-size:15px">إنجازي هذا الأسبوع</span>
+                        <span id="my-week-range" class="text-[11px] text-slate-500"></span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div><div id="my-week-sent" class="font-bold text-slate-900" style="font-size:24px;line-height:1.2">0</div><span class="text-[11px] text-slate-600">رسالة أرسلتُها</span></div>
+                        <div><div id="my-week-replies" class="font-bold text-slate-900" style="font-size:24px;line-height:1.2">0</div><span class="text-[11px] text-slate-600">ردّاً مسجّلاً</span></div>
+                        <div><div id="my-week-rate" class="font-bold" style="font-size:24px;line-height:1.2">—</div><span class="text-[11px] text-slate-600">نسبة الردود</span></div>
+                    </div>
+                    <div class="mt-3 h-2.5 bg-slate-200 rounded-full relative overflow-hidden" title="الخط المتقطع = الهدف 50٪">
+                        <div id="my-week-bar" class="h-full rounded-full" style="width:0"></div>
+                        <div class="absolute top-0 bottom-0 border-r-2 border-dashed border-slate-500/70" style="right:50%"></div>
+                    </div>
+                    <span id="my-week-msg" class="block text-[11px] text-slate-600 mt-2"></span>
+                    <button id="my-week-pending-btn" onclick="openPendingReplies()" class="hidden mt-2 w-full text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-400/60 py-2 rounded-xl font-bold transition"></button>
+                </div>
+
                 <div class="glass-panel p-5 rounded-3xl shadow-2xl flex flex-col h-[580px]">
                     <div class="flex items-center justify-between mb-4">
                         <h2 id="class-directory-title" class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -504,6 +532,7 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                             <span>أرشيف الرسائل</span>
                             <span id="archive-count-badge" class="bg-purple-900/80 text-purple-200 px-1.5 py-0.5 rounded-lg text-[10px] font-bold">0</span>
+                            <span id="pending-reply-badge" class="hidden bg-amber-500 text-white px-1.5 py-0.5 rounded-lg text-[10px] font-bold"></span>
                         </button>
                         <button onclick="openStatsModal()" class="text-xs bg-slate-200/90 hover:bg-slate-300 text-indigo-600 border border-indigo-500/30 py-2 rounded-xl flex items-center justify-center gap-1.5 transition">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -1237,6 +1266,10 @@
                     <svg class="w-4 h-4 absolute right-3.5 top-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     <input type="text" id="archive-search-input" onkeyup="filterArchive()" placeholder="بحث باسم الطالبة أو المعلمة أو المادة..." class="w-full bg-slate-100/80 border border-slate-300/80 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-800 focus:outline-none focus:border-purple-500 transition placeholder-slate-500">
                 </div>
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <span class="text-[11px] text-slate-500">رسالة بلا رد مسجّل بعد يومين من إرسالها تظهر في «بانتظار تسجيل الرد».</span>
+                    <button id="archive-pending-toggle" onclick="toggleArchivePendingOnly()" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-400/60 py-1.5 px-3 rounded-xl font-bold transition">بانتظار تسجيل الرد</button>
+                </div>
 
                 <div class="max-h-[420px] overflow-y-auto pr-1">
                     <table class="w-full text-right text-xs text-slate-800">
@@ -1385,6 +1418,12 @@
                 </div>
                 <div>
                     <label for="parent-reply-text" class="text-[11px] font-bold text-slate-700 block mb-1">الصقي رد ولي الأمر من واتساب</label>
+                    <div class="flex flex-wrap gap-1.5 mb-2">
+                        <button type="button" onclick="useQuickReply('تم الاطلاع، شكراً.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">تم الاطلاع، شكراً</button>
+                        <button type="button" onclick="useQuickReply('شكراً أستاذة، سنتابع معها في البيت.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">سنتابع معها في البيت</button>
+                        <button type="button" onclick="useQuickReply('سيتم التواصل مع المدرسة.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">سيتواصل مع المدرسة</button>
+                        <button type="button" onclick="useQuickReply('ولي الأمر يطلب موعداً للمقابلة.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">يطلب موعداً</button>
+                    </div>
                     <textarea id="parent-reply-text" rows="5" placeholder="مثال: شكراً أستاذة، سنتابع معها في البيت" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 transition"></textarea>
                 </div>
                 <p id="parent-reply-saved-at" class="hidden text-[10px] text-emerald-700"></p>
@@ -2544,7 +2583,8 @@
                 studentName: selectedStudent.name,
                 phone: phone,
                 subject: currentSubjectName,
-                teacherName: currentTeacherName,
+                teacherName: getArchiveSenderName(),
+                senderName: loggedInStaff ? loggedInStaff.name : '',
                 type: activeTemplateType,
                 signerRole: currentStaffRole,
                 className: document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '',
@@ -2723,7 +2763,8 @@
                 studentName: student.name,
                 phone: student.phone,
                 subject: currentSubjectName,
-                teacherName: currentTeacherName,
+                teacherName: getArchiveSenderName(),
+                senderName: loggedInStaff ? loggedInStaff.name : '',
                 type: activeTemplateType,
                 signerRole: currentStaffRole,
                 className: classLabel,
@@ -4307,6 +4348,7 @@
         }
 
         function applyStaffLogin(info) {
+            loggedInStaff = info;
             const roleSelect = document.getElementById('active-role-select');
             if (roleSelect) roleSelect.value = info.role;
             changeStaffRole(info.role);
@@ -4331,6 +4373,7 @@
             document.getElementById('login-user-role').innerText = (ROLE_DISPLAY_LABELS[info.role] || info.role);
             document.getElementById('login-user-pill').style.display = 'flex';
             document.getElementById('login-gate').classList.add('hidden-gate');
+            try { lockRoleAfterLogin(); refreshActivationWidgets(); } catch (e) { console.warn('login lock:', e); }
         }
 
         function initLoginGate() {
@@ -4977,6 +5020,7 @@
             if (modal) modal.classList.remove('hidden');
             const searchInput = document.getElementById('archive-search-input');
             if (searchInput) searchInput.value = '';
+            archivePendingOnly = false;
 
             const statusEl = document.getElementById('archive-backup-status');
             if (statusEl) {
@@ -5067,12 +5111,14 @@
             }
 
             const normalizedFilter = filterText.trim().toLowerCase();
+            const baseEntries = archivePendingOnly ? scopedEntries.filter(isPendingReplyEntry) : scopedEntries;
+            updatePendingToggleButton();
             const filtered = normalizedFilter
-                ? scopedEntries.filter(entry =>
+                ? baseEntries.filter(entry =>
                     (entry.studentName || '').toLowerCase().includes(normalizedFilter) ||
                     (entry.subject || '').toLowerCase().includes(normalizedFilter) ||
                     (entry.teacherName || '').toLowerCase().includes(normalizedFilter))
-                : scopedEntries;
+                : baseEntries;
 
             if (filtered.length === 0) {
                 tbody.innerHTML = '';
@@ -5097,7 +5143,9 @@
                                 <button onclick="viewArchiveMessage(${entry.id})" class="bg-slate-200 text-cyan-700 border border-cyan-600/40 hover:bg-slate-300 px-2.5 py-1 rounded-lg font-bold text-xs">عرض</button>
                                 ${entry.parentReply
                                     ? `<button onclick="openParentReplyModal(${entry.id})" title="${escapeReplyHtml(entry.parentReply)}" class="bg-emerald-50 text-emerald-700 border border-emerald-500/40 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-bold text-xs">✓ تم الرد</button>`
-                                    : `<button onclick="openParentReplyModal(${entry.id})" class="bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200 px-2.5 py-1 rounded-lg font-bold text-xs">تسجيل الرد</button>`}
+                                    : (isPendingReplyEntry(entry)
+                                        ? `<button onclick="openParentReplyModal(${entry.id})" title="لم يُسجَّل رد منذ ${daysLabel(daysSince(entry.sentAt))}" class="bg-amber-50 text-amber-800 border border-amber-400/70 hover:bg-amber-100 px-2.5 py-1 rounded-lg font-bold text-xs">تسجيل الرد · منذ ${daysLabel(daysSince(entry.sentAt))}</button>`
+                                        : `<button onclick="openParentReplyModal(${entry.id})" class="bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200 px-2.5 py-1 rounded-lg font-bold text-xs">تسجيل الرد</button>`)}
                             </div>
                         </td>
                     </tr>`;
@@ -5468,6 +5516,221 @@
             };
             reader.readAsText(file);
         }
+        // ============================================================
+        // Activation & quality additions:
+        //  1) sender name/role taken from the login screen, role locked;
+        //  2) reminder for messages still waiting for a recorded reply,
+        //     plus one-tap quick replies;
+        //  3) "إنجازي هذا الأسبوع" card for the logged-in staff member;
+        //  4) install the platform as an app (PWA).
+        // ============================================================
+        let loggedInStaff = null;
+        let archivePendingOnly = false;
+        const PENDING_REPLY_HOURS = 48;
+        const PILOT_WEEK_TARGET = 50;
+
+        // Name written into each archived message (sheet column «اسم المعلمة»).
+        function getArchiveSenderName() {
+            if (currentStaffRole === 'subject_teacher') return currentTeacherName || (loggedInStaff ? loggedInStaff.name : '');
+            if (loggedInStaff) return `${loggedInStaff.name} — ${ROLE_DISPLAY_LABELS[currentStaffRole] || currentStaffRole}`;
+            return currentTeacherName;
+        }
+
+        // Keeps the logged-in teacher selected (and signing) whatever subject is chosen.
+        function preferLoggedInTeacher() {
+            if (!loggedInStaff || currentStaffRole !== 'subject_teacher') return;
+            const sel = document.getElementById('teacher-select');
+            if (!sel) return;
+            const target = normalizeStaffName(loggedInStaff.name);
+            let opt = Array.from(sel.options).find(o => o.value && normalizeStaffName(o.value.split(' — ')[0]) === target);
+            if (!opt) {
+                const st = findStaffByName(loggedInStaff.name);
+                const value = `${loggedInStaff.name} — ${(st && st.position) || 'معلمة'}`;
+                if (sel.options.length === 1 && !sel.options[0].value) sel.innerHTML = '';
+                opt = new Option(value, value);
+                sel.add(opt, 0);
+            }
+            sel.value = opt.value;
+            currentTeacherName = opt.value;
+            sel.disabled = true;
+            sel.title = 'الاسم مأخوذ من تسجيل الدخول';
+        }
+        (function () {
+            const original = populateTeacherSelect;
+            populateTeacherSelect = function (subjectName) {
+                original(subjectName);
+                preferLoggedInTeacher();
+            };
+        })();
+
+        function lockRoleAfterLogin() {
+            const roleSelect = document.getElementById('active-role-select');
+            if (roleSelect) {
+                roleSelect.disabled = true;
+                roleSelect.title = 'لتغيير الدور سجّلي الخروج ثم ادخلي بالدور الجديد';
+            }
+            preferLoggedInTeacher();
+        }
+
+        // Messages "mine" for the logged-in person: the principal sees all.
+        function getMyArchiveEntries() {
+            if (currentStaffRole === 'principal') return messageArchive;
+            if (currentStaffRole === 'subject_teacher') {
+                return currentTeacherName ? messageArchive.filter(e => e.teacherName === currentTeacherName) : messageArchive;
+            }
+            return messageArchive.filter(e => e.signerRole === currentStaffRole);
+        }
+
+        function isPendingReplyEntry(e) {
+            if (!e || e.parentReply || !e.sentAt) return false;
+            const age = Date.now() - new Date(e.sentAt).getTime();
+            return age >= PENDING_REPLY_HOURS * 3600000 && age <= 30 * 86400000;
+        }
+
+        function getPendingReplyEntries() {
+            return getMyArchiveEntries().filter(isPendingReplyEntry);
+        }
+
+        function daysSince(iso) {
+            return Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+        }
+
+        function daysLabel(n) {
+            if (n === 1) return 'يوم';
+            if (n === 2) return 'يومين';
+            if (n <= 10) return `${n} أيام`;
+            return `${n} يوماً`;
+        }
+
+        function openPendingReplies() {
+            openArchiveModal();
+            archivePendingOnly = true;
+            renderArchiveTable('');
+        }
+
+        function toggleArchivePendingOnly() {
+            archivePendingOnly = !archivePendingOnly;
+            filterArchive();
+        }
+
+        function updatePendingToggleButton() {
+            const btn = document.getElementById('archive-pending-toggle');
+            if (!btn) return;
+            const n = getArchiveScopedEntries().entries.filter(isPendingReplyEntry).length;
+            btn.innerText = archivePendingOnly ? `عرض كل الرسائل` : `بانتظار تسجيل الرد (${n})`;
+            btn.className = archivePendingOnly
+                ? 'text-xs bg-amber-500 text-white border border-amber-500 py-1.5 px-3 rounded-xl font-bold transition'
+                : 'text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-400/60 py-1.5 px-3 rounded-xl font-bold transition';
+        }
+
+        function useQuickReply(text) {
+            const ta = document.getElementById('parent-reply-text');
+            if (!ta) return;
+            ta.value = ta.value.trim() ? `${ta.value.trim()} ${text}` : text;
+            ta.focus();
+        }
+
+        function getWeekStart(d) {
+            const s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            s.setDate(s.getDate() - s.getDay()); // Sunday
+            return s;
+        }
+
+        function refreshActivationWidgets() {
+            // pending badge on the main archive button
+            const pending = getPendingReplyEntries();
+            const badge = document.getElementById('pending-reply-badge');
+            if (badge) {
+                badge.innerText = `${pending.length} بانتظار الرد`;
+                badge.classList.toggle('hidden', pending.length === 0);
+            }
+            updatePendingToggleButton();
+
+            // weekly achievement card
+            const card = document.getElementById('my-week-card');
+            if (!card) return;
+            if (!loggedInStaff) { card.classList.add('hidden'); return; }
+            card.classList.remove('hidden');
+            const start = getWeekStart(new Date());
+            const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+            const mine = getMyArchiveEntries().filter(e => new Date(e.sentAt) >= start);
+            const replies = mine.filter(e => e.parentReply).length;
+            const rate = mine.length ? Math.round(replies / mine.length * 100) : null;
+            document.getElementById('my-week-range').innerText = `${start.getDate()}/${start.getMonth() + 1} – ${end.getDate()}/${end.getMonth() + 1}`;
+            document.getElementById('my-week-sent').innerText = mine.length;
+            document.getElementById('my-week-replies').innerText = replies;
+            const rateEl = document.getElementById('my-week-rate');
+            rateEl.innerText = rate == null ? '—' : `${rate}٪`;
+            const color = rate == null ? '#94a3b8' : (rate >= PILOT_WEEK_TARGET ? '#059669' : (rate >= PILOT_WEEK_TARGET - 20 ? '#d97706' : '#e11d48'));
+            rateEl.style.color = color;
+            const bar = document.getElementById('my-week-bar');
+            bar.style.width = `${rate || 0}%`;
+            bar.style.background = color;
+            const msg = document.getElementById('my-week-msg');
+            if (!mine.length) msg.innerText = 'لم تُرسَل رسائل من هذا الجهاز هذا الأسبوع بعد.';
+            else if (rate >= PILOT_WEEK_TARGET) msg.innerText = `أحسنتِ! تجاوزتِ هدف التجربة (${PILOT_WEEK_TARGET}٪ ردود).`;
+            else msg.innerText = `سجّلي ردود أولياء الأمور لترتفع النسبة — الهدف ${PILOT_WEEK_TARGET}٪.`;
+            const pBtn = document.getElementById('my-week-pending-btn');
+            if (pBtn) {
+                pBtn.innerText = `${pending.length} رسالة بانتظار تسجيل الرد — سجّليها الآن`;
+                pBtn.classList.toggle('hidden', pending.length === 0);
+            }
+        }
+
+        (function () {
+            const wrap = (name) => {
+                const original = window[name];
+                if (typeof original !== 'function') return;
+                window[name] = function () {
+                    const result = original.apply(this, arguments);
+                    try { refreshActivationWidgets(); } catch (e) { console.warn('activation widgets:', e); }
+                    return result;
+                };
+            };
+            ['updateStats', 'saveArchiveToStorage', 'changeStaffRole', 'changeTeacherName'].forEach(wrap);
+        })();
+
+        // ---- install as an app (PWA) ----
+        let deferredInstallPrompt = null;
+        function isStandaloneApp() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+        function showInstallButton() {
+            const btn = document.getElementById('install-app-btn');
+            if (btn && !isStandaloneApp()) btn.style.display = 'inline-block';
+        }
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            showInstallButton();
+        });
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            const btn = document.getElementById('install-app-btn');
+            if (btn) btn.style.display = 'none';
+            showToast('تم تثبيت المنصة على جهازك');
+        });
+        function installPlatformApp() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.finally(() => { deferredInstallPrompt = null; });
+                return;
+            }
+            const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            showToast(ios
+                ? 'في Safari: اضغطي زر المشاركة ثم «إضافة إلى الشاشة الرئيسية»'
+                : 'من قائمة المتصفح (⋮) اختاري «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»');
+        }
+        if ('serviceWorker' in navigator && location.protocol === 'https:') {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.warn('service worker:', err));
+            });
+        }
+        window.addEventListener('load', () => {
+            if (/iphone|ipad|ipod/i.test(navigator.userAgent)) showInstallButton();
+            try { refreshActivationWidgets(); } catch (e) {}
+        });
+
     </script>
 </body>
 </html>
