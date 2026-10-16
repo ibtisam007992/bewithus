@@ -286,6 +286,14 @@
         #login-user-pill b{color:#0d9488}
         #login-user-pill span.lg-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         #login-user-pill button{border:0;background:#f1f5f9;color:#be123c;font-weight:700;border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap}
+        /* The name pill never covers a window's buttons: hidden while any window is open,
+           smaller on phones, and the page gets room at the bottom so nothing sits under it. */
+        body:has([id$="-modal"]:not(.hidden)) #login-user-pill{display:none !important}
+        body.has-login-pill{padding-bottom:72px}
+        @media (max-width:640px){
+            #login-user-pill{bottom:10px;right:10px;left:10px;justify-content:space-between;padding:5px 6px 5px 10px;font-size:12px}
+            #login-user-pill button{padding:4px 9px;font-size:11px}
+        }
     </style>
     <div id="login-gate" role="dialog" aria-modal="true" aria-labelledby="login-gate-title">
         <div class="lg-card">
@@ -4376,6 +4384,7 @@
             document.getElementById('login-user-name').innerText = info.name;
             document.getElementById('login-user-role').innerText = (ROLE_DISPLAY_LABELS[info.role] || info.role);
             document.getElementById('login-user-pill').style.display = 'flex';
+            document.body.classList.add('has-login-pill');
             document.getElementById('login-gate').classList.add('hidden-gate');
             try { lockRoleAfterLogin(); refreshActivationWidgets(); } catch (e) { console.warn('login lock:', e); }
         }
