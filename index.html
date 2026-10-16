@@ -267,7 +267,8 @@
                 <h2 id="login-gate-title">تسجيل دخول الموظفة</h2>
                 <p class="lg-sub">منصة «كُن معنا» — مدرسة خولة بنت حكيم للبنات <span style="white-space:nowrap">(9–12)</span></p>
                 <label for="login-name">الاسم</label>
-                <input id="login-name" list="login-name-list" placeholder="اكتبي اسمك">
+                <input id="login-name" list="login-name-list" placeholder="اكتبي اسمك" oninput="onLoginNameInput()" onchange="onLoginNameInput()">
+                <p id="login-name-job" style="display:none;margin:6px 2px 0;font-size:12px;font-weight:700;color:#0d9488"></p>
                 <datalist id="login-name-list"></datalist>
                 <label for="login-role">الدور الوظيفي</label>
                 <select id="login-role"></select>
@@ -861,6 +862,17 @@
                             <span>معلمات المواد والهيئة التدريسية</span>
                         </h4>
                         <p class="text-xs text-slate-700">تتيح لكِ المنصة التبديل السلس بين جميع المواد الدراسية في الشريط العلوي لتجهيز ونشر الرسائل المباشرة لأولياء الأمور بنقرة واحدة.</p>
+                    </div>
+
+                    <!-- 4. Full staff list (from the Ministry "Search for Employees"
+                         report) — additive, filled by renderStaffDirectoryList(). -->
+                    <div class="bg-slate-100/90 p-4 rounded-2xl border border-indigo-500/30">
+                        <h4 class="text-sm font-bold text-indigo-700 flex items-center justify-between gap-2 mb-2">
+                            <span>قائمة موظفات المدرسة وأدوارهن</span>
+                            <span id="staff-list-count" class="text-[11px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full"></span>
+                        </h4>
+                        <input id="staff-list-search" oninput="renderStaffDirectoryList(this.value)" placeholder="بحث بالاسم أو الوظيفة أو المادة..." class="w-full bg-white border border-slate-300 rounded-xl py-2 px-3 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 mb-2">
+                        <div id="staff-list-body" class="max-h-72 overflow-y-auto space-y-3 pl-1"></div>
                     </div>
 
                 </div>
@@ -2099,7 +2111,88 @@
             }
         }
 
-        function openStaffModal() { document.getElementById('staff-directory-modal').classList.remove('hidden'); }
+        function openStaffModal() { document.getElementById('staff-directory-modal').classList.remove('hidden'); renderStaffDirectoryList(document.getElementById('staff-list-search') ? document.getElementById('staff-list-search').value : ''); }
+
+        // ============================================================
+        // School staff directory (Ministry "Search for Employees" report,
+        // Khawla Bint Hakim School 9-12, 97 staff). Teachers come from
+        // TEACHER_SUBJECT_MAP (already built from the same report); the
+        // remaining 22 administrative / specialist / support staff are listed
+        // here with their job title and the matching platform role ('' when
+        // no platform role matches — they pick their role at login).
+        // ============================================================
+        const STAFF_NON_TEACHING = [
+            { name: "ليلى سالم سهيل المسهلي", job: "مديرة المدرسة", role: "principal" },
+            { name: "اتسلوم عامر سالم العمري", job: "مساعدة مديرة المدرسة", role: "vice_principal" },
+            { name: "ايمان على عوض الرواس", job: "أخصائية اجتماعية", role: "social_worker" },
+            { name: "ساميه سالم على بالخير", job: "أخصائية نفسية", role: "psychologist" },
+            { name: "طفول محمد احمد العامري", job: "أخصائية أنظمة مدرسية", role: "systems_specialist" },
+            { name: "وفاء على محمد العجيلي", job: "أخصائية أنظمة مدرسية", role: "systems_specialist" },
+            { name: "اوسام نظر عاشور الفض", job: "أخصائية توجيه مهني", role: "career_counselor" },
+            { name: "ايمان سعيد فارح البهانت", job: "أخصائية توجيه مهني", role: "career_counselor" },
+            { name: "فاطمه على مسلم بيت سعيد", job: "أخصائية توجيه مهني", role: "career_counselor" },
+            { name: "اسماء سهيل مسعود باقى", job: "أخصائية مصادر التعلم", role: "" },
+            { name: "امينه احمد الشاوى جداد", job: "أخصائية أنشطة مدرسية", role: "" },
+            { name: "منى احمد سعيد الرواس", job: "أخصائية شؤون إدارية ومالية", role: "" },
+            { name: "حنان احمد سالم الرواس", job: "منسقة شؤون مدرسية", role: "" },
+            { name: "خوله ناصر سعيد المقبالي", job: "منسقة شؤون مدرسية", role: "" },
+            { name: "ورده خالد سالم باعلوى", job: "منسقة شؤون مدرسية", role: "" },
+            { name: "اروى سالم احمد الغساني", job: "فنية مختبر علوم", role: "" },
+            { name: "حنان جمعان مبروك بيت سليم", job: "فنية مختبر علوم", role: "" },
+            { name: "مهاني احمد عقيل باعمر", job: "فنية دعم أجهزة مدرسية", role: "" },
+            { name: "احمد سالم عوض المعلم", job: "حارس", role: "" },
+            { name: "صادق على هادى غواص", job: "حارس", role: "" },
+            { name: "عادل سعيد مسلم الكثيرى", job: "حارس", role: "" },
+            { name: "على سعيد عمبر العامرى", job: "حارس", role: "" }
+        ];
+
+        // Arabic-insensitive key: ignores spacing, hamza forms, ى/ي and ة/ه.
+        function normalizeStaffName(s) {
+            return (s || '').replace(/[ً-ْ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي')
+                .replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim();
+        }
+
+        function getAllStaff() {
+            const list = [];
+            Object.keys(TEACHER_SUBJECT_MAP).forEach(subject => {
+                TEACHER_SUBJECT_MAP[subject].forEach(t => {
+                    list.push({ name: t.name, job: `${t.position} ${subject}`, role: 'subject_teacher', subject, position: t.position, group: 'الهيئة التدريسية' });
+                });
+            });
+            STAFF_NON_TEACHING.forEach(s => {
+                const group = s.role === 'principal' || s.role === 'vice_principal' ? 'الإدارة المدرسية'
+                    : (s.role || s.job.startsWith('أخصائية')) ? 'الأخصائيات' : 'الشؤون الإدارية والفنية والخدمات';
+                list.push(Object.assign({ group }, s));
+            });
+            return list;
+        }
+
+        function findStaffByName(name) {
+            const key = normalizeStaffName(name);
+            if (!key) return null;
+            return getAllStaff().find(s => normalizeStaffName(s.name) === key
+                || (s.position && normalizeStaffName(`${s.name} — ${s.position}`) === key)) || null;
+        }
+
+        function renderStaffDirectoryList(filterText) {
+            const body = document.getElementById('staff-list-body');
+            if (!body) return;
+            const all = getAllStaff();
+            const q = normalizeStaffName(filterText || '');
+            const shown = q ? all.filter(s => normalizeStaffName(`${s.name} ${s.job}`).includes(q)) : all;
+            const countEl = document.getElementById('staff-list-count');
+            if (countEl) countEl.innerText = q ? `${shown.length} من ${all.length}` : `${all.length} موظفة وموظفاً`;
+            const order = ['الإدارة المدرسية', 'الأخصائيات', 'الهيئة التدريسية', 'الشؤون الإدارية والفنية والخدمات'];
+            const esc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            body.innerHTML = order.map(g => {
+                const items = shown.filter(s => s.group === g).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+                if (!items.length) return '';
+                return `<div><p class="text-[11px] font-bold text-slate-500 mb-1">${g} (${items.length})</p>` +
+                    items.map(s => `<div class="flex items-center justify-between gap-2 bg-white rounded-lg px-3 py-1.5 border border-slate-200 mb-1">
+                        <span class="text-xs font-bold text-slate-800">${esc(s.name)}</span>
+                        <span class="text-[11px] text-slate-500 text-left">${esc(s.job)}</span></div>`).join('') + `</div>`;
+            }).join('') || '<p class="text-xs text-slate-500 text-center py-3">لا توجد نتائج مطابقة.</p>';
+        }
         function closeStaffModal() { document.getElementById('staff-directory-modal').classList.add('hidden'); }
 
         function chatWithStaff(staffRole, phoneNum) {
@@ -3790,7 +3883,8 @@
             if (roleSelect) roleSelect.value = info.role;
             changeStaffRole(info.role);
             if (info.role === 'subject_teacher') {
-                const found = findTeacherByName(info.name);
+                const st = findStaffByName(info.name);
+                const found = (st && st.subject) ? { subject: st.subject, teacher: { name: st.name, position: st.position } } : findTeacherByName(info.name);
                 if (found) {
                     const subjectSelect = document.getElementById('subject-select');
                     if (subjectSelect && Array.from(subjectSelect.options).some(o => o.value === found.subject)) {
@@ -3827,8 +3921,8 @@
             const list = document.getElementById('login-name-list');
             if (list) {
                 const names = new Set();
-                Object.values(TEACHER_SUBJECT_MAP).forEach(arr => arr.forEach(t => names.add(t.name)));
-                list.innerHTML = Array.from(names).map(n => `<option value="${n}"></option>`).join('');
+                getAllStaff().forEach(s => names.add(s.name));
+                list.innerHTML = Array.from(names).sort((a, b) => a.localeCompare(b, 'ar')).map(n => `<option value="${n}"></option>`).join('');
             }
 
             let saved = null;
@@ -3839,6 +3933,18 @@
                 gate.classList.remove('hidden-gate');
                 setTimeout(() => { const n = document.getElementById('login-name'); if (n) n.focus(); }, 50);
             }
+        }
+
+        function onLoginNameInput() {
+            const hint = document.getElementById('login-name-job');
+            const roleSelect = document.getElementById('login-role');
+            const st = findStaffByName(document.getElementById('login-name').value);
+            if (!st) { if (hint) hint.style.display = 'none'; return; }
+            if (hint) {
+                hint.innerText = st.role ? `الوظيفة: ${st.job}` : `الوظيفة: ${st.job} — اختاري الدور المناسب من القائمة`;
+                hint.style.display = 'block';
+            }
+            if (st.role && roleSelect && Array.from(roleSelect.options).some(o => o.value === st.role)) roleSelect.value = st.role;
         }
 
         function submitLoginGate(event) {
