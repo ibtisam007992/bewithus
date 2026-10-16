@@ -1291,6 +1291,10 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                             <span>تقرير الغياب والتأخر</span>
                         </button>
+                        <button onclick="openPilotDashboardModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-sky-700 border border-sky-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="نسبة ردود أولياء الأمور أسبوعياً لكل صف ولكل معلمة، محمية برقم سري">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                            <span>لوحة متابعة التجربة</span>
+                        </button>
                         <button onclick="openClearArchiveModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-rose-700 border border-rose-500/30 py-2 px-3 rounded-xl flex items-center gap-1.5 font-bold transition" title="مسح رسائل من الأرشيف، محمي برقم سري">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             <span>مسح الأرشيف</span>
@@ -1508,6 +1512,69 @@
                         </button>
                         <button onclick="closeAttendanceReportModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-2.5 rounded-xl">إغلاق</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pilot Dashboard Modal ("لوحة متابعة التجربة"): weekly parent-reply
+             rate per class and per teacher, read live from the archive Google
+             Sheet + the parent-replies tab. Password-gated (same 4-digit code as
+             the monthly export). Additive: changes nothing above. -->
+        <div id="pilot-dashboard-modal" class="fixed inset-0 z-50 bg-slate-50/80 backdrop-blur-md hidden flex items-center justify-center p-3 md:p-4">
+            <div class="glass-panel max-w-5xl w-full p-4 md:p-6 rounded-3xl border border-sky-500/40 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                        <span>لوحة متابعة التجربة</span>
+                    </h3>
+                    <button onclick="closePilotDashboardModal()" class="text-slate-600 hover:text-slate-900">✕</button>
+                </div>
+
+                <div id="pilot-lock-step" class="space-y-3 max-w-sm mx-auto w-full">
+                    <p class="text-xs text-slate-600 text-center">نسبة ردود أولياء الأمور أسبوعياً لكل صف ولكل معلمة، من ملف أرشيف الرسائل وورقة الردود.</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="pilot-from" class="text-xs font-bold text-slate-700 block mb-1">بداية التجربة</label>
+                            <input type="date" id="pilot-from" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2 text-sm text-slate-800 focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                        <div>
+                            <label for="pilot-to" class="text-xs font-bold text-slate-700 block mb-1">حتى تاريخ</label>
+                            <input type="date" id="pilot-to" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2 text-sm text-slate-800 focus:outline-none focus:border-sky-500 transition">
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500">اتركي «بداية التجربة» فارغة لعرض كل الرسائل منذ أول رسالة.</p>
+                    <div>
+                        <label for="pilot-password" class="text-xs font-bold text-slate-700 block mb-1">الرقم السري</label>
+                        <input type="password" inputmode="numeric" maxlength="4" id="pilot-password" onkeyup="if(event.key==='Enter') verifyPilotDashboardPassword()" placeholder="••••" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2 text-sm text-slate-800 text-center tracking-[0.5em] focus:outline-none focus:border-sky-500 transition">
+                    </div>
+                    <p id="pilot-error" class="hidden text-[11px] text-red-600 font-bold text-center">الرقم السري غير صحيح، حاولي مجدداً</p>
+                    <button onclick="verifyPilotDashboardPassword()" class="w-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 text-white font-bold py-2.5 rounded-xl transition text-sm">فتح اللوحة</button>
+                </div>
+
+                <div id="pilot-unlocked-step" class="hidden space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p id="pilot-range-label" class="text-xs text-slate-600"></p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="loadPilotDashboard(true)" class="text-xs bg-slate-200 hover:bg-slate-300 text-sky-700 border border-sky-500/30 py-2 px-3 rounded-xl font-bold transition">تحديث البيانات</button>
+                            <button onclick="exportPilotDashboardExcel()" class="text-xs bg-slate-200 hover:bg-slate-300 text-emerald-700 border border-emerald-500/30 py-2 px-3 rounded-xl font-bold transition">تصدير Excel</button>
+                            <button onclick="backToPilotLockStep()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-xl transition">تغيير الفترة</button>
+                        </div>
+                    </div>
+                    <p id="pilot-status" class="text-xs text-slate-600 text-center"></p>
+                    <div id="pilot-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800 mb-2">نسبة الردود أسبوعياً</h4>
+                        <div id="pilot-weekly"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800 mb-2">حسب الصف</h4>
+                        <div id="pilot-by-class" class="overflow-x-auto"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800 mb-2">حسب المعلمة</h4>
+                        <div id="pilot-by-teacher" class="overflow-x-auto"></div>
+                    </div>
+                    <div id="pilot-notes" class="text-[11px] text-slate-500 leading-relaxed bg-slate-100 rounded-xl p-3"></div>
                 </div>
             </div>
         </div>
@@ -3626,6 +3693,354 @@
             `;
             printHtmlDocument(html);
             showToast("فتحت نافذة الطباعة — اختاري 'حفظ كـ PDF' من خيارات الطباعة");
+        }
+
+        // ============================================================
+        // Pilot dashboard ("لوحة متابعة التجربة"): weekly reply rate per class
+        // and per teacher. Messages come from the archive Google Sheet (all
+        // staff, all devices); replies from the parent-replies tab plus any
+        // replies saved on this device. A message's class is found from the
+        // stored class rosters by the guardian's phone number. Read-only.
+        // ============================================================
+        const PILOT_TARGET_RATE = 50; // % — success criterion agreed for the pilot
+        let pilotState = null;
+        let pilotRosterCache = null;
+
+        function pilotPad(n) { return String(n).padStart(2, '0'); }
+        function pilotEsc(t) {
+            return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function pilotNormPhone(raw) {
+            let d = normalizeDigits(raw).replace(/\D/g, '');
+            if (d.length === 8) d = '968' + d;
+            return d;
+        }
+        function pilotNormName(raw) {
+            return String(raw || '').replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, '');
+        }
+        function pilotKeyDate(text) { // "YYYY/MM/DD HH:MM:SS" -> Date
+            const m = String(text || '').match(/(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+            return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
+        }
+        function pilotWeekStart(date) { // school week starts on Sunday
+            const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            d.setDate(d.getDate() - d.getDay());
+            return d;
+        }
+        function pilotDayLabel(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
+        function pilotRate(replies, total) { return total ? Math.round(replies / total * 100) : null; }
+        function pilotRateClass(rate) {
+            if (rate == null) return 'bg-slate-100 text-slate-400';
+            if (rate >= PILOT_TARGET_RATE) return 'bg-emerald-100 text-emerald-800';
+            if (rate >= PILOT_TARGET_RATE - 20) return 'bg-amber-100 text-amber-800';
+            return 'bg-rose-100 text-rose-800';
+        }
+        function pilotBarColor(rate) {
+            if (rate == null) return '#cbd5e1';
+            if (rate >= PILOT_TARGET_RATE) return '#059669';
+            if (rate >= PILOT_TARGET_RATE - 20) return '#d97706';
+            return '#e11d48';
+        }
+
+        function openPilotDashboardModal() {
+            const modal = document.getElementById('pilot-dashboard-modal');
+            if (!modal) return;
+            backToPilotLockStep();
+            const fromEl = document.getElementById('pilot-from');
+            const toEl = document.getElementById('pilot-to');
+            try { if (fromEl && !fromEl.value) fromEl.value = localStorage.getItem('bewithus_pilot_from') || ''; } catch (e) {}
+            if (toEl && !toEl.value) {
+                const n = new Date();
+                toEl.value = `${n.getFullYear()}-${pilotPad(n.getMonth() + 1)}-${pilotPad(n.getDate())}`;
+            }
+            modal.classList.remove('hidden');
+        }
+        function closePilotDashboardModal() {
+            const modal = document.getElementById('pilot-dashboard-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+        function backToPilotLockStep() {
+            document.getElementById('pilot-lock-step').classList.remove('hidden');
+            document.getElementById('pilot-unlocked-step').classList.add('hidden');
+            document.getElementById('pilot-error').classList.add('hidden');
+            document.getElementById('pilot-password').value = '';
+        }
+        function verifyPilotDashboardPassword() {
+            const pwField = document.getElementById('pilot-password');
+            if ((pwField.value || '').trim() !== MONTHLY_EXPORT_PASSWORD) {
+                document.getElementById('pilot-error').classList.remove('hidden');
+                pwField.value = ''; pwField.focus();
+                return;
+            }
+            try { localStorage.setItem('bewithus_pilot_from', document.getElementById('pilot-from').value || ''); } catch (e) {}
+            document.getElementById('pilot-lock-step').classList.add('hidden');
+            document.getElementById('pilot-unlocked-step').classList.remove('hidden');
+            loadPilotDashboard(false);
+        }
+
+        // phone -> [{cls, name}] from every stored class roster (cached per page load)
+        async function loadPilotRosterMap(force) {
+            if (pilotRosterCache && !force) return pilotRosterCache;
+            const byId = {};
+            Object.keys(CLASS_SHEET_URL_MAP).forEach(cls => {
+                const info = extractGoogleDriveFileId(CLASS_SHEET_URL_MAP[cls]);
+                if (info) (byId[info.id] = byId[info.id] || []).push(cls);
+            });
+            const map = {}, failed = [], shared = [];
+            await Promise.all(Object.keys(byId).map(async id => {
+                const label = byId[id].join(' أو ');
+                if (byId[id].length > 1) shared.push(label);
+                let rows;
+                try { rows = await fetchGoogleSheetJSONP(id); } catch (e) { failed.push(label); return; }
+                rows.forEach(row => {
+                    if (!Array.isArray(row)) return;
+                    let name = '', phone = '';
+                    row.forEach(cell => {
+                        const str = String(cell == null ? '' : cell).trim();
+                        if (!str) return;
+                        const digits = normalizeDigits(str).replace(/\D/g, '');
+                        if ((digits.length === 8 && /^[79]/.test(digits)) || (digits.length === 11 && digits.startsWith('968'))) phone = pilotNormPhone(digits);
+                        else if (/[؀-ۿ]/.test(str) && str.length > 5) name = str;
+                    });
+                    if (phone) (map[phone] = map[phone] || []).push({ cls: label, name: pilotNormName(name) });
+                });
+            }));
+            pilotRosterCache = { map, failed, shared };
+            return pilotRosterCache;
+        }
+
+        function pilotClassFor(phone, studentName, roster, localClassByPhone) {
+            const options = roster.map[phone] || [];
+            if (options.length === 1) return options[0].cls;
+            if (options.length > 1) {
+                const n = pilotNormName(studentName);
+                const hit = options.find(o => o.name && n && (o.name === n || o.name.startsWith(n) || n.startsWith(o.name)));
+                return (hit || options[0]).cls;
+            }
+            return localClassByPhone[phone] || 'غير محدد';
+        }
+
+        async function loadPilotMessages(force) {
+            const [sheetRows, replyRows, roster] = await Promise.all([
+                fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID).catch(() => null),
+                fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID, PARENT_REPLY_SHEET_TAB).catch(() => []),
+                loadPilotRosterMap(force)
+            ]);
+            const localClassByPhone = {};
+            [...messageArchive].reverse().forEach(e => {
+                const c = (e.className || '').trim();
+                if (c && c !== 'الصف المُستورد') localClassByPhone[pilotNormPhone(e.phone)] = c;
+            });
+
+            // replies: phone -> [{t, replyAt}]
+            const replyIndex = {};
+            const addReply = (phone, t, replyAt) => {
+                if (!phone || !t) return;
+                (replyIndex[phone] = replyIndex[phone] || []).push({ t: t.getTime(), replyAt });
+            };
+            (replyRows || []).forEach(r => {
+                if (!r || r.length < 8) return;
+                const key = normalizeDigits(r[0]).trim();
+                const m = key.match(/^(\d+)\|(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})$/);
+                if (!m || !String(r[7] || '').trim()) return;
+                addReply(pilotNormPhone(m[1]), pilotKeyDate(m[2]), pilotKeyDate(normalizeDigits(r[8])));
+            });
+            messageArchive.forEach(e => {
+                if (e.parentReply) addReply(pilotNormPhone(e.phone), new Date(e.sentAt), e.parentReplyAt ? new Date(e.parentReplyAt) : null);
+            });
+            const findReply = (phone, date) => {
+                let best = null;
+                (replyIndex[phone] || []).forEach(c => {
+                    const diff = Math.abs(c.t - date.getTime());
+                    if (diff <= 180000 && (!best || diff < best.diff)) best = Object.assign({ diff }, c);
+                });
+                return best;
+            };
+
+            const messages = [];
+            let source = 'sheet';
+            if (sheetRows && sheetRows.length) {
+                sheetRows.forEach(r => {
+                    if (!r || r.length < 6) return;
+                    const date = pilotKeyDate(sheetDateToReplyKeyDate(r[0]));
+                    if (!date) return; // header row
+                    const phone = pilotNormPhone(r[2]);
+                    const student = r[1] != null ? String(r[1]) : '';
+                    const rep = findReply(phone, date);
+                    messages.push({
+                        date, phone, student,
+                        subject: r[3] != null ? String(r[3]) : '',
+                        teacher: (r[4] != null && String(r[4]).trim()) ? String(r[4]).trim() : 'غير محدد',
+                        cls: pilotClassFor(phone, student, roster, localClassByPhone),
+                        replied: !!rep,
+                        replyHours: rep && rep.replyAt && !isNaN(rep.replyAt) ? Math.max(0, (rep.replyAt - date) / 3600000) : null
+                    });
+                });
+            } else {
+                source = 'local';
+                messageArchive.forEach(e => {
+                    const date = new Date(e.sentAt);
+                    if (isNaN(date)) return;
+                    const phone = pilotNormPhone(e.phone);
+                    messages.push({
+                        date, phone, student: e.studentName || '', subject: e.subject || '',
+                        teacher: (e.teacherName || getEntrySenderLabel(e) || 'غير محدد'),
+                        cls: (e.className && e.className !== 'الصف المُستورد') ? e.className : pilotClassFor(phone, e.studentName, roster, {}),
+                        replied: !!e.parentReply,
+                        replyHours: e.parentReply && e.parentReplyAt ? Math.max(0, (new Date(e.parentReplyAt) - date) / 3600000) : null
+                    });
+                });
+            }
+            return { messages, source, roster };
+        }
+
+        async function loadPilotDashboard(force) {
+            const statusEl = document.getElementById('pilot-status');
+            statusEl.innerText = 'جاري جلب الرسائل والردود وسجلات الصفوف...';
+            ['pilot-kpis', 'pilot-weekly', 'pilot-by-class', 'pilot-by-teacher', 'pilot-notes'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+            let loaded;
+            try { loaded = await loadPilotMessages(force); }
+            catch (e) { statusEl.innerText = 'تعذر جلب البيانات. تأكدي من الاتصال بالإنترنت ثم اضغطي «تحديث البيانات».'; return; }
+
+            const fromVal = document.getElementById('pilot-from').value;
+            const toVal = document.getElementById('pilot-to').value;
+            const from = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+            const to = toVal ? new Date(toVal + 'T23:59:59') : null;
+            const msgs = loaded.messages.filter(m => (!from || m.date >= from) && (!to || m.date <= to)).sort((a, b) => a.date - b.date);
+
+            const rangeLabel = document.getElementById('pilot-range-label');
+            rangeLabel.innerText = `الفترة: ${fromVal ? pilotDayLabel(from) + '/' + from.getFullYear() : 'منذ أول رسالة'} — ${toVal ? pilotDayLabel(to) + '/' + to.getFullYear() : 'اليوم'} · الهدف: ${PILOT_TARGET_RATE}٪ ردود`;
+
+            if (!msgs.length) {
+                statusEl.innerText = 'لا توجد رسائل في هذه الفترة.';
+                pilotState = null;
+                return;
+            }
+            statusEl.innerText = loaded.source === 'sheet'
+                ? `آخر تحديث: ${new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' })} — من ملف أرشيف الرسائل وورقة الردود`
+                : 'تعذر الوصول إلى Google Sheet، فالأرقام من أرشيف هذا الجهاز فقط.';
+
+            // weeks (contiguous, Sunday-based)
+            const weeks = [];
+            for (let w = pilotWeekStart(msgs[0].date); w <= msgs[msgs.length - 1].date; w = new Date(w.getFullYear(), w.getMonth(), w.getDate() + 7)) weeks.push(w);
+            const weekIdx = m => Math.round((pilotWeekStart(m.date) - weeks[0]) / 604800000);
+            const weekLabel = i => { const s = weeks[i]; const e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6); return `${pilotDayLabel(s)} – ${pilotDayLabel(e)}`; };
+
+            const group = keyFn => {
+                const g = {};
+                msgs.forEach(m => {
+                    const k = keyFn(m);
+                    const o = g[k] = g[k] || { key: k, total: 0, replies: 0, weeks: weeks.map(() => ({ total: 0, replies: 0 })) };
+                    o.total++; if (m.replied) o.replies++;
+                    const wk = o.weeks[weekIdx(m)]; wk.total++; if (m.replied) wk.replies++;
+                });
+                return Object.values(g).sort((a, b) => b.total - a.total || a.key.localeCompare(b.key, 'ar'));
+            };
+            const weekly = weeks.map((w, i) => {
+                const list = msgs.filter(m => weekIdx(m) === i);
+                return { i, label: weekLabel(i), total: list.length, replies: list.filter(m => m.replied).length,
+                         teachers: new Set(list.map(m => m.teacher)).size };
+            });
+            const byClass = group(m => m.cls);
+            const byTeacher = group(m => m.teacher);
+            const totalReplies = msgs.filter(m => m.replied).length;
+            const rate = pilotRate(totalReplies, msgs.length);
+            const hours = msgs.filter(m => m.replyHours != null).map(m => m.replyHours);
+            const avgHours = hours.length ? hours.reduce((a, b) => a + b, 0) / hours.length : null;
+            const lastWeek = weekly[weekly.length - 1];
+            pilotState = { msgs, weeks, weekly, byClass, byTeacher, weekLabel, rate, totalReplies, avgHours, roster: loaded.roster };
+
+            // KPI tiles
+            const kpi = (label, value, sub, cls) => `<div class="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                <p class="text-[11px] text-slate-500">${label}</p>
+                <p class="text-2xl font-bold ${cls || 'text-slate-900'} mt-1">${value}</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">${sub}</p></div>`;
+            const rateCls = rate >= PILOT_TARGET_RATE ? 'text-emerald-700' : (rate >= PILOT_TARGET_RATE - 20 ? 'text-amber-700' : 'text-rose-700');
+            document.getElementById('pilot-kpis').innerHTML =
+                kpi('نسبة الردود', `${rate}٪`, rate >= PILOT_TARGET_RATE ? `تحقق الهدف (${PILOT_TARGET_RATE}٪)` : `الهدف ${PILOT_TARGET_RATE}٪`, rateCls) +
+                kpi('الرسائل المرسلة', msgs.length, `${totalReplies} رسالة وصلها رد`) +
+                kpi('متوسط زمن الرد', avgHours == null ? '—' : (avgHours < 24 ? `${avgHours.toFixed(1)} ساعة` : `${(avgHours / 24).toFixed(1)} يوم`), 'من الإرسال إلى تسجيل الرد') +
+                kpi('المعلمات المرسِلات', byTeacher.length, `${lastWeek.teachers} في آخر أسبوع · ${byClass.filter(c => c.key !== 'غير محدد').length} صفاً`);
+
+            // weekly bars
+            document.getElementById('pilot-weekly').innerHTML = `<div class="space-y-1.5">` + weekly.map((w, i) => {
+                const r = pilotRate(w.replies, w.total);
+                const prev = i > 0 ? pilotRate(weekly[i - 1].replies, weekly[i - 1].total) : null;
+                const trend = (r != null && prev != null && r !== prev) ? (r > prev ? `<span class="text-emerald-700">▲ ${r - prev}</span>` : `<span class="text-rose-700">▼ ${prev - r}</span>`) : '';
+                return `<div class="flex items-center gap-2 text-xs">
+                    <span class="w-28 shrink-0 text-slate-700">الأسبوع ${i + 1} <span class="text-slate-400">(${w.label})</span></span>
+                    <div class="flex-1 h-5 bg-slate-100 rounded-lg relative overflow-hidden">
+                        <div class="h-full rounded-lg" style="width:${r || 0}%;background:${pilotBarColor(r)}"></div>
+                        <div class="absolute top-0 bottom-0 border-r-2 border-dashed border-slate-500/60" style="right:${PILOT_TARGET_RATE}%" title="الهدف"></div>
+                    </div>
+                    <span class="w-12 text-left font-bold text-slate-800">${r == null ? '—' : r + '٪'}</span>
+                    <span class="w-24 text-slate-500">${w.replies}/${w.total} رسالة ${trend}</span>
+                </div>`;
+            }).join('') + `</div><p class="text-[11px] text-slate-500 mt-1">الخط المتقطع = الهدف ${PILOT_TARGET_RATE}٪.</p>`;
+
+            // tables
+            const shown = weeks.length > 8 ? weeks.length - 8 : 0;
+            const table = (rows, firstCol) => `<table class="w-full text-xs border-separate" style="border-spacing:0 4px">
+                <thead><tr class="text-slate-500">
+                    <th class="text-right font-bold p-1.5">${firstCol}</th><th class="p-1.5">الرسائل</th><th class="p-1.5">الردود</th><th class="p-1.5 min-w-[120px]">النسبة</th>
+                    ${weeks.slice(shown).map((w, j) => `<th class="p-1.5 whitespace-nowrap font-normal">أ${shown + j + 1}<br><span class="text-[10px]">${weekLabel(shown + j)}</span></th>`).join('')}
+                </tr></thead><tbody>${rows.map(o => {
+                    const r = pilotRate(o.replies, o.total);
+                    return `<tr class="bg-white/80">
+                        <td class="p-1.5 rounded-r-lg font-bold text-slate-800 whitespace-nowrap">${pilotEsc(o.key)}</td>
+                        <td class="p-1.5 text-center">${o.total}</td><td class="p-1.5 text-center">${o.replies}</td>
+                        <td class="p-1.5"><div class="flex items-center gap-1.5"><div class="flex-1 h-2.5 bg-slate-100 rounded"><div class="h-full rounded" style="width:${r || 0}%;background:${pilotBarColor(r)}"></div></div><span class="font-bold w-9 text-left">${r}٪</span></div></td>
+                        ${o.weeks.slice(shown).map((wk, j) => { const wr = pilotRate(wk.replies, wk.total); return `<td class="p-1 text-center ${j === o.weeks.length - shown - 1 ? 'rounded-l-lg' : ''}"><span class="inline-block min-w-[38px] px-1 py-0.5 rounded ${pilotRateClass(wr)}" title="${wk.replies} رد من ${wk.total} رسالة">${wr == null ? '—' : wr + '٪'}</span></td>`; }).join('')}
+                    </tr>`; }).join('')}</tbody></table>`;
+            document.getElementById('pilot-by-class').innerHTML = table(byClass, 'الصف');
+            document.getElementById('pilot-by-teacher').innerHTML = table(byTeacher, 'المعلمة / المرسلة');
+
+            const unknown = msgs.filter(m => m.cls === 'غير محدد').length;
+            const notes = [
+                'تُحسب الرسالة «وصلها رد» عندما تسجّل المعلمة رد ولي الأمر بزر «تسجيل الرد» في الأرشيف. الأسبوع يبدأ يوم الأحد.',
+                `الألوان: أخضر = ${PILOT_TARGET_RATE}٪ فأكثر، برتقالي = ${PILOT_TARGET_RATE - 20}–${PILOT_TARGET_RATE - 1}٪، أحمر = أقل من ${PILOT_TARGET_RATE - 20}٪.`,
+                'يُحدَّد صف كل رسالة من رقم ولي الأمر في سجلات الصفوف المحفوظة في المنصة.'
+            ];
+            if (shown) notes.push(`الجداول تعرض آخر ٨ أسابيع؛ ملف Excel يحوي كل الأسابيع.`);
+            if (unknown) notes.push(`${unknown} رسالة لم يُعرف صفها (رقم ولي الأمر غير موجود في سجلات الصفوف).`);
+            if (loaded.roster.shared.length) notes.push(`هذه الصفوف تشترك في رابط سجل واحد في المنصة، فتظهر معاً: ${loaded.roster.shared.join('، ')}.`);
+            if (loaded.roster.failed.length) notes.push(`تعذر جلب سجل: ${loaded.roster.failed.join('، ')}.`);
+            document.getElementById('pilot-notes').innerHTML = notes.map(n => `<p>• ${pilotEsc(n)}</p>`).join('');
+        }
+
+        function exportPilotDashboardExcel() {
+            if (!pilotState) { showToast('لا توجد بيانات للتصدير', true); return; }
+            const s = pilotState;
+            const wb = XLSX.utils.book_new();
+            const add = (rows, name) => {
+                const sh = XLSX.utils.json_to_sheet(rows);
+                sh['!views'] = [{ RTL: true }];
+                XLSX.utils.book_append_sheet(wb, sh, name);
+            };
+            add([
+                { 'المؤشر': 'الرسائل المرسلة', 'القيمة': s.msgs.length },
+                { 'المؤشر': 'الرسائل التي وصلها رد', 'القيمة': s.totalReplies },
+                { 'المؤشر': 'نسبة الردود ٪', 'القيمة': s.rate },
+                { 'المؤشر': 'الهدف ٪', 'القيمة': PILOT_TARGET_RATE },
+                { 'المؤشر': 'متوسط زمن الرد (ساعة)', 'القيمة': s.avgHours == null ? '' : +s.avgHours.toFixed(1) },
+                { 'المؤشر': 'عدد المعلمات المرسِلات', 'القيمة': s.byTeacher.length }
+            ], 'الملخص');
+            add(s.weekly.map(w => ({ 'الأسبوع': w.i + 1, 'الفترة': w.label, 'الرسائل': w.total, 'الردود': w.replies, 'نسبة الردود ٪': pilotRate(w.replies, w.total), 'معلمات أرسلن': w.teachers })), 'أسبوعياً');
+            const groupRows = (list, col) => list.map(o => {
+                const row = { [col]: o.key, 'الرسائل': o.total, 'الردود': o.replies, 'نسبة الردود ٪': pilotRate(o.replies, o.total) };
+                o.weeks.forEach((wk, i) => { row[`أسبوع ${i + 1} (${s.weekLabel(i)})`] = wk.total ? `${pilotRate(wk.replies, wk.total)}٪ (${wk.replies}/${wk.total})` : '—'; });
+                return row;
+            });
+            add(groupRows(s.byClass, 'الصف'), 'حسب الصف');
+            add(groupRows(s.byTeacher, 'المعلمة'), 'حسب المعلمة');
+            add(s.msgs.map(m => ({
+                'التاريخ': `${m.date.getFullYear()}/${pilotPad(m.date.getMonth() + 1)}/${pilotPad(m.date.getDate())} ${pilotPad(m.date.getHours())}:${pilotPad(m.date.getMinutes())}`,
+                'الطالبة': m.student, 'الصف': m.cls, 'المادة': m.subject, 'المعلمة': m.teacher,
+                'وصلها رد': m.replied ? 'نعم' : 'لا', 'زمن الرد (ساعة)': m.replyHours == null ? '' : +m.replyHours.toFixed(1)
+            })), 'الرسائل');
+            const n = new Date();
+            XLSX.writeFile(wb, `لوحة_متابعة_التجربة_${n.getFullYear()}-${pilotPad(n.getMonth() + 1)}-${pilotPad(n.getDate())}.xlsx`);
+            showToast('تم تصدير لوحة المتابعة');
         }
 
         // ============================================================
