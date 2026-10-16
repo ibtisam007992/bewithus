@@ -222,16 +222,16 @@
     <style id="platform-typography">
         html { font-size: 16px; }
         body { font-family: 'Tajawal', sans-serif; font-weight: 400; line-height: 1.7; }
-        h1 { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(2rem, 1.6rem + 1.25vw, 2.5rem) !important; font-weight: 700 !important; line-height: 1.35 !important; }
-        h2, h3 { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.75rem) !important; font-weight: 600 !important; line-height: 1.45 !important; }
-        h4 { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem) !important; font-weight: 600 !important; line-height: 1.5 !important; }
-        h2 *, h3 *, h4 * { font-size: inherit !important; }
+        h1, h1[class] { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(2rem, 1.6rem + 1.25vw, 2.5rem) !important; font-weight: 700 !important; line-height: 1.35 !important; }
+        h2, h2[class], h3, h3[class] { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.75rem) !important; font-weight: 600 !important; line-height: 1.45 !important; }
+        h4, h4[class] { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem) !important; font-weight: 600 !important; line-height: 1.5 !important; }
+        h1 *[class], h2 *[class], h3 *[class], h4 *[class], h1 *, h2 *, h3 *, h4 * { font-size: inherit !important; }
         p, li, td, th, label, textarea, .text-sm, .text-base { font-size: clamp(1rem, 0.96rem + 0.15vw, 1.125rem) !important; }
         p.text-xs, li.text-xs, td.text-xs, th.text-xs, label.text-xs, textarea.text-xs, .text-xs { font-size: 0.875rem !important; }
         p.text-xs:not([class*="font-bold"]):not([class*="text-center"]), td, textarea, #whatsapp-text { font-size: clamp(1rem, 0.96rem + 0.15vw, 1.125rem) !important; }
         [class*="text-[10px]"], [class*="text-[11px]"] { font-size: 0.8125rem !important; }
         input:not([type="checkbox"]):not([type="radio"]) { font-size: 1rem !important; }
-        button, select, nav a, [role="button"], button * { font-size: clamp(0.875rem, 0.84rem + 0.15vw, 1rem) !important; font-weight: 500 !important; }
+        button, button[class], select, select[class], nav a, [role="button"], button *, button *[class] { font-size: clamp(0.875rem, 0.84rem + 0.15vw, 1rem) !important; font-weight: 500 !important; }
         .text-lg, .text-xl { font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.75rem) !important; }
     </style>
 </head>
