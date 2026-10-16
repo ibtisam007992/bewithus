@@ -10,7 +10,7 @@
     <!-- FontAwesome Icons fallback CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts: Tajawal -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Cairo:wght@600;700&display=swap" rel="stylesheet">
     <!-- Three.js CDN for 3D graphics -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- SheetJS CDN for parsing Excel files and Drive Sheets -->
@@ -214,6 +214,26 @@
         body.dark-mode .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
             border-color: rgba(148, 163, 184, 0.15) !important;
         }
+    </style>
+    <!-- Platform type scale (approved spec):
+         H1 Tajawal/Cairo 32-40px 700 · H2/H3 20-28px 600 · body 16-18px 400 ·
+         buttons/menus 14-16px 500. Cairo is used for headings because Tajawal has
+         no 600 weight. !important is needed to override Tailwind size utilities. -->
+    <style id="platform-typography">
+        html { font-size: 16px; }
+        body { font-family: 'Tajawal', sans-serif; font-weight: 400; line-height: 1.7; }
+        h1, h1[class] { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(2rem, 1.6rem + 1.25vw, 2.5rem) !important; font-weight: 700 !important; line-height: 1.35 !important; }
+        h2, h2[class], h3, h3[class] { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(1.25rem, 1.1rem + 0.45vw, 1.75rem) !important; font-weight: 600 !important; line-height: 1.45 !important; }
+        h4, h4[class] { font-family: 'Cairo', 'Tajawal', sans-serif !important; font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem) !important; font-weight: 600 !important; line-height: 1.5 !important; }
+        h1 *[class], h2 *[class], h3 *[class], h4 *[class], h1 *, h2 *, h3 *, h4 * { font-size: inherit !important; }
+        h1 [class*="bg-"], h2 [class*="bg-"], h3 [class*="bg-"], h4 [class*="bg-"], h1 [class*="rounded-full"], h2 [class*="rounded-full"], h3 [class*="rounded-full"], h4 [class*="rounded-full"] { font-size: 0.8125rem !important; font-family: 'Tajawal', sans-serif !important; font-weight: 700 !important; white-space: nowrap; }
+        p, li, td, th, label, textarea, .text-sm, .text-base { font-size: clamp(1rem, 0.96rem + 0.15vw, 1.125rem) !important; }
+        p.text-xs, li.text-xs, td.text-xs, th.text-xs, label.text-xs, textarea.text-xs, .text-xs { font-size: 0.875rem !important; }
+        p.text-xs:not([class*="font-bold"]):not([class*="text-center"]), td, textarea, #whatsapp-text { font-size: clamp(1rem, 0.96rem + 0.15vw, 1.125rem) !important; }
+        [class*="text-[10px]"], [class*="text-[11px]"] { font-size: 0.8125rem !important; }
+        input:not([type="checkbox"]):not([type="radio"]) { font-size: 1rem !important; }
+        button, button[class], select, select[class], nav a, [role="button"], button *, button *[class] { font-size: clamp(0.875rem, 0.84rem + 0.15vw, 1rem) !important; font-weight: 500 !important; }
+        .text-lg, .text-xl { font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.75rem) !important; }
     </style>
 </head>
 <body class="min-h-screen relative selection:bg-cyan-500 selection:text-white">
