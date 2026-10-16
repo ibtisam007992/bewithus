@@ -6897,6 +6897,8 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
             document.getElementById('adm-lock').style.display = 'flex';
             document.getElementById('adm-main').style.display = 'none';
             document.getElementById('adm-err').innerText = '';
+            const dlg = document.getElementById('admin-dialog');
+            if (dlg.parentElement !== document.body) document.body.appendChild(dlg);
             openDialog('admin-dialog');
         }
         async function adminCall(op, extra) {
