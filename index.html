@@ -1245,8 +1245,8 @@
         </div>
 
         <!-- Message Archive Modal -->
-        <div id="message-archive-modal" class="fixed inset-0 z-50 bg-slate-50/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-            <div class="glass-panel max-w-3xl w-full p-6 rounded-3xl border border-purple-500/40 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div id="message-archive-modal" class="fixed inset-0 z-50 bg-slate-50/80 backdrop-blur-md hidden flex items-stretch justify-center p-2 md:p-4">
+            <div class="glass-panel w-full h-full p-4 md:p-6 rounded-3xl border border-purple-500/40 shadow-2xl space-y-4 flex flex-col overflow-hidden">
                 <div class="flex items-center justify-between border-b border-slate-200 pb-3">
                     <div>
                         <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1271,7 +1271,7 @@
                     <button id="archive-pending-toggle" onclick="toggleArchivePendingOnly()" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-400/60 py-1.5 px-3 rounded-xl font-bold transition">بانتظار تسجيل الرد</button>
                 </div>
 
-                <div class="max-h-[420px] overflow-y-auto pr-1">
+                <div class="flex-1 min-h-0 overflow-auto pr-1">
                     <table class="w-full text-right text-xs text-slate-800">
                         <thead class="bg-slate-100 text-slate-600 sticky top-0 border-b border-slate-200">
                             <tr>
@@ -5138,7 +5138,7 @@
                         <td class="p-2.5 text-slate-600 whitespace-nowrap">${entry.className || '—'}</td>
                         <td class="p-2.5 text-slate-600">${entry.subject || ''}</td>
                         <td class="p-2.5 text-slate-600 whitespace-nowrap">${getEntrySenderLabel(entry)}</td>
-                        <td class="p-2.5 text-slate-600">${previewText}</td>
+                        <td class="p-2.5 text-slate-600 min-w-[260px]">${previewText}</td>
                         <td class="p-2.5 text-center whitespace-nowrap">
                             <div class="flex flex-col items-stretch gap-1">
                                 <button onclick="viewArchiveMessage(${entry.id})" class="bg-slate-200 text-cyan-700 border border-cyan-600/40 hover:bg-slate-300 px-2.5 py-1 rounded-lg font-bold text-xs">عرض</button>
