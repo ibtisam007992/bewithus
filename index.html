@@ -1418,12 +1418,7 @@
                 </div>
                 <div>
                     <label for="parent-reply-text" class="text-[11px] font-bold text-slate-700 block mb-1">الصقي رد ولي الأمر من واتساب</label>
-                    <div class="flex flex-wrap gap-1.5 mb-2">
-                        <button type="button" onclick="useQuickReply('تم الاطلاع، شكراً.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">تم الاطلاع، شكراً</button>
-                        <button type="button" onclick="useQuickReply('شكراً أستاذة، سنتابع معها في البيت.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">سنتابع معها في البيت</button>
-                        <button type="button" onclick="useQuickReply('سيتم التواصل مع المدرسة.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">سيتواصل مع المدرسة</button>
-                        <button type="button" onclick="useQuickReply('ولي الأمر يطلب موعداً للمقابلة.')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">يطلب موعداً</button>
-                    </div>
+                    <div id="parent-reply-quick" class="flex flex-wrap gap-1.5 mb-2"></div>
                     <textarea id="parent-reply-text" rows="5" placeholder="مثال: شكراً أستاذة، سنتابع معها في البيت" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 transition"></textarea>
                 </div>
                 <p id="parent-reply-saved-at" class="hidden text-[10px] text-emerald-700"></p>
@@ -2567,7 +2562,9 @@
             // message was set directly by a flow that doesn't call applyTemplate()
             // (e.g. AI vision analysis, advice notes, translation). Idempotent.
             syncTeacherSignatureInTextarea();
-            const message = document.getElementById('whatsapp-text').value.trim();
+            let message = document.getElementById('whatsapp-text').value.trim();
+            const replyToken = newReplyTokenIfReady();
+            if (replyToken) message = attachReplyLink(message, replyToken);
 
             const phone = selectedStudent.phone;
             const encodedMsg = encodeURIComponent(message);
@@ -2585,6 +2582,7 @@
                 subject: currentSubjectName,
                 teacherName: getArchiveSenderName(),
                 senderName: loggedInStaff ? loggedInStaff.name : '',
+                replyToken: replyToken || '',
                 type: activeTemplateType,
                 signerRole: currentStaffRole,
                 className: document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '',
@@ -2593,7 +2591,7 @@
                 sentAt: new Date().toISOString()
             });
             saveArchiveToStorage();
-            backupArchiveEntryToGoogleSheet(messageArchive[0]); // fire-and-forget, does not block sending
+            backupArchiveEntryToGoogleSheet(messageArchive[0]); registerReplyLink(messageArchive[0]); // fire-and-forget, does not block sending
 
             updateStats();
             renderStudentMessageHistory(selectedStudent);
@@ -2742,7 +2740,9 @@
 
             const student = bulkQueue[bulkQueueIndex];
             const classLabel = document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '';
-            const message = composeMessageForStudent(activeTemplateType, student);
+            let message = composeMessageForStudent(activeTemplateType, student);
+            const replyToken = newReplyTokenIfReady();
+            if (replyToken) message = attachReplyLink(message, replyToken);
             const encodedMsg = encodeURIComponent(message);
             const url = bulkQueueMode === 'web'
                 ? `https://web.whatsapp.com/send?phone=${student.phone}&text=${encodedMsg}`
@@ -2765,6 +2765,7 @@
                 subject: currentSubjectName,
                 teacherName: getArchiveSenderName(),
                 senderName: loggedInStaff ? loggedInStaff.name : '',
+                replyToken: replyToken || '',
                 type: activeTemplateType,
                 signerRole: currentStaffRole,
                 className: classLabel,
@@ -2773,7 +2774,7 @@
                 sentAt: new Date().toISOString()
             });
             saveArchiveToStorage();
-            backupArchiveEntryToGoogleSheet(messageArchive[0]);
+            backupArchiveEntryToGoogleSheet(messageArchive[0]); registerReplyLink(messageArchive[0]);
             updateStats();
             renderFollowupDueBanner();
 
@@ -5142,7 +5143,7 @@
                             <div class="flex flex-col items-stretch gap-1">
                                 <button onclick="viewArchiveMessage(${entry.id})" class="bg-slate-200 text-cyan-700 border border-cyan-600/40 hover:bg-slate-300 px-2.5 py-1 rounded-lg font-bold text-xs">عرض</button>
                                 ${entry.parentReply
-                                    ? `<button onclick="openParentReplyModal(${entry.id})" title="${escapeReplyHtml(entry.parentReply)}" class="bg-emerald-50 text-emerald-700 border border-emerald-500/40 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-bold text-xs">✓ تم الرد</button>`
+                                    ? `<button onclick="openParentReplyModal(${entry.id})" title="${escapeReplyHtml(entry.parentReply)}" class="bg-emerald-50 text-emerald-700 border border-emerald-500/40 hover:bg-emerald-100 px-2.5 py-1 rounded-lg font-bold text-xs">${entry.parentReplySource === 'link' ? '✓ رد ولي الأمر' : '✓ تم الرد'}</button>`
                                     : (isPendingReplyEntry(entry)
                                         ? `<button onclick="openParentReplyModal(${entry.id})" title="لم يُسجَّل رد منذ ${daysLabel(daysSince(entry.sentAt))}" class="bg-amber-50 text-amber-800 border border-amber-400/70 hover:bg-amber-100 px-2.5 py-1 rounded-lg font-bold text-xs">تسجيل الرد · منذ ${daysLabel(daysSince(entry.sentAt))}</button>`
                                         : `<button onclick="openParentReplyModal(${entry.id})" class="bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200 px-2.5 py-1 rounded-lg font-bold text-xs">تسجيل الرد</button>`)}
@@ -5729,6 +5730,134 @@
         window.addEventListener('load', () => {
             if (/iphone|ipad|ipod|android/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches) showInstallButton();
             try { refreshActivationWidgets(); } catch (e) {}
+        });
+
+        // ============================================================
+        // One-tap parent reply link: each WhatsApp message ends with a
+        // personal link to a small reply page (served by the replies Apps
+        // Script, version 2). The parent's reply lands in the replies tab
+        // and is pulled back into this archive automatically. Turned on only
+        // once the script answers "v2", so parents never get a dead link.
+        // ============================================================
+        let parentReplyLinksReady = false;
+        let lastReplySyncAt = 0;
+        const PARENT_REPLY_LINK_LABEL = 'للرد على المدرسة بنقرة واحدة:';
+        const QUICK_REPLIES_TEACHER_GENERAL = [
+            ['شكراً لجهودكم', 'شكراً لجهودكم الطيبة ومتابعتكم المستمرة لابنتي، جزاكم الله خيراً.'],
+            ['سنتابع معها في البيت', 'نقدّر اهتمامكم وحرصكم، وسنتابع معها في البيت.'],
+            ['تم الاطلاع', 'تم الاطلاع، شكراً لتواصلكم.']
+        ];
+        const QUICK_REPLIES_TEACHER_ATTENDANCE = [
+            ['سأوافيكم بالعذر الرسمي', 'سوف أوافيكم بالعذر الرسمي.']
+        ];
+
+        function checkReplyLinkSupport() {
+            if (!PARENT_REPLY_WEBAPP_URL) return Promise.resolve(false);
+            return fetch(`${PARENT_REPLY_WEBAPP_URL}?ping=1`, { cache: 'no-store' })
+                .then(r => r.text())
+                .then(t => { parentReplyLinksReady = t.trim() === 'v2'; return parentReplyLinksReady; })
+                .catch(() => false);
+        }
+
+        function newReplyTokenIfReady() {
+            if (!parentReplyLinksReady) return null;
+            const bytes = new Uint8Array(12);
+            (window.crypto || window.msCrypto).getRandomValues(bytes);
+            return Array.from(bytes, b => (b % 36).toString(36)).join('');
+        }
+
+        function attachReplyLink(message, token) {
+            return `${message}\n\n${PARENT_REPLY_LINK_LABEL}\n${PARENT_REPLY_WEBAPP_URL}?r=${token}`;
+        }
+
+        function registerReplyLink(entry) {
+            if (!entry || !entry.replyToken || !PARENT_REPLY_WEBAPP_URL) return Promise.resolve();
+            const sentDate = new Date(entry.sentAt);
+            return fetch(PARENT_REPLY_WEBAPP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'register',
+                    token: entry.replyToken,
+                    key: getArchiveReplyKey(entry.phone, sentDate),
+                    studentName: entry.studentName || '',
+                    subject: entry.subject || '',
+                    sender: getEntrySenderLabel(entry),
+                    sentAtText: formatReplyKeyDate(sentDate),
+                    messagePreview: (entry.message || '').split(`\n\n${PARENT_REPLY_LINK_LABEL}`)[0].slice(0, 300),
+                    type: entry.type || ''
+                })
+            }).catch(err => console.warn('تعذر تسجيل رابط الرد:', err));
+        }
+
+        // Pulls replies from the replies tab into this device's archive
+        // (parents' link replies, and replies recorded on other devices).
+        function syncRepliesFromSheet(force) {
+            if (!PARENT_REPLY_WEBAPP_URL) return Promise.resolve(0);
+            if (!force && Date.now() - lastReplySyncAt < 60000) return Promise.resolve(0);
+            lastReplySyncAt = Date.now();
+            return fetchGoogleSheetJSONP(MONTHLY_ARCHIVE_SHEET_ID, PARENT_REPLY_SHEET_TAB).then(rows => {
+                const map = {};
+                rows.forEach(r => {
+                    if (!r || r.length < 8) return;
+                    const key = normalizeDigits(r[0]).trim();
+                    if (!/^\d+\|\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/.test(key)) return;
+                    const reply = r[7] != null ? String(r[7]).trim() : '';
+                    if (reply) map[key] = { reply, replyAt: r[8] != null ? normalizeDigits(r[8]) : '', source: r[9] != null ? String(r[9]) : '' };
+                });
+                let changed = 0;
+                messageArchive.forEach(e => {
+                    if (!e.phone || !e.sentAt) return;
+                    const hit = map[getArchiveReplyKey(e.phone, new Date(e.sentAt))];
+                    if (!hit || hit.reply === e.parentReply) return;
+                    const fromParent = hit.source.indexOf('ولي الأمر') !== -1;
+                    if (e.parentReply && !fromParent) return; // keep this device's own teacher-recorded reply
+                    const at = pilotKeyDate(hit.replyAt);
+                    e.parentReply = hit.reply;
+                    e.parentReplyAt = (at && !isNaN(at) ? at : new Date()).toISOString();
+                    e.parentReplySource = fromParent ? 'link' : 'sheet';
+                    changed++;
+                });
+                if (changed) {
+                    saveArchiveToStorage();
+                    refreshArchiveViewIfOpen();
+                    if (selectedStudent) renderStudentMessageHistory(selectedStudent);
+                    showToast(`وصل ${changed} رد جديد من أولياء الأمور`);
+                }
+                return changed;
+            }).catch(() => 0);
+        }
+
+        function renderTeacherQuickReplies(entry) {
+            const box = document.getElementById('parent-reply-quick');
+            if (!box) return;
+            const list = (entry && ATTENDANCE_REPORT_TYPES.includes(entry.type)) ? QUICK_REPLIES_TEACHER_ATTENDANCE : QUICK_REPLIES_TEACHER_GENERAL;
+            box.innerHTML = list.map(([label, text]) =>
+                `<button type="button" onclick="useQuickReply('${text.replace(/'/g, "\\'")}')" class="text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-400/50 px-2.5 py-1 rounded-lg font-bold">${label}</button>`
+            ).join('');
+        }
+
+        (function () {
+            const originalOpenReply = openParentReplyModal;
+            openParentReplyModal = function (entryId) {
+                originalOpenReply(entryId);
+                renderTeacherQuickReplies(messageArchive.find(e => e.id === entryId));
+            };
+            const originalOpenArchive = openArchiveModal;
+            openArchiveModal = function () {
+                const r = originalOpenArchive.apply(this, arguments);
+                syncRepliesFromSheet(false);
+                return r;
+            };
+        })();
+
+        window.addEventListener('load', () => {
+            checkReplyLinkSupport();
+            setTimeout(() => syncRepliesFromSheet(true), 2500);
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') { checkReplyLinkSupport(); syncRepliesFromSheet(false); }
         });
 
     </script>
