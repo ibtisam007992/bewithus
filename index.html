@@ -598,7 +598,7 @@
                     <button id="my-week-pending-btn" onclick="openPendingReplies()" class="hidden mt-2 w-full text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-400/60 py-2 rounded-xl font-bold transition"></button>
                 </div>
 
-                <div class="glass-panel p-5 rounded-3xl shadow-2xl flex flex-col h-[580px]">
+                <div class="glass-panel p-5 rounded-3xl shadow-2xl flex flex-col h-[580px] class-roster-panel">
                     <div class="flex items-center justify-between mb-4">
                         <h2 id="class-directory-title" class="text-base font-bold text-slate-900 flex items-center gap-2">
                             <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -656,7 +656,7 @@
                         <span id="bulk-groups-chips" class="bg-chips"></span>
                         <button type="button" id="bulk-save-group-btn" class="bg-save" onclick="saveBulkGroup()" style="display:none">＋ حفظ المحدَّدات كمجموعة</button>
                     </div>
-                    <p id="bulk-groups-tip" class="bg-tip">لاختيار مجموعة: ضعي ✓ في المربع بجانب اسم كل طالبة، ثم اضغطي «إرسال جماعي». ويمكنكِ حفظها كمجموعة لاستخدامها لاحقاً.</p>
+                    <p id="bulk-groups-tip" class="bg-tip">لاختيار مجموعة: ضعي ✓ بجانب أسماء الطالبات ثم «إرسال جماعي».</p>
                     <div id="bulk-send-toolbar" class="hidden mb-3 bg-cyan-950/5 border border-cyan-500/40 rounded-2xl p-2.5 flex items-center gap-2">
                         <button onclick="sendBulkWhatsApp('web')" class="flex-1 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-2 rounded-xl transition">إرسال جماعي عبر WhatsApp Web</button>
                         <button onclick="clearBulkSelection()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-xl transition">إلغاء</button>
@@ -7282,6 +7282,9 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
 .bg-save{background:#0e7490;color:#fff;border:0;border-radius:999px;padding:4px 12px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px}
 .bg-save:hover{background:#155e75}
 .bg-tip{font-size:11px;color:#64748b;margin:0 0 8px;line-height:1.6}
+.class-roster-panel{height:auto !important}
+.class-roster-panel #students-list-container{flex:none;min-height:440px;max-height:calc(100vh - 120px);overflow-y:auto}
+@media (max-width:1023px){.class-roster-panel #students-list-container{min-height:0;max-height:75vh}}
 </style>
 <script>
 // ---- Saved student groups (per class, kept on this device) ----
