@@ -1315,6 +1315,7 @@
                         <option value="English">الإنجليزية (English)</option>
                         <option value="Urdu">الأوردو (اردو)</option>
                         <option value="Hindi">الهندية (हिन्दी)</option>
+                        <option value="Somali">الصومالية (Soomaali)</option>
                     </select>
                 </div>
 
@@ -6277,7 +6278,7 @@ ${typeLabel ? `- نوع الرسالة: ${typeLabel}\n` : ''}- الأسلوب ا
             const textArea = document.getElementById('whatsapp-text');
             const original = stripReplyLinkLine(textArea ? textArea.value.trim() : '').split('\n\n--- [')[0].trim();
             if (!original) { showToast('يرجى كتابة أو اختيار رسالة أولاً لترجمتها', true); return; }
-            const langName = { English: 'English', Urdu: 'Urdu (اردو)', Hindi: 'Hindi (हिन्दी)' }[targetLang] || targetLang;
+            const langName = { English: 'English', Urdu: 'Urdu (اردو)', Hindi: 'Hindi (हिन्दी)', Somali: 'Somali (Af-Soomaali)' }[targetLang] || targetLang;
             setAiButtonBusy('btn-translate-msg', true, 'جاري الترجمة…');
             try {
                 const translated = await geminiText(
