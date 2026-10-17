@@ -650,6 +650,13 @@
                         </label>
                         <span id="bulk-selected-count" class="hidden bg-cyan-900/80 text-cyan-200 px-2 py-0.5 rounded-lg font-bold">0 محددة</span>
                     </div>
+                    <!-- Saved student groups: pick a named group to select its students at once -->
+                    <div id="bulk-groups-bar" class="bg-bar">
+                        <span class="bg-label">👥 مجموعاتي:</span>
+                        <span id="bulk-groups-chips" class="bg-chips"></span>
+                        <button type="button" id="bulk-save-group-btn" class="bg-save" onclick="saveBulkGroup()" style="display:none">＋ حفظ المحدَّدات كمجموعة</button>
+                    </div>
+                    <p id="bulk-groups-tip" class="bg-tip">لاختيار مجموعة: ضعي ✓ في المربع بجانب اسم كل طالبة، ثم اضغطي «إرسال جماعي». ويمكنكِ حفظها كمجموعة لاستخدامها لاحقاً.</p>
                     <div id="bulk-send-toolbar" class="hidden mb-3 bg-cyan-950/5 border border-cyan-500/40 rounded-2xl p-2.5 flex items-center gap-2">
                         <button onclick="sendBulkWhatsApp('web')" class="flex-1 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-2 rounded-xl transition">إرسال جماعي عبر WhatsApp Web</button>
                         <button onclick="clearBulkSelection()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-xl transition">إلغاء</button>
@@ -7262,5 +7269,75 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
         window.addEventListener('load', () => { try { refreshV5Buttons(); } catch (e) {} });
 
     </script>
+<style id="bulk-groups-css">
+.bg-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 6px;font-size:12px}
+.bg-label{color:#334155;font-weight:700}
+.bg-chips{display:contents}
+.bg-chip{display:inline-flex;align-items:center;gap:4px;background:#ecfeff;border:1px solid #67e8f9;color:#155e75;border-radius:999px;padding:3px 4px 3px 10px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px}
+.bg-chip:hover{background:#cffafe}
+.bg-chip .bg-n{background:#155e75;color:#fff;border-radius:999px;padding:0 6px;font-size:10px}
+.bg-chip .bg-x{border:0;background:transparent;color:#64748b;cursor:pointer;font-size:13px;line-height:1;padding:0 4px;font-family:inherit}
+.bg-chip .bg-x:hover{color:#be123c}
+.bg-empty{color:#64748b}
+.bg-save{background:#0e7490;color:#fff;border:0;border-radius:999px;padding:4px 12px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px}
+.bg-save:hover{background:#155e75}
+.bg-tip{font-size:11px;color:#64748b;margin:0 0 8px;line-height:1.6}
+</style>
+<script>
+// ---- Saved student groups (per class, kept on this device) ----
+(function(){
+  const KEY='bewithus_student_groups';
+  function classKey(){ const el=document.querySelector('#class-directory-title span'); return el?el.innerText.trim():'default'; }
+  function loadAll(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ return {}; } }
+  function saveAll(o){ try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){} }
+  function groups(){ return loadAll()[classKey()]||[]; }
+  function setGroups(g){ const o=loadAll(); o[classKey()]=g; saveAll(o); }
+  function esc(t){ return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function curQuery(){ const i=document.getElementById('search-input'); return i?i.value:''; }
+
+  window.renderBulkGroups=function(){
+    const box=document.getElementById('bulk-groups-chips'); if(!box) return;
+    const g=groups();
+    box.innerHTML = g.length ? g.map((x,i)=>`<span class="bg-chip" role="button" tabindex="0" onclick="selectBulkGroup(${i})" title="تحديد طالبات المجموعة">${esc(x.name)} <span class="bg-n">${x.members.length}</span><button type="button" class="bg-x" onclick="event.stopPropagation();deleteBulkGroup(${i})" aria-label="حذف المجموعة">✕</button></span>`).join('')
+      : '<span class="bg-empty">لا توجد مجموعات محفوظة لهذا الصف</span>';
+    const tip=document.getElementById('bulk-groups-tip'); if(tip) tip.style.display = g.length ? 'none' : '';
+    const btn=document.getElementById('bulk-save-group-btn');
+    if(btn) btn.style.display = (typeof bulkSelectedIds!=='undefined' && bulkSelectedIds.size>0) ? '' : 'none';
+  };
+
+  window.saveBulkGroup=function(){
+    const ids=Array.from(bulkSelectedIds);
+    if(!ids.length){ showToast('حددي الطالبات أولاً', true); return; }
+    const name=(prompt('اسم المجموعة (مثال: مجموعة التقوية، المتفوقات):')||'').trim();
+    if(!name) return;
+    const members=students.filter(s=>ids.includes(s.id)).map(s=>({name:s.name, phone:s.phone}));
+    const g=groups().filter(x=>x.name!==name); g.push({name:name.slice(0,40), members});
+    setGroups(g); renderBulkGroups();
+    showToast(`حُفظت مجموعة «${name}» (${members.length} طالبة)`);
+  };
+
+  window.selectBulkGroup=function(i){
+    const grp=groups()[i]; if(!grp) return;
+    bulkSelectedIds.clear(); let found=0;
+    grp.members.forEach(m=>{ const s=students.find(x=>(m.phone && x.phone===m.phone && x.name===m.name)) || students.find(x=>x.name===m.name); if(s){ bulkSelectedIds.add(s.id); found++; } });
+    const all=document.getElementById('select-all-checkbox'); if(all) all.checked=false;
+    renderStudentsList(curQuery()); updateBulkToolbar();
+    const miss=grp.members.length-found;
+    showToast(`تم تحديد ${found} طالبة من «${grp.name}»`+(miss?` — ${miss} لم تعد في الصف`:''));
+  };
+
+  window.deleteBulkGroup=function(i){
+    const g=groups(); if(!g[i]) return;
+    if(!confirm(`حذف مجموعة «${g[i].name}»؟`)) return;
+    g.splice(i,1); setGroups(g); renderBulkGroups();
+  };
+
+  const _upd=updateBulkToolbar;
+  updateBulkToolbar=function(){ const r=_upd.apply(this,arguments); renderBulkGroups(); return r; };
+  const _render=renderStudentsList;
+  renderStudentsList=function(){ const r=_render.apply(this,arguments); renderBulkGroups(); return r; };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderBulkGroups); else renderBulkGroups();
+})();
+</script>
 </body>
 </html>
