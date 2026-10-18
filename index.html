@@ -2414,8 +2414,7 @@
             if (!textArea) return;
 
             let base = textArea.value
-                .replace(/\n*معلمة مادة \([^)]*\):.*$/s, '')
-                .replace(/\n*التوقيع: .*$/s, '')
+                .replace(/(\n*\s*(معلمة مادة \([^)\n]*\)[^\n]*|التوقيع: [^\n]*)\s*)+$/, '')
                 .trimEnd();
 
             const staffSignature = resolveStaffSignature(activeTemplateType);
@@ -7423,7 +7422,8 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
     }catch(e){}
   };
   function esc(t){ return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  function stripSig(t){ return String(t||'').replace(/\n*معلمة مادة \([^)]*\):.*$/s,'').replace(/\n*التوقيع: .*$/s,'').trimEnd(); }
+  function stripSig(t){ return String(t||'').replace(/(\n*\s*(معلمة مادة \([^)\n]*\)[^\n]*|التوقيع: [^\n]*)\s*)+$/,'').trimEnd(); }
+  let activeTpl=null; // the saved template last inserted, used for group sending
   function rx(x){ return new RegExp(String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'); }
 
   window.renderMyTemplates=function(){
@@ -7451,6 +7451,7 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
     const t=mine()[i]; if(!t) return;
     if(!selectedStudent){ showToast('اختاري الطالبة أولاً من قائمة الصف', true); return; }
     const ta=document.getElementById('whatsapp-text'); if(!ta) return;
+    activeTpl={title:t.title, text:stripSig(t.text)};
     ta.value=t.text.split(NAME_TOKEN).join(selectedStudent.name).split(SUBJ_TOKEN).join(currentSubjectName||'');
     if(typeof syncTeacherSignatureInTextarea==='function') syncTeacherSignatureInTextarea();
     ta.dispatchEvent(new Event('input',{bubbles:true}));
@@ -7463,6 +7464,38 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
     list.splice(i,1); setMine(list); renderMyTemplates();
   };
 
+  // Group sending: every selected student gets the chosen saved template (or the
+  // edited message), with her own name, then the sender's signature.
+  function signFor(text){
+    const sig=(typeof resolveStaffSignature==='function')?resolveStaffSignature(activeTemplateType):'';
+    if(sig) return `${text}\n\nالتوقيع: ${sig}`;
+    if(currentTeacherName) return `${text}\n\nمعلمة مادة (${currentSubjectName}): ${currentTeacherName}`;
+    return text;
+  }
+  function currentBaseTemplate(){
+    const ta=document.getElementById('whatsapp-text');
+    const cur=stripSig(stripReplyLinkLine(ta?ta.value:'')).trim();
+    if(!cur) return null;
+    let base=cur;
+    if(selectedStudent && selectedStudent.name) base=base.replace(rx(selectedStudent.name), NAME_TOKEN);
+    return base.includes(NAME_TOKEN) ? base : null;
+  }
+  if(typeof sendBulkWhatsApp==='function'){
+    const _send=sendBulkWhatsApp;
+    sendBulkWhatsApp=function(mode){
+      if(!bulkCustomMessages){
+        const base=currentBaseTemplate();
+        if(base){
+          bulkCustomMessages={};
+          students.filter(st=>bulkSelectedIds.has(st.id)).forEach(st=>{
+            bulkCustomMessages[st.id]=signFor(base.split(NAME_TOKEN).join(st.name));
+          });
+          showToast(activeTpl?`سيُرسل قالب «${activeTpl.title}» باسم كل طالبة`:'ستُرسل الرسالة نفسها باسم كل طالبة');
+        }
+      }
+      return _send.apply(this,arguments);
+    };
+  }
   if(typeof applyStaffLogin==='function'){ const _a=applyStaffLogin; applyStaffLogin=function(){ const r=_a.apply(this,arguments); renderMyTemplates(); syncMyTemplates(); return r; }; }
   if(typeof changeStaffRole==='function'){ const _c=changeStaffRole; changeStaffRole=function(){ const r=_c.apply(this,arguments); renderMyTemplates(); syncMyTemplates(); return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderMyTemplates); else renderMyTemplates();
