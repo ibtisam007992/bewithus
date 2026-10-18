@@ -7406,7 +7406,22 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
   function owner(){ const n=(loggedInStaff&&loggedInStaff.name)||'guest'; const r=(loggedInStaff&&loggedInStaff.role)||currentStaffRole||''; return n+'::'+r; }
   function loadAll(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ return {}; } }
   function mine(){ return loadAll()[owner()]||[]; }
-  function setMine(list){ const o=loadAll(); o[owner()]=list; try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){ showToast('تعذر الحفظ على هذا الجهاز', true); } }
+  function setLocal(list){ const o=loadAll(); o[owner()]=list; try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){ showToast('تعذر الحفظ على هذا الجهاز', true); } }
+  function canSync(){ return typeof scriptV!=='undefined' && scriptV>=6 && typeof staffSession!=='undefined' && staffSession && loggedInStaff; }
+  function setMine(list){ setLocal(list); if(canSync()) api('saveMyTemplates',{items:list}).then(r=>{ if(!r||!r.ok) showToast('حُفظ القالب على هذا الجهاز فقط، تعذرت المزامنة', true); }).catch(()=>{}); }
+  let syncedFor='';
+  window.syncMyTemplates=async function(){
+    try{ if(typeof scriptReady!=='undefined') await scriptReady; }catch(e){}
+    if(!canSync()) return;
+    const who=owner(); if(syncedFor===who) return; syncedFor=who;
+    try{
+      const r=await api('myTemplates',{});
+      if(!r||!r.ok) return;
+      if(r.items && r.items.length){ setLocal(r.items); }
+      else if(mine().length){ api('saveMyTemplates',{items:mine()}).catch(()=>{}); }
+      renderMyTemplates();
+    }catch(e){}
+  };
   function esc(t){ return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function stripSig(t){ return String(t||'').replace(/\n*معلمة مادة \([^)]*\):.*$/s,'').replace(/\n*التوقيع: .*$/s,'').trimEnd(); }
   function rx(x){ return new RegExp(String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'); }
@@ -7448,9 +7463,10 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
     list.splice(i,1); setMine(list); renderMyTemplates();
   };
 
-  if(typeof applyStaffLogin==='function'){ const _a=applyStaffLogin; applyStaffLogin=function(){ const r=_a.apply(this,arguments); renderMyTemplates(); return r; }; }
-  if(typeof changeStaffRole==='function'){ const _c=changeStaffRole; changeStaffRole=function(){ const r=_c.apply(this,arguments); renderMyTemplates(); return r; }; }
+  if(typeof applyStaffLogin==='function'){ const _a=applyStaffLogin; applyStaffLogin=function(){ const r=_a.apply(this,arguments); renderMyTemplates(); syncMyTemplates(); return r; }; }
+  if(typeof changeStaffRole==='function'){ const _c=changeStaffRole; changeStaffRole=function(){ const r=_c.apply(this,arguments); renderMyTemplates(); syncMyTemplates(); return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderMyTemplates); else renderMyTemplates();
+  setTimeout(syncMyTemplates,1500);
 })();
 </script>
 </body>
