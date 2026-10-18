@@ -2865,7 +2865,7 @@
             syncTeacherSignatureInTextarea();
             let message = document.getElementById('whatsapp-text').value.trim();
             const replyToken = newReplyTokenIfReady();
-            if (replyToken) message = attachReplyLink(message, replyToken);
+            if (replyToken) message = attachReplyLink(message, replyToken, selectedStudent.phone);
 
             const phone = selectedStudent.phone;
             const encodedMsg = encodeURIComponent(message);
@@ -3044,7 +3044,7 @@
             const classLabel = document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '';
             let message = (bulkCustomMessages && bulkCustomMessages[student.id]) || composeMessageForStudent(activeTemplateType, student);
             const replyToken = newReplyTokenIfReady();
-            if (replyToken) message = attachReplyLink(message, replyToken);
+            if (replyToken) message = attachReplyLink(message, replyToken, student.phone);
             const encodedMsg = encodeURIComponent(message);
             const url = bulkQueueMode === 'web'
                 ? `https://web.whatsapp.com/send?phone=${student.phone}&text=${encodedMsg}`
@@ -6066,6 +6066,7 @@
         let parentReplyLinksReady = false;
         let lastReplySyncAt = 0;
         const PARENT_REPLY_LINK_LABEL = 'للرد على المدرسة بنقرة واحدة:';
+        const PARENT_HISTORY_LINK_LABEL = 'سجل تواصل المدرسة مع ابنتكم:';
         // Short link (r.html on this same site redirects to the replies script).
         const PARENT_REPLY_SHORT_BASE = 'https://ibtisam007992.github.io/bewithus/r?';
         const QUICK_REPLIES_TEACHER_GENERAL = [
@@ -6092,8 +6093,11 @@
             return Array.from(bytes, b => (b % 36).toString(36)).join('');
         }
 
-        function attachReplyLink(message, token) {
-            return `${message}\n\n${PARENT_REPLY_LINK_LABEL}\n${PARENT_REPLY_SHORT_BASE}${token}`;
+        function attachReplyLink(message, token, phone) {
+            let out = `${message}\n\n${PARENT_REPLY_LINK_LABEL}\n${PARENT_REPLY_SHORT_BASE}${token}`;
+            const hist = (typeof cachedParentLink === 'function') ? cachedParentLink(phone) : '';
+            if (hist && !out.includes(hist)) out += `\n\n${PARENT_HISTORY_LINK_LABEL}\n${hist}`;
+            return out;
         }
 
         function registerReplyLink(entry) {
@@ -7521,6 +7525,33 @@ body.has-login-pill{padding-bottom:0 !important}
 // Admin "master password" sessions are labelled so it is clear the platform admin is viewing as this person.
 (function(){ if(typeof applyStaffLogin!=='function') return; const _a=applyStaffLogin;
   applyStaffLogin=function(){ const r=_a.apply(this,arguments); try{ if(staffSession&&staffSession.mode==='master'){ const el=document.getElementById('login-user-role'); if(el&&!/دخول المسؤولة/.test(el.innerText)) el.innerText+=' (دخول المسؤولة)'; } }catch(e){} return r; };
+})();
+</script>
+<script>
+// ---- «سجل تواصل المدرسة» link added automatically under the reply link ----
+// The link is fixed per parent phone, so it is fetched once in the background
+// (when a student is chosen or ticked) and kept on this device.
+(function(){
+  const KEY='bewithus_parent_links';
+  let map={}; try{ map=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){}
+  const norm=p=>{ p=String(p||'').replace(/\D/g,''); return p.length===8?'968'+p:p; };
+  window.cachedParentLink=function(phone){ return map[norm(phone)]||''; };
+  const queue=[]; let busy=false;
+  async function pump(){
+    if(busy) return; busy=true;
+    try{
+      try{ await scriptReady; }catch(e){}
+      while(queue.length){
+        const ph=queue.shift(); if(map[ph]) continue;
+        if(typeof scriptV==='undefined'||scriptV<5||!staffSession){ queue.length=0; break; }
+        try{ const r=await api('parentLink',{phone:ph}); if(r&&r.ok&&r.url){ map[ph]=r.url; try{ localStorage.setItem(KEY,JSON.stringify(map)); }catch(e){} } }catch(e){ break; }
+      }
+    } finally { busy=false; }
+  }
+  window.prefetchParentLinks=function(phones){ (phones||[]).map(norm).forEach(ph=>{ if(ph.length>=8&&!map[ph]&&!queue.includes(ph)) queue.push(ph); }); pump(); };
+  const wrap=(name,fn)=>{ if(typeof window[name]!=='function') return; const o=window[name]; window[name]=function(){ const r=o.apply(this,arguments); try{ fn.apply(this,arguments); }catch(e){} return r; }; };
+  wrap('selectStudent',st=>prefetchParentLinks([st&&st.phone]));
+  wrap('updateBulkToolbar',()=>prefetchParentLinks(students.filter(s=>bulkSelectedIds.has(s.id)).map(s=>s.phone)));
 })();
 </script>
 </body>
