@@ -888,6 +888,11 @@
                                 <span class="text-[10px] text-slate-600">سيتم تلقائياً تضمين اسم الطالبة والمادة</span>
                             </div>
                             <textarea id="whatsapp-text" rows="6" class="w-full bg-slate-100/90 border border-slate-300 rounded-2xl p-4 text-slate-900 text-sm leading-relaxed focus:outline-none focus:border-emerald-500 transition shadow-inner resize-none font-sans" placeholder="اختر طالبة من القائمة اليسرى لتجهيز الرسالة المباشرة..."></textarea>
+                            <div id="my-tpl-bar" class="mt-bar">
+                                <button type="button" class="mt-save" onclick="saveMyTemplate()">📌 حفظ هذه الرسالة كقالب خاص بي</button>
+                                <span class="mt-label">قوالبي:</span>
+                                <span id="my-tpl-chips" class="mt-chips"></span>
+                            </div>
                         </div>
 
                     </div>
@@ -7378,6 +7383,74 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
   renderStudentsList=function(q){ const i=document.getElementById('search-input');
     if(q && i && document.activeElement!==i && !students.some(s=>studentMatchesQuery(s,q))){ i.value=''; q=''; }
     return _r.call(this,q); };
+})();
+</script>
+<style id="my-templates-css">
+.mt-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:12px}
+.mt-save{background:#fff;border:1px solid #0e7490;color:#0e7490;border-radius:999px;padding:5px 12px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px}
+.mt-save:hover{background:#ecfeff}
+.mt-label{color:#334155;font-weight:700;margin-inline-start:4px}
+.mt-chips{display:contents}
+.mt-chip{display:inline-flex;align-items:center;gap:2px;background:#f5f3ff;border:1px solid #c4b5fd;color:#5b21b6;border-radius:999px;padding:3px 4px 3px 10px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;max-width:220px}
+.mt-chip .mt-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mt-chip:hover{background:#ede9fe}
+.mt-chip .mt-x{border:0;background:transparent;color:#64748b;cursor:pointer;font-size:13px;padding:0 4px;font-family:inherit}
+.mt-chip .mt-x:hover{color:#be123c}
+.mt-empty{color:#64748b}
+</style>
+<script>
+// ---- «قوالبي»: personal message templates, kept per staff member + role on this device ----
+(function(){
+  const KEY='bewithus_my_templates';
+  const NAME_TOKEN='{اسم الطالبة}', SUBJ_TOKEN='{المادة}';
+  function owner(){ const n=(loggedInStaff&&loggedInStaff.name)||'guest'; const r=(loggedInStaff&&loggedInStaff.role)||currentStaffRole||''; return n+'::'+r; }
+  function loadAll(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ return {}; } }
+  function mine(){ return loadAll()[owner()]||[]; }
+  function setMine(list){ const o=loadAll(); o[owner()]=list; try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){ showToast('تعذر الحفظ على هذا الجهاز', true); } }
+  function esc(t){ return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function stripSig(t){ return String(t||'').replace(/\n*معلمة مادة \([^)]*\):.*$/s,'').replace(/\n*التوقيع: .*$/s,'').trimEnd(); }
+  function rx(x){ return new RegExp(String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'); }
+
+  window.renderMyTemplates=function(){
+    const box=document.getElementById('my-tpl-chips'); if(!box) return;
+    const list=mine();
+    box.innerHTML = list.length ? list.map((t,i)=>`<span class="mt-chip" role="button" tabindex="0" title="${esc(t.text.slice(0,200))}" onclick="applyMyTemplate(${i})"><span class="mt-t">${esc(t.title)}</span><button type="button" class="mt-x" aria-label="حذف القالب" onclick="event.stopPropagation();deleteMyTemplate(${i})">✕</button></span>`).join('')
+      : '<span class="mt-empty">لا توجد قوالب بعد. عدّلي أي رسالة ثم احفظيها هنا.</span>';
+  };
+
+  window.saveMyTemplate=function(){
+    const ta=document.getElementById('whatsapp-text');
+    let text=stripSig(stripReplyLinkLine(ta?ta.value:'')).split('\n\n--- [')[0].trim();
+    if(!text){ showToast('اكتبي الرسالة أو عدّليها أولاً', true); return; }
+    if(selectedStudent && selectedStudent.name) text=text.replace(rx(selectedStudent.name), NAME_TOKEN);
+    if(currentSubjectName) text=text.replace(rx(currentSubjectName), SUBJ_TOKEN);
+    const firstLine=text.replace(/^السلام عليكم[^\n]*\n*/,'').replace(/\s+/g,' ').slice(0,28);
+    const title=(prompt('اسم قصير للقالب (مثال: تفوق في النشاط العملي):', firstLine)||'').trim();
+    if(!title) return;
+    const list=mine().filter(t=>t.title!==title); list.unshift({title:title.slice(0,40), text, at:Date.now()});
+    setMine(list.slice(0,30)); renderMyTemplates();
+    showToast(`حُفظ القالب «${title}» في قوالبي`);
+  };
+
+  window.applyMyTemplate=function(i){
+    const t=mine()[i]; if(!t) return;
+    if(!selectedStudent){ showToast('اختاري الطالبة أولاً من قائمة الصف', true); return; }
+    const ta=document.getElementById('whatsapp-text'); if(!ta) return;
+    ta.value=t.text.split(NAME_TOKEN).join(selectedStudent.name).split(SUBJ_TOKEN).join(currentSubjectName||'');
+    if(typeof syncTeacherSignatureInTextarea==='function') syncTeacherSignatureInTextarea();
+    ta.dispatchEvent(new Event('input',{bubbles:true}));
+    showToast(`تم إدراج قالب «${t.title}»`);
+  };
+
+  window.deleteMyTemplate=function(i){
+    const list=mine(); if(!list[i]) return;
+    if(!confirm(`حذف القالب «${list[i].title}»؟`)) return;
+    list.splice(i,1); setMine(list); renderMyTemplates();
+  };
+
+  if(typeof applyStaffLogin==='function'){ const _a=applyStaffLogin; applyStaffLogin=function(){ const r=_a.apply(this,arguments); renderMyTemplates(); return r; }; }
+  if(typeof changeStaffRole==='function'){ const _c=changeStaffRole; changeStaffRole=function(){ const r=_c.apply(this,arguments); renderMyTemplates(); return r; }; }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderMyTemplates); else renderMyTemplates();
 })();
 </script>
 </body>
