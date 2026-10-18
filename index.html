@@ -7558,5 +7558,12 @@ body.has-login-pill{padding-bottom:0 !important}
   wrap('updateBulkToolbar',()=>prefetchParentLinks(students.filter(s=>bulkSelectedIds.has(s.id)).map(s=>s.phone)));
 })();
 </script>
+<style id="banner-fill">
+/* Banner side areas continue the banner's own background so it reads as one full-width strip */
+#top-banner-wrapper, #top-banner-wrapper > div.relative.z-10{background:linear-gradient(180deg,#f4faff 0%,#e8f3fc 100%) !important}
+#top-banner-wrapper{position:relative}
+#top-banner-wrapper::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#7c3aed,#14a3b0);z-index:11;pointer-events:none}
+@media (max-width:700px){#top-banner-wrapper::after{display:none}}
+</style>
 </body>
 </html>
