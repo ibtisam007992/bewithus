@@ -7513,5 +7513,9 @@ body.has-login-pill{padding-bottom:0 !important}
 (function(){ function place(){ const p=document.getElementById('login-user-pill'), h=document.querySelector('header'); if(p&&h&&p.previousElementSibling!==h) h.insertAdjacentElement('afterend',p); }
  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',place); else place(); })();
 </script>
+<style id="bigger-checkboxes">
+/* Larger tick boxes for choosing students (class list + select-all) */
+#students-list-container input[type=checkbox], #select-all-checkbox{width:20px !important;height:20px !important;min-width:20px;cursor:pointer;accent-color:#0e7490}
+</style>
 </body>
 </html>
