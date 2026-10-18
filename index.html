@@ -610,7 +610,7 @@
                     <!-- Search Input -->
                     <div class="relative mb-3">
                         <svg class="w-4 h-4 absolute right-3.5 top-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        <input type="text" id="search-input" onkeyup="filterStudents()" placeholder="بحث باسم الطالبة أو رقم هاتف ولي الأمر..." class="w-full bg-slate-100/80 border border-slate-300/80 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-800 focus:outline-none focus:border-cyan-500 transition placeholder-slate-500">
+                        <input type="search" id="search-input" name="student-search-q" autocomplete="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-form-type="other" oninput="filterStudents()" onkeyup="filterStudents()" placeholder="بحث باسم الطالبة أو رقم هاتف ولي الأمر..." class="w-full bg-slate-100/80 border border-slate-300/80 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-800 focus:outline-none focus:border-cyan-500 transition placeholder-slate-500">
                     </div>
 
                     <!-- Add Student & Directory Triggers -->
@@ -2749,7 +2749,7 @@
             );
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">لا توجد طالبات مطابقة للبحث.</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">لا توجد طالبات مطابقة للبحث «${pilotEsc(filterQuery)}».<br><button type="button" onclick="clearStudentSearch()" style="margin-top:10px;background:#0e7490;color:#fff;border:0;border-radius:999px;padding:6px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">عرض كل طالبات الصف</button></div>`;
                 return;
             }
 
@@ -7341,6 +7341,26 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
   const _render=renderStudentsList;
   renderStudentsList=function(){ const r=_render.apply(this,arguments); renderBulkGroups(); return r; };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderBulkGroups); else renderBulkGroups();
+})();
+</script>
+<script>
+// ---- Student search: undo browser autofill (it put the staff name in the search box) ----
+(function(){
+  window.clearStudentSearch=function(){ const i=document.getElementById('search-input'); if(i) i.value=''; renderStudentsList(''); };
+  function scrub(){
+    const i=document.getElementById('search-input'); if(!i||!i.value) return;
+    if(document.activeElement===i) return; // the teacher is typing
+    const v=i.value.trim(), staff=(window.loggedInStaff&&(loggedInStaff.name||loggedInStaff))||'';
+    const loginName=(document.getElementById('login-name')||{}).value||'';
+    const matches=students.some(s=>s.name.toLowerCase().includes(v.toLowerCase())||s.phone.includes(v));
+    if(!matches && (v===String(staff).trim() || v===loginName.trim() || !matches)) clearStudentSearch();
+  }
+  [300,1200,3000].forEach(t=>setTimeout(scrub,t));
+  window.addEventListener('pageshow',()=>setTimeout(scrub,300));
+  const _r=renderStudentsList;
+  renderStudentsList=function(q){ const i=document.getElementById('search-input');
+    if(q && i && document.activeElement!==i && !students.some(s=>s.name.toLowerCase().includes(String(q).toLowerCase())||s.phone.includes(q))){ i.value=''; q=''; }
+    return _r.call(this,q); };
 })();
 </script>
 </body>
