@@ -2740,12 +2740,29 @@
         function useStoredClass12_1_Tourism() { importFromGoogleDrive(STORED_CLASS_12_1_TOURISM_URL, "الصف 12 / 1 سياحة"); }
         function useStoredClass12_2_Tourism() { importFromGoogleDrive(STORED_CLASS_12_2_TOURISM_URL, "الصف 12 / 2 سياحة"); }
 
+        // Arabic-aware student search: ignores hamza/ta-marbuta/ya forms, diacritics,
+        // extra spaces and word order, so «اميمه» finds «أميمة» and «سالم الريسي» finds «أسماء سالم محمد الريسي».
+        function normArabicName(t) {
+            return String(t || '').toLowerCase()
+                .replace(/[ً-ٰٟـ]/g, '')
+                .replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
+                .replace(/عبد\s+/g, 'عبد').replace(/\s+/g, ' ').trim();
+        }
+        function studentMatchesQuery(s, q) {
+            q = String(q || '').trim();
+            if (!q) return true;
+            const digits = q.replace(/\D/g, '');
+            if (digits.length >= 3 && String(s.phone || '').replace(/\D/g, '').includes(digits)) return true;
+            const name = normArabicName(s.name);
+            return normArabicName(q).split(' ').every(w => name.includes(w));
+        }
+
         function renderStudentsList(filterQuery = '') {
             const container = document.getElementById('students-list-container');
             container.innerHTML = '';
 
             const filtered = students.filter(s => 
-                s.name.toLowerCase().includes(filterQuery.toLowerCase()) || s.phone.includes(filterQuery)
+                studentMatchesQuery(s, filterQuery)
             );
 
             if (filtered.length === 0) {
@@ -2932,7 +2949,7 @@
         function toggleSelectAllVisible(checked) {
             const filterQuery = document.getElementById('search-input') ? document.getElementById('search-input').value : '';
             const visible = students.filter(s =>
-                s.name.toLowerCase().includes(filterQuery.toLowerCase()) || s.phone.includes(filterQuery)
+                studentMatchesQuery(s, filterQuery)
             );
             visible.forEach(s => { if (checked) bulkSelectedIds.add(s.id); else bulkSelectedIds.delete(s.id); });
             renderStudentsList(filterQuery);
@@ -7352,14 +7369,14 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
     if(document.activeElement===i) return; // the teacher is typing
     const v=i.value.trim(), staff=(window.loggedInStaff&&(loggedInStaff.name||loggedInStaff))||'';
     const loginName=(document.getElementById('login-name')||{}).value||'';
-    const matches=students.some(s=>s.name.toLowerCase().includes(v.toLowerCase())||s.phone.includes(v));
+    const matches=students.some(s=>studentMatchesQuery(s,v));
     if(!matches && (v===String(staff).trim() || v===loginName.trim() || !matches)) clearStudentSearch();
   }
   [300,1200,3000].forEach(t=>setTimeout(scrub,t));
   window.addEventListener('pageshow',()=>setTimeout(scrub,300));
   const _r=renderStudentsList;
   renderStudentsList=function(q){ const i=document.getElementById('search-input');
-    if(q && i && document.activeElement!==i && !students.some(s=>s.name.toLowerCase().includes(String(q).toLowerCase())||s.phone.includes(q))){ i.value=''; q=''; }
+    if(q && i && document.activeElement!==i && !students.some(s=>studentMatchesQuery(s,q))){ i.value=''; q=''; }
     return _r.call(this,q); };
 })();
 </script>
