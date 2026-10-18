@@ -7502,5 +7502,16 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
   setTimeout(syncMyTemplates,1500);
 })();
 </script>
+<style id="login-pill-inline">
+/* Name bar sits in the page flow under the header instead of floating over the class list */
+#login-user-pill{position:static !important;margin:10px auto 0;width:calc(100% - 32px);max-width:1280px;box-shadow:none;border-radius:16px;justify-content:flex-start;inset:auto}
+#login-user-pill span.lg-name{flex:1;min-width:0}
+body.has-login-pill{padding-bottom:0 !important}
+@media (max-width:640px){#login-user-pill{width:calc(100% - 16px);margin-top:6px}}
+</style>
+<script>
+(function(){ function place(){ const p=document.getElementById('login-user-pill'), h=document.querySelector('header'); if(p&&h&&p.previousElementSibling!==h) h.insertAdjacentElement('afterend',p); }
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',place); else place(); })();
+</script>
 </body>
 </html>
