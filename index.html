@@ -7517,5 +7517,11 @@ body.has-login-pill{padding-bottom:0 !important}
 /* Larger tick boxes for choosing students (class list + select-all) */
 #students-list-container input[type=checkbox], #select-all-checkbox{width:20px !important;height:20px !important;min-width:20px;cursor:pointer;accent-color:#0e7490}
 </style>
+<script>
+// Admin "master password" sessions are labelled so it is clear the platform admin is viewing as this person.
+(function(){ if(typeof applyStaffLogin!=='function') return; const _a=applyStaffLogin;
+  applyStaffLogin=function(){ const r=_a.apply(this,arguments); try{ if(staffSession&&staffSession.mode==='master'){ const el=document.getElementById('login-user-role'); if(el&&!/دخول المسؤولة/.test(el.innerText)) el.innerText+=' (دخول المسؤولة)'; } }catch(e){} return r; };
+})();
+</script>
 </body>
 </html>
