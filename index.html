@@ -421,9 +421,13 @@
 
             <!-- Banner Image with Subtle Interactive Tilt / Zoom Effect -->
             <div class="w-full max-w-full flex items-center justify-center bg-slate-50 relative z-10">
-                <img id="top-banner-img" src="banner.webp" decoding="async" fetchpriority="high"
-                     alt="بانر منصة كُنْ مَعَنا - مدرسة خولة بنت حكيم (9-12)"
-                     class="w-full h-32 md:h-44 lg:h-52 object-fill object-center transition-transform duration-500 ease-out group-hover:scale-[1.015]">
+                <picture style="display:block;width:100%">
+                    <source media="(max-width: 700px)" srcset="banner.webp">
+                    <img id="top-banner-img" src="banner_wide.webp" width="3209" height="440" decoding="async" fetchpriority="high"
+                         alt="بانر منصة كُنْ مَعَنا - مدرسة خولة بنت حكيم (9-12)"
+                         style="display:block;width:100%;max-width:1500px;height:auto;margin:0 auto;object-fit:contain"
+                         class="transition-transform duration-500 ease-out group-hover:scale-[1.015]">
+                </picture>
             </div>
         </div>
 
