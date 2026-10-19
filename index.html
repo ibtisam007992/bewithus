@@ -5470,7 +5470,7 @@
             if (badge) badge.innerText = scopedEntries.length;
             if (scopeLabelEl) {
                 if (scopeLabel) {
-                    scopeLabelEl.innerText = `عرض رسائلك فقط (الدور الحالي: ${scopeLabel}) — من إجمالي ${messageArchive.length} رسالة مؤرشفة`;
+                    scopeLabelEl.innerText = `🔒 عرض رسائلك فقط (${scopeLabel}) — الأرشيف خاص بكل حساب`;
                     scopeLabelEl.classList.remove('hidden');
                 } else {
                     scopeLabelEl.classList.add('hidden');
@@ -7607,6 +7607,45 @@ body.has-login-pill{padding-bottom:0 !important}
 (function(){ if(typeof changeStaffRole!=='function') return; const _c=changeStaffRole;
   changeStaffRole=function(v){ const r=_c.apply(this,arguments); const g=document.getElementById('nurse-grid-wrap'); if(g) g.classList.toggle('hidden', v!=='nurse'); return r; };
   const g=document.getElementById('nurse-grid-wrap'); if(g&&typeof currentStaffRole!=='undefined') g.classList.toggle('hidden', currentStaffRole!=='nurse');
+})();
+</script>
+<script>
+// ---- Each account sees only its own messages; teacher name + subject are fixed after login ----
+(function(){
+  const LEAD=['principal','vice_principal'];
+  const norm=t=>(typeof normalizeStaffName==='function'?normalizeStaffName(t):String(t||'').replace(/\s+/g,' ').trim());
+  function me(){ return (typeof loggedInStaff!=='undefined'&&loggedInStaff)?loggedInStaff:null; }
+  window.isMyArchiveEntry=function(e){
+    const who=me(); if(!who) return true;
+    const n=norm(who.name);
+    if(e.senderName && norm(e.senderName)===n) return true;
+    if(e.teacherName && norm(String(e.teacherName).split(' — ')[0])===n) return true;
+    if(!e.senderName && who.role!=='subject_teacher' && e.signerRole===who.role) return true;
+    return false;
+  };
+  function seesAll(){ const w=me(); return !w || LEAD.includes(w.role); }
+  function mine(){ return seesAll()?messageArchive:messageArchive.filter(isMyArchiveEntry); }
+  getArchiveScopedEntries=function(){
+    if(seesAll()) return { entries: messageArchive, scopeLabel: null };
+    return { entries: mine(), scopeLabel: me().name };
+  };
+  getMyArchiveEntries=function(){ return mine(); };
+  // archive exports use the same private list
+  ['exportArchiveExcel','exportArchivePDF','exportArchivePDFByRole'].forEach(fn=>{
+    if(typeof window[fn]!=='function') return; const o=window[fn];
+    window[fn]=function(){ if(seesAll()) return o.apply(this,arguments); const all=messageArchive; messageArchive=mine(); try{ return o.apply(this,arguments); } finally{ messageArchive=all; } };
+  });
+  // lock subject + teacher for a logged-in subject teacher
+  function lockTeacher(){
+    const w=me(); const subj=document.getElementById('subject-select');
+    if(!w||w.role!=='subject_teacher'){ if(subj) subj.disabled=false; return; }
+    if(subj){ subj.disabled=true; subj.title='المادة مرتبطة بحسابكِ'; }
+    if(typeof preferLoggedInTeacher==='function') preferLoggedInTeacher();
+    const t=document.getElementById('teacher-select'); if(t){ t.disabled=true; t.title='الاسم مرتبط بحسابكِ'; }
+  }
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); try{ lockTeacher(); renderArchiveTable && renderArchiveTable(''); }catch(e){} return r; }; }
+  if(typeof changeSubject==='function'){ const c=changeSubject; changeSubject=function(){ const r=c.apply(this,arguments); try{ const w=me(); if(w&&w.role==='subject_teacher') lockTeacher(); }catch(e){} return r; }; }
+  if(typeof logoutStaff==='function'){ const l=logoutStaff; logoutStaff=function(){ const s=document.getElementById('subject-select'), t=document.getElementById('teacher-select'); if(s) s.disabled=false; if(t) t.disabled=false; return l.apply(this,arguments); }; }
 })();
 </script>
 </body>
