@@ -7667,5 +7667,156 @@ body.has-login-pill{padding-bottom:0 !important}
   if(typeof currentStaffRole!=='undefined') toggle(currentStaffRole);
 })();
 </script>
+<div id="mail-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="mail-title">
+  <div class="xw-panel">
+    <div class="xw-head"><div><h3 id="mail-title">📨 المراسلات الداخلية</h3><div class="xw-sub">رسائل بين موظفات المدرسة. كل رسالة تراها المرسِلة والمستلمات فقط.</div></div>
+      <button class="xw-x" onclick="closeDialog('mail-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body">
+      <div class="ml-tabs" role="tablist">
+        <button type="button" class="ml-tab on" data-tab="in" onclick="mailTab('in')">الوارد <span id="ml-in-n" class="ml-n"></span></button>
+        <button type="button" class="ml-tab" data-tab="sent" onclick="mailTab('sent')">المرسل</button>
+        <button type="button" class="ml-tab" data-tab="new" onclick="mailTab('new')">✏️ رسالة جديدة</button>
+      </div>
+      <div id="ml-list"></div>
+      <div id="ml-new" style="display:none">
+        <div class="ml-mode">
+          <label><input type="radio" name="ml-mode" value="names" checked onchange="mailMode()"> موظفات محددات</label>
+          <label><input type="radio" name="ml-mode" value="roles" onchange="mailMode()"> حسب الوظيفة</label>
+          <label><input type="radio" name="ml-mode" value="all" onchange="mailMode()"> جميع الموظفات</label>
+        </div>
+        <div id="ml-names-box">
+          <input id="ml-search" class="xw-input" placeholder="ابحثي باسم الموظفة أو المادة…" oninput="mailRenderPeople()" style="width:100%">
+          <div id="ml-picked" class="ml-picked"></div>
+          <div id="ml-people" class="ml-people"></div>
+        </div>
+        <div id="ml-roles-box" style="display:none" class="ml-roles"></div>
+        <label for="ml-text" class="ml-lbl">نص الرسالة</label>
+        <textarea id="ml-text" rows="5" class="xw-input" style="width:100%;resize:vertical" placeholder="اكتبي رسالتكِ…"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="xw-btn primary" id="ml-send" onclick="mailSend()">إرسال الرسالة</button></div>
+      </div>
+    </div>
+    <div class="xw-foot"><button class="xw-btn" onclick="closeDialog('mail-dialog')">إغلاق</button></div>
+  </div>
+</div>
+<style id="mail-css">
+.ml-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.ml-tab{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:7px 14px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;color:#334155}
+.ml-tab.on{background:#0b2545;color:#fff;border-color:#0b2545}
+.ml-n{background:#e11d48;color:#fff;border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:4px}
+.ml-n:empty{display:none}
+.ml-item{border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.ml-item.unread{border-color:#0e7490;background:#ecfeff}
+.ml-item .h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:#475569}
+.ml-item .h b{color:#0f172a;font-size:13px}
+.ml-item .b{white-space:pre-wrap;margin-top:6px;font-size:14px;color:#0f172a;line-height:1.7}
+.ml-item .a{margin-top:6px;display:flex;gap:6px}
+.ml-mode{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-weight:700;font-size:13px}
+.ml-people{max-height:240px;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:6px;margin-top:6px}
+.ml-people label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:8px;font-size:13px;cursor:pointer}
+.ml-people label:hover{background:#f1f5f9}
+.ml-people small{color:#64748b}
+.ml-people input,.ml-roles input{width:18px;height:18px;accent-color:#0e7490}
+.ml-picked{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.ml-picked span{background:#ecfeff;border:1px solid #67e8f9;color:#155e75;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}
+.ml-roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+.ml-roles label{display:flex;gap:8px;align-items:center;border:1px solid #e2e8f0;border-radius:10px;padding:7px 9px;font-size:13px;cursor:pointer}
+.ml-lbl{display:block;font-weight:700;font-size:13px;margin:12px 0 4px}
+#mail-btn{position:relative;color:#0e7490 !important}
+#mail-btn .ml-badge{position:absolute;top:-6px;left:-6px;background:#e11d48;color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;line-height:1.4}
+#mail-btn .ml-badge:empty{display:none}
+#mail-btn.ring{animation:mlRing 1s ease 2}
+@keyframes mlRing{0%,100%{transform:none}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){#mail-btn.ring{animation:none}}
+</style>
+<script>
+// ---- Internal staff messaging (script v8): inbox / sent / compose + unread badge ----
+(function(){
+  let box='in', items=[], lastUnread=-1, picked=new Set(), poll=null;
+  const ok=()=>typeof scriptV!=='undefined'&&scriptV>=8&&typeof staffSession!=='undefined'&&staffSession&&loggedInStaff;
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const roleLbl=r=>(typeof ROLE_DISPLAY_LABELS!=='undefined'&&ROLE_DISPLAY_LABELS[r])||r||'';
+  const MAIL_ROLES=['principal','vice_principal','subject_teacher','homeroom_teacher','social_worker','psychologist','systems_specialist','career_counselor','nurse'];
+  function people(){
+    const out=[]; const seen=new Set();
+    try{ Object.entries(TEACHER_SUBJECT_MAP).forEach(([subj,list])=>(list||[]).forEach(t=>{ if(!seen.has(t.name)){ seen.add(t.name); out.push({name:t.name, info:'معلمة '+subj}); } })); }catch(e){}
+    try{ STAFF_NON_TEACHING.forEach(st=>{ if(!seen.has(st.name)){ seen.add(st.name); out.push({name:st.name, info:st.job}); } }); }catch(e){}
+    const me=loggedInStaff&&loggedInStaff.name; return out.filter(p=>p.name!==me);
+  }
+  function addButton(){
+    const pill=document.getElementById('login-user-pill'); if(!pill||document.getElementById('mail-btn')) return;
+    const b=document.createElement('button'); b.type='button'; b.id='mail-btn'; b.innerHTML='📨 الرسائل<span class="ml-badge" id="ml-badge"></span>'; b.onclick=openMail;
+    const pw=[...pill.querySelectorAll('button')][0]; pill.insertBefore(b,pw||null);
+    b.style.display='none';
+  }
+  function setBadge(n){
+    const bd=document.getElementById('ml-badge'), ib=document.getElementById('ml-in-n');
+    if(bd) bd.textContent=n>0?String(n):''; if(ib) ib.textContent=n>0?String(n):'';
+    document.title=(n>0?`(${n}) `:'')+document.title.replace(/^\(\d+\)\s*/,'');
+  }
+  async function refreshCount(){
+    if(!ok()) return;
+    try{ const r=await api('inbox',{countOnly:true}); if(!r||!r.ok) return;
+      if(lastUnread>=0 && r.unread>lastUnread){ showToast(`📨 لديكِ ${r.unread-lastUnread===1?'رسالة جديدة':(r.unread-lastUnread)+' رسائل جديدة'} من زميلة`); const b=document.getElementById('mail-btn'); if(b){ b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } }
+      lastUnread=r.unread; setBadge(r.unread);
+    }catch(e){}
+  }
+  function start(){
+    addButton(); const b=document.getElementById('mail-btn');
+    if(!ok()){ if(b) b.style.display='none'; return; }
+    if(b) b.style.display=''; lastUnread=-1; refreshCount();
+    if(poll) clearInterval(poll); poll=setInterval(()=>{ if(!document.hidden) refreshCount(); },60000);
+  }
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshCount(); });
+  async function load(){
+    const list=document.getElementById('ml-list'); list.innerHTML='<p class="xw-meta">جاري التحميل…</p>';
+    try{ const r=await api('inbox',{}); items=(r&&r.ok&&r.items)||[]; lastUnread=r.unread||0; setBadge(lastUnread); }catch(e){ items=[]; }
+    render();
+  }
+  function render(){
+    const list=document.getElementById('ml-list');
+    const rows=items.filter(i=>i.box===box);
+    if(!rows.length){ list.innerHTML=`<p class="xw-meta" style="text-align:center;padding:20px">${box==='in'?'لا توجد رسائل واردة بعد.':'لم ترسلي رسائل بعد.'}</p>`; return; }
+    list.innerHTML=rows.map(i=>`<div class="ml-item ${i.box==='in'&&!i.read?'unread':''}"><div class="h"><span>${i.box==='in'?`من: <b>${esc(i.from)}</b> — ${esc(roleLbl(i.fromRole))}`:`إلى: <b>${esc(i.to)}</b>${i.readCount?` — قرأتها ${i.readCount}`:''}`}</span><span>${esc(i.t)}</span></div><div class="b">${esc(i.text)}</div>${i.box==='in'?`<div class="a"><button type="button" class="xw-btn" onclick="mailReply('${esc(i.from).replace(/'/g,'&#39;')}')">↩︎ ردّ</button></div>`:''}</div>`).join('');
+    if(box==='in'){ const ids=rows.filter(i=>!i.read).map(i=>i.id); if(ids.length){ api('markRead',{ids}).then(()=>{ items.forEach(i=>{ if(ids.includes(i.id)) i.read=true; }); lastUnread=Math.max(0,lastUnread-ids.length); setBadge(lastUnread); }).catch(()=>{}); } }
+  }
+  window.mailTab=function(t){
+    box=t; document.querySelectorAll('.ml-tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+    document.getElementById('ml-list').style.display=t==='new'?'none':''; document.getElementById('ml-new').style.display=t==='new'?'':'none';
+    if(t==='new'){ mailRenderPeople(); mailRenderRoles(); } else render();
+  };
+  window.mailMode=function(){ const m=document.querySelector('input[name=ml-mode]:checked').value; document.getElementById('ml-names-box').style.display=m==='names'?'':'none'; document.getElementById('ml-roles-box').style.display=m==='roles'?'':'none'; };
+  window.mailRenderPeople=function(){
+    const q=(document.getElementById('ml-search').value||'').trim();
+    const match=p=>!q||(typeof studentMatchesQuery==='function'?studentMatchesQuery({name:p.name+' '+p.info,phone:''},q):(p.name+p.info).includes(q));
+    document.getElementById('ml-people').innerHTML=people().filter(match).map(p=>`<label><input type="checkbox" ${picked.has(p.name)?'checked':''} onchange="mailPick(this,'${esc(p.name).replace(/'/g,'&#39;')}')"> <span>${esc(p.name)} <small>— ${esc(p.info)}</small></span></label>`).join('')||'<p class="xw-meta">لا نتائج</p>';
+    document.getElementById('ml-picked').innerHTML=[...picked].map(n=>`<span>${esc(n)}</span>`).join('');
+  };
+  window.mailPick=function(el,name){ if(el.checked) picked.add(name); else picked.delete(name); document.getElementById('ml-picked').innerHTML=[...picked].map(n=>`<span>${esc(n)}</span>`).join(''); };
+  function mailRenderRoles(){ const b=document.getElementById('ml-roles-box'); if(b.dataset.done) return; b.dataset.done=1; b.innerHTML=MAIL_ROLES.map(r=>`<label><input type="checkbox" value="${r}"> ${esc(r==='subject_teacher'?'جميع معلمات المواد':roleLbl(r))}</label>`).join(''); }
+  window.mailReply=function(name){ picked=new Set([name]); document.querySelector('input[name=ml-mode][value=names]').checked=true; mailMode(); mailTab('new'); document.getElementById('ml-text').focus(); };
+  window.mailSend=async function(){
+    const m=document.querySelector('input[name=ml-mode]:checked').value; const text=document.getElementById('ml-text').value.trim();
+    if(!text){ showToast('اكتبي نص الرسالة',true); return; }
+    const body={text};
+    if(m==='all') body.all=true;
+    else if(m==='roles'){ body.roles=[...document.querySelectorAll('#ml-roles-box input:checked')].map(i=>i.value); if(!body.roles.length){ showToast('اختاري وظيفة واحدة على الأقل',true); return; } body.label=body.roles.map(r=>r==='subject_teacher'?'جميع معلمات المواد':roleLbl(r)).join('، '); }
+    else { body.names=[...picked]; if(!body.names.length){ showToast('اختاري موظفة واحدة على الأقل',true); return; } }
+    if(m==='all' && !confirm('سيتم إرسال الرسالة لجميع موظفات المدرسة. متابعة؟')) return;
+    const btn=document.getElementById('ml-send'); btn.disabled=true; btn.textContent='جاري الإرسال…';
+    try{ const r=await api('sendInternal',body); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الإرسال',true); return; }
+      showToast('أُرسلت الرسالة ✓'); document.getElementById('ml-text').value=''; picked.clear(); await load(); mailTab('sent');
+    }catch(e){ showToast('تعذر الاتصال',true); } finally{ btn.disabled=false; btn.textContent='إرسال الرسالة'; }
+  };
+  function openMail(){
+    if(!ok()){ showToast('المراسلات تحتاج تحديث السكربت إلى الإصدار 8',true); return; }
+    const d=document.getElementById('mail-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    openDialog('mail-dialog'); mailTab('in'); load();
+  }
+  window.openStaffMail=openMail;
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); setTimeout(()=>{ (typeof scriptReady!=='undefined'?scriptReady:Promise.resolve()).then(start).catch(start); },300); return r; }; }
+  if(typeof logoutStaff==='function'){ const l=logoutStaff; logoutStaff=function(){ if(poll) clearInterval(poll); setBadge(0); const b=document.getElementById('mail-btn'); if(b) b.style.display='none'; return l.apply(this,arguments); }; }
+  setTimeout(()=>{ (typeof scriptReady!=='undefined'?scriptReady:Promise.resolve()).then(start).catch(()=>{}); },1500);
+})();
+</script>
 </body>
 </html>
