@@ -7915,6 +7915,7 @@ body.has-login-pill{padding-bottom:0 !important}
         <input id="sd-search" class="xw-input" placeholder="بحث…" oninput="sdRender()" style="flex:1;min-width:160px">
       </div>
       <p id="sd-status" class="xw-meta"></p>
+      <div id="sd-created" class="xw-ai" style="display:none;margin-bottom:10px;line-height:1.9"></div>
       <div style="overflow:auto"><table class="sd-table"><thead><tr><th>الاسم</th><th>الدور الوظيفي</th><th>المادة</th><th>الوظيفة / المسمى</th><th>نشطة</th><th></th></tr></thead><tbody id="sd-body"></tbody></table></div>
       <datalist id="sd-subjects"></datalist>
     </div>
@@ -8008,13 +8009,24 @@ body.has-login-pill{padding-bottom:0 !important}
     if(bad.length&&!confirm(`${bad.length} معلمة بلا مادة (مثل: ${bad[0].name}). المتابعة؟`)) return;
     const dup=clean.map(r=>r.name).filter((n,i,a)=>a.indexOf(n)!==i); if(dup.length){ showToast('اسم مكرر: '+dup[0],true); return; }
     const renames=clean.filter(r=>r._orig&&r._orig!==r.name).map(r=>({from:r._orig,to:r.name}));
+    const newNames=clean.filter(r=>r._state==='new'||(r._orig&&r._orig!==r.name)).map(r=>r.name);
     const items=clean.map(({_orig,_state,...x})=>x);
     const b=document.getElementById('sd-save'); b.disabled=true; b.textContent='جاري الحفظ…';
-    try{ const r=await adminCall('staffSave',{items,renames}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الحفظ',true); return; }
+    try{ const r=await adminCall('staffSave',{items,renames,newNames}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الحفظ',true); return; }
       applyStaffDirectory(items); try{ localStorage.setItem(DIR_KEY,JSON.stringify(items)); }catch(e){}
       rows.forEach(x=>{ x._orig=x.name; x._state=''; }); sdRender();
       document.getElementById('sd-status').textContent=`✓ حُفظ الدليل (${r.count} موظفة)${renames.length?` وصُحّحت ${renames.length} أسماء في الحسابات`:''}. يظهر للجميع عند فتح المنصة.`;
       showToast('حُفظ دليل الموظفات ✓');
+      const created=r.created||[];
+      const box=document.getElementById('sd-created');
+      if(created.length){
+        window.__createdAccounts=created;
+        box.style.display='block';
+        box.innerHTML=`<b>🔑 أُنشئت حسابات للموظفات الجديدات (${created.length})</b> — كلمات المرور المؤقتة تظهر مرة واحدة فقط، اطبعيها أو صدّريها الآن:<br>`+
+          created.map(c=>`• ${esc(c.name)} (${esc(roleLbl(c.role))}): <b style="letter-spacing:2px">${esc(c.password)}</b>`).join('<br>')+
+          `<div style="margin-top:8px"><button class="xw-btn primary" onclick="printCredentialCards()">🖨 طباعة بطاقات الدخول</button> <button class="xw-btn" onclick="exportCredentials()">تصدير Excel</button></div>`;
+        try{ if(typeof adminLoad==='function') adminLoad(); }catch(e){}
+      } else { box.style.display='none'; }
     }catch(e){ showToast('تعذر الاتصال',true); } finally{ b.disabled=false; b.textContent='💾 حفظ الدليل'; }
   };
 
