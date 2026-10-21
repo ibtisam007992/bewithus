@@ -8009,7 +8009,10 @@ body.has-login-pill{padding-bottom:0 !important}
     if(bad.length&&!confirm(`${bad.length} معلمة بلا مادة (مثل: ${bad[0].name}). المتابعة؟`)) return;
     const dup=clean.map(r=>r.name).filter((n,i,a)=>a.indexOf(n)!==i); if(dup.length){ showToast('اسم مكرر: '+dup[0],true); return; }
     const renames=clean.filter(r=>r._orig&&r._orig!==r.name).map(r=>({from:r._orig,to:r.name}));
-    const newNames=clean.filter(r=>r._state==='new'||(r._orig&&r._orig!==r.name)).map(r=>r.name);
+    // accounts are created for new rows AND for any active staff with a role who still has no account
+    const accN=(typeof adminState!=='undefined'&&adminState.accounts||[]).map(a=>typeof normalizeStaffName==='function'?normalizeStaffName(a.name):a.name);
+    const missing=accN.length?clean.filter(r=>r.role&&r.active!==false&&!accN.includes(typeof normalizeStaffName==='function'?normalizeStaffName(r.name):r.name)):[];
+    const newNames=[...new Set(clean.filter(r=>r._state==='new'||(r._orig&&r._orig!==r.name)).concat(missing).map(r=>r.name))];
     const items=clean.map(({_orig,_state,...x})=>x);
     const b=document.getElementById('sd-save'); b.disabled=true; b.textContent='جاري الحفظ…';
     try{ const r=await adminCall('staffSave',{items,renames,newNames}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الحفظ',true); return; }
