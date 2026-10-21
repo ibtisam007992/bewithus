@@ -500,6 +500,7 @@
                         <option value="psychologist">الأخصائية النفسية</option>
                         <option value="homeroom_teacher">مربية الصف</option>
                         <option value="career_counselor">أخصائية التوجيه المهني</option>
+                        <option value="coordinator">منسقة الشؤون المدرسية</option>
                     </select>
                 </div>
 
@@ -555,6 +556,7 @@
                     <button class="xw-btn primary" onclick="openLeaderDashboard(false)">📊 لوحة القيادة</button>
                     <button class="xw-btn" onclick="openAnnouncements()">📢 تعاميم المدرسة</button>
                     <button class="xw-btn" onclick="openEarlyWarning()">⚠ الإنذار المبكر</button>
+                    <button class="xw-btn" onclick="openBuses()">🚌 الحافلات</button>
                 </div>
 
                 <!-- Early warning banner: leadership roles only, filled by refreshEarlyWarningBanner() -->
@@ -845,6 +847,19 @@
                                     <span>أخصائية أنظمة مدرسية</span>
                                 </button>
                             </div>
+                        </div>
+
+                        <!-- Coordinator: morning lateness warnings (after 7:15) + school buses -->
+                        <div class="mb-4 hidden" id="coordinator-grid-wrap">
+                            <label class="block text-xs font-semibold text-slate-700 mb-2">⏰ إنذارات التأخر الصباحي (بعد الساعة 7:15):</label>
+                            <p id="late-suggest" class="hidden text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 mb-2"></p>
+                            <div class="it-row" style="margin-bottom:8px"><label>وقت وصول الطالبة <input id="late-time" type="time" class="it-in" min="07:15" style="width:120px"></label></div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button id="late-b1" onclick="applyTemplate('late_warning1')" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-800 p-2.5 rounded-xl border border-amber-500/40 font-bold transition">إنذار أول</button>
+                                <button id="late-b2" onclick="applyTemplate('late_warning2')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-800 p-2.5 rounded-xl border border-orange-500/40 font-bold transition">إنذار ثانٍ</button>
+                                <button id="late-b3" onclick="applyTemplate('late_warning3')" class="text-xs bg-slate-200 hover:bg-slate-300 text-red-800 p-2.5 rounded-xl border border-red-500/40 font-bold transition">إنذار ثالث</button>
+                            </div>
+                            <button type="button" onclick="openBuses()" class="mt-2 w-full text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 p-2.5 rounded-xl border border-sky-400/50 font-bold transition">🚌 الحافلات المدرسية: السائقون والمسارات</button>
                         </div>
 
                         <!-- IT teachers: practical activity + project grades -->
@@ -1842,6 +1857,7 @@
                             <button class="xw-btn warn" id="adm-shared-btn" onclick="adminToggleShared()"></button>
                             <button class="xw-btn" onclick="adminAudit()">سجل الدخول</button>
                             <button class="xw-btn primary" onclick="openStaffDirEditor()">🗂️ دليل الموظفات (الأسماء والأدوار والمواد)</button>
+                            <button class="xw-btn" onclick="openBuses(true)">🚌 الحافلات المدرسية والمسارات</button>
                         </div>
                         <div id="adm-created" style="display:none" class="xw-ai"></div>
                         <input id="adm-search" class="xw-input" placeholder="بحث بالاسم…" oninput="adminRender()" style="width:100%;margin:8px 0">
@@ -2184,6 +2200,7 @@
             'social_worker': 'الأخصائية الاجتماعية',
             'psychologist': 'الأخصائية النفسية',
             'career_counselor': 'أخصائية التوجيه المهني',
+            'coordinator': 'منسقة الشؤون المدرسية',
             'systems_specialist': 'أخصائية أنظمة مدرسية',
             'systems_absence_notice1': 'غياب - إشعار أول',
             'systems_absence_notice2': 'غياب - تنبيه ثاني',
@@ -2191,6 +2208,9 @@
             'systems_tardiness': 'تأخر صباحي',
             'systems_early_leave': 'استئذان (خروج مبكر)',
             'staff_summon': 'استدعاء ولي أمر',
+            'late_warning1': 'تأخر صباحي - إنذار أول',
+            'late_warning2': 'تأخر صباحي - إنذار ثانٍ',
+            'late_warning3': 'تأخر صباحي - إنذار ثالث',
             'it_practical': 'درجة النشاط العملي',
             'it_project': 'درجة المشروع',
             'nurse_sick_pickup': 'وعكة صحية - استلام الطالبة',
@@ -2399,12 +2419,16 @@
             'psychologist': 'الأخصائية النفسية',
             'homeroom_teacher': 'مربية الصف',
             'career_counselor': 'أخصائية التوجيه المهني',
+            'coordinator': 'منسقة الشؤون المدرسية',
             'systems_specialist': 'أخصائية الأنظمة المدرسية',
             'systems_absence_notice1': 'أخصائية الأنظمة المدرسية',
             'systems_absence_notice2': 'أخصائية الأنظمة المدرسية',
             'systems_absence_warning3': 'أخصائية الأنظمة المدرسية',
             'systems_tardiness': 'أخصائية الأنظمة المدرسية',
             'systems_early_leave': 'أخصائية الأنظمة المدرسية',
+            'late_warning1': 'منسقة الشؤون المدرسية',
+            'late_warning2': 'منسقة الشؤون المدرسية',
+            'late_warning3': 'منسقة الشؤون المدرسية',
             'nurse_sick_pickup': 'الممرضة المدرسية',
             'nurse_injury': 'الممرضة المدرسية',
             'nurse_screening': 'الممرضة المدرسية',
@@ -2553,6 +2577,18 @@
                     else tail = 'ونأمل متابعتها في البيت وتشجيعها على التدرب على المهارات العملية، ويسعدنا تقديم الدعم لها خلال الحصص. 🤝';
                     return `السلام عليكم ورحمة الله وبركاته، ولي أمر الطالبة: ${name}.\n\nنود إفادتكم بأن ابنتكم حصلت على ${gradeTxt} في ${item} بمادة (${currentSubjectName})، ${tail}`;
                 }
+                case 'coordinator':
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتواصل معكم منسقة الشؤون المدرسية بمدرسة خولة بنت حكيم (9-12) بخصوص أمر يتعلق بانتظام ابنتكم في الدوام المدرسي، ونرجو التكرم بالتواصل مع المدرسة. شاكرين تعاونكم.`;
+                case 'late_warning1':
+                case 'late_warning2':
+                case 'late_warning3': {
+                    const at = (document.getElementById('late-time')?.value || '').trim();
+                    const day = new Date().toLocaleDateString('ar-OM', { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' });
+                    const arr = at ? `حيث وصلت الساعة (${at})` : 'حيث وصلت بعد بدء الطابور';
+                    if (type === 'late_warning1') return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنحيطكم علماً بتأخر ابنتكم عن الحضور الصباحي اليوم ${day}، ${arr}، علماً بأن موعد الحضور قبل الساعة 7:15 صباحاً.\n\nهذا إشعار أول، ونرجو التكرم بالحرص على حضورها مبكراً حتى لا يفوتها الطابور والحصة الأولى. شاكرين تعاونكم. ⏰`;
+                    if (type === 'late_warning2') return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنود إفادتكم بتكرار تأخر ابنتكم عن الحضور الصباحي للمرة الثانية، وكان آخرها اليوم ${day}، ${arr}، بعد الموعد المحدد (7:15 صباحاً).\n\nهذا إنذار ثانٍ، ونرجو التعاون معنا في معالجة أسباب التأخر والالتزام بالموعد، تجنباً لاتخاذ الإجراءات المنصوص عليها في لائحة شؤون الطلبة. ⚠️`;
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنأسف لإبلاغكم بتكرار تأخر ابنتكم عن الحضور الصباحي للمرة الثالثة، وكان آخرها اليوم ${day}، ${arr}، بعد الموعد المحدد (7:15 صباحاً).\n\nهذا إنذار ثالث، ونرجو التكرم بالحضور إلى المدرسة خلال أسبوع لمقابلة منسقة الشؤون المدرسية والإدارة، لمناقشة الأمر واتخاذ ما يلزم وفق لائحة شؤون الطلبة. 🏫`;
+                }
                 case 'staff_summon': {
                     const t = String(STAFF_ROLE_SIGNATURES[currentStaffRole] || 'إدارة المدرسة').split(':')[0].trim();
                     return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nتتشرف ${t} بمدرسة خولة بنت حكيم (9-12) بدعوتكم لزيارة المدرسة يوم (......) الموافق (..../..../........) الساعة (......)، لمقابلة ${t} ومناقشة أمر يخص ابنتكم، حرصاً على مصلحتها وتعاوناً بين البيت والمدرسة.\n\nنرجو التكرم بالحضور في الموعد المحدد، أو التواصل معنا لتحديد موعد آخر يناسبكم. شاكرين لكم حسن تعاونكم. 🏫`;
@@ -2618,9 +2654,9 @@
             { name: "اسماء سهيل مسعود باقى", job: "أخصائية مصادر التعلم", role: "" },
             { name: "امينه احمد الشاوى جداد", job: "أخصائية أنشطة مدرسية", role: "" },
             { name: "منى احمد سعيد الرواس", job: "أخصائية شؤون إدارية ومالية", role: "" },
-            { name: "حنان احمد سالم الرواس", job: "منسقة شؤون مدرسية", role: "" },
-            { name: "خوله ناصر سعيد المقبالي", job: "منسقة شؤون مدرسية", role: "" },
-            { name: "ورده خالد سالم باعلوى", job: "منسقة شؤون مدرسية", role: "" },
+            { name: "حنان احمد سالم الرواس", job: "منسقة شؤون مدرسية", role: "coordinator" },
+            { name: "خوله ناصر سعيد المقبالي", job: "منسقة شؤون مدرسية", role: "coordinator" },
+            { name: "ورده خالد سالم باعلوى", job: "منسقة شؤون مدرسية", role: "coordinator" },
             { name: "اروى سالم احمد الغساني", job: "فنية مختبر علوم", role: "" },
             { name: "حنان جمعان مبروك بيت سليم", job: "فنية مختبر علوم", role: "" },
             { name: "مهاني احمد عقيل باعمر", job: "فنية دعم أجهزة مدرسية", role: "" },
@@ -7070,7 +7106,7 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
         }
         async function adminAddOne() {
             const name = prompt('اسم الموظفة كما في الكشف:'); if (!name) return;
-            const roles = Object.keys(ROLE_DISPLAY_LABELS).filter(k => ['subject_teacher', 'principal', 'vice_principal', 'nurse', 'social_worker', 'systems_specialist', 'psychologist', 'homeroom_teacher', 'career_counselor'].includes(k));
+            const roles = Object.keys(ROLE_DISPLAY_LABELS).filter(k => ['subject_teacher', 'principal', 'vice_principal', 'nurse', 'social_worker', 'systems_specialist', 'psychologist', 'homeroom_teacher', 'career_counselor', 'coordinator'].includes(k));
             const pick = prompt('الدور (اكتبي الرقم):\n' + roles.map((k, i) => `${i + 1}) ${ROLE_DISPLAY_LABELS[k]}`).join('\n'), '1');
             const role = roles[Number(pick) - 1]; if (!role) return;
             const r = await adminCall('add', { name, role });
@@ -7693,7 +7729,7 @@ body.has-login-pill{padding-bottom:0 !important}
 </script>
 <script>
 (function(){
-  const SUMMON_ROLES=['principal','vice_principal','psychologist','social_worker','systems_specialist','nurse'];
+  const SUMMON_ROLES=['principal','vice_principal','psychologist','social_worker','systems_specialist','nurse','coordinator'];
   if(typeof resolveStaffSignature==='function'){ const r0=resolveStaffSignature; resolveStaffSignature=function(type){ if(type==='staff_summon') return STAFF_ROLE_SIGNATURES[currentStaffRole]||''; return r0.apply(this,arguments); }; }
   function toggle(v){ const w=document.getElementById('summon-wrap'); if(w) w.classList.toggle('hidden', !SUMMON_ROLES.includes(v)); }
   if(typeof changeStaffRole==='function'){ const c=changeStaffRole; changeStaffRole=function(v){ const r=c.apply(this,arguments); toggle(v); return r; }; }
@@ -7768,7 +7804,7 @@ body.has-login-pill{padding-bottom:0 !important}
   const ok=()=>typeof scriptV!=='undefined'&&scriptV>=8&&typeof staffSession!=='undefined'&&staffSession&&loggedInStaff;
   const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const roleLbl=r=>(typeof ROLE_DISPLAY_LABELS!=='undefined'&&ROLE_DISPLAY_LABELS[r])||r||'';
-  const MAIL_ROLES=['principal','vice_principal','subject_teacher','homeroom_teacher','social_worker','psychologist','systems_specialist','career_counselor','nurse'];
+  const MAIL_ROLES=['principal','vice_principal','subject_teacher','homeroom_teacher','social_worker','psychologist','systems_specialist','career_counselor','nurse','coordinator'];
   function people(){
     const out=[]; const seen=new Set();
     try{ Object.entries(TEACHER_SUBJECT_MAP).forEach(([subj,list])=>(list||[]).forEach(t=>{ if(!seen.has(t.name)){ seen.add(t.name); out.push({name:t.name, info:'معلمة '+subj}); } })); }catch(e){}
@@ -7903,7 +7939,7 @@ body.has-login-pill{padding-bottom:0 !important}
 (function(){
   const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const DIR_KEY='bewithus_staff_dir';
-  const ROLE_OPTS=['subject_teacher','principal','vice_principal','homeroom_teacher','social_worker','psychologist','systems_specialist','career_counselor','nurse'];
+  const ROLE_OPTS=['subject_teacher','principal','vice_principal','homeroom_teacher','social_worker','psychologist','systems_specialist','career_counselor','nurse','coordinator'];
   const roleLbl=r=>r?((typeof ROLE_DISPLAY_LABELS!=='undefined'&&ROLE_DISPLAY_LABELS[r])||r):'— بدون دور في المنصة —';
 
   // ---- apply a directory (from the script) to the platform's staff lists ----
@@ -7996,6 +8032,7 @@ body.has-login-pill{padding-bottom:0 !important}
     else if(/انظم|أنظم/.test(j)) role='systems_specialist';
     else if(/توجيه\s*مهني/.test(j)) role='career_counselor';
     else if(/ممرض|تمريض/.test(j)) role='nurse';
+    else if(/منسق/.test(j)) role='coordinator';
     else if(/مربي/.test(j)) role='homeroom_teacher';
     else if(/معلم|محاضر/.test(j)) role='subject_teacher';
     if(role==='subject_teacher'){ const src=(subjectHint||'')+' '+j; for(const [re,s] of SUBJ){ if(re.test(src)){ subject=s; break; } } }
@@ -8073,6 +8110,90 @@ body.has-login-pill{padding-bottom:0 !important}
   function itToggle(){ const w=document.getElementById('it-grades-wrap'); if(w) w.classList.toggle('hidden', !(currentStaffRole==='subject_teacher'&&currentSubjectName==='تقنية المعلومات')); }
   ['changeSubject','changeStaffRole'].forEach(fn=>{ if(typeof window[fn]!=='function') return; const o=window[fn]; window[fn]=function(){ const r=o.apply(this,arguments); try{ itToggle(); }catch(e){} return r; }; });
   try{ itToggle(); }catch(e){}
+})();
+</script>
+<div id="bus-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="bus-title">
+  <div class="xw-panel" style="max-width:1100px">
+    <div class="xw-head"><div><h3 id="bus-title">🚌 الحافلات المدرسية</h3><div id="bus-sub" class="xw-sub">اكتبي بيانات كل حافلة ومسارها، ثم «حفظ الحافلات».</div></div>
+      <button class="xw-x" onclick="closeDialog('bus-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body">
+      <div class="xw-chips" style="margin-bottom:8px">
+        <button class="xw-btn bus-edit" onclick="busAdd()">＋ إضافة حافلة</button>
+        <input id="bus-search" class="xw-input" placeholder="ابحثي باسم منطقة أو سائق أو رقم حافلة…" oninput="busRender()" style="flex:1;min-width:200px">
+      </div>
+      <p id="bus-status" class="xw-meta"></p>
+      <div style="overflow:auto"><table class="sd-table"><thead><tr><th style="width:90px">رقم الحافلة</th><th>اسم السائق</th><th style="width:150px">هاتف السائق</th><th style="min-width:280px">المسار / المناطق</th><th style="width:110px">وقت الوصول</th><th>ملاحظات</th><th></th></tr></thead><tbody id="bus-body"></tbody></table></div>
+    </div>
+    <div class="xw-foot"><button class="xw-btn primary bus-edit" id="bus-save" onclick="busSave()">💾 حفظ الحافلات</button> <button class="xw-btn" onclick="closeDialog('bus-dialog')">إغلاق</button></div>
+  </div>
+</div>
+<style>#bus-dialog{z-index:10002 !important}.bus-route{min-height:38px;resize:vertical;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:5px 7px;font-family:inherit;font-size:13px}.bus-wa{color:#15803d;text-decoration:none;font-size:16px}#bus-dialog.ro .bus-edit,#bus-dialog.ro .sd-del{display:none}</style>
+<script>
+// ===== School buses (drivers + routes) and coordinator lateness warnings =====
+(function(){
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const EDIT=['coordinator','principal','vice_principal'];
+  let buses=[], viaAdmin=false, canEdit=false;
+  window.openBuses=async function(fromAdmin){
+    if(typeof scriptV==='undefined'||scriptV<10){ showToast('الحافلات تحتاج تحديث السكربت إلى الإصدار 10',true); return; }
+    viaAdmin=!!fromAdmin && typeof adminState!=='undefined' && !!adminState.code;
+    canEdit=viaAdmin || (typeof currentStaffRole!=='undefined' && EDIT.includes(currentStaffRole));
+    const d=document.getElementById('bus-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    d.classList.toggle('ro',!canEdit);
+    document.getElementById('bus-sub').textContent=canEdit?'اكتبي بيانات كل حافلة ومسارها كما تريدين، ثم «حفظ الحافلات». تظهر للمنسقات والإدارة.':'عرض فقط. التعديل للمنسقة والإدارة.';
+    openDialog('bus-dialog'); document.getElementById('bus-status').textContent='جاري التحميل…';
+    buses=[];
+    try{
+      if(viaAdmin){ /* admin has no staff session: read through admin is not needed, use public-less read via session if present */ }
+      const r=viaAdmin?await adminCall('busList'):await api('busList',{});
+      if(r&&r.ok) buses=r.items||[];
+    }catch(e){}
+    document.getElementById('bus-status').textContent=buses.length?`${buses.length} حافلة`:(canEdit?'لا توجد حافلات بعد. اضغطي «＋ إضافة حافلة» واكتبي المسار.':'لا توجد حافلات مسجلة بعد.');
+    if(!buses.length&&canEdit) busAdd(); else busRender();
+  };
+  window.busRender=function(){
+    const q=(document.getElementById('bus-search').value||'').trim();
+    const m=b=>!q||(typeof studentMatchesQuery==='function'?studentMatchesQuery({name:`${b.no} ${b.driver} ${b.route} ${b.notes}`,phone:b.phone||''},q):true);
+    const ro=!canEdit?'readonly':'';
+    document.getElementById('bus-body').innerHTML=buses.map((b,i)=>m(b)?`<tr>
+      <td><input type="text" ${ro} value="${esc(b.no)}" oninput="busSet(${i},'no',this.value)"></td>
+      <td><input type="text" ${ro} value="${esc(b.driver)}" oninput="busSet(${i},'driver',this.value)"></td>
+      <td style="white-space:nowrap"><input type="text" ${ro} value="${esc(b.phone)}" inputmode="tel" placeholder="968xxxxxxxx" oninput="busSet(${i},'phone',this.value)" style="width:118px"> ${b.phone?`<a class="bus-wa" target="_blank" rel="noopener" href="https://wa.me/${esc(String(b.phone).replace(/\D/g,'').replace(/^(\d{8})$/,'968$1'))}" title="مراسلة السائق عبر واتساب">💬</a>`:''}</td>
+      <td><textarea class="bus-route" ${ro} rows="2" placeholder="مثال: صلالة الجديدة ← عوقد ← الدهاريز ← المدرسة" oninput="busSet(${i},'route',this.value)">${esc(b.route)}</textarea></td>
+      <td><input type="text" ${ro} value="${esc(b.arrive)}" placeholder="6:50" oninput="busSet(${i},'arrive',this.value)"></td>
+      <td><input type="text" ${ro} value="${esc(b.notes)}" oninput="busSet(${i},'notes',this.value)"></td>
+      <td><button class="sd-del" title="حذف" onclick="busDel(${i})">✕</button></td></tr>`:'').join('');
+  };
+  window.busSet=(i,k,v)=>{ buses[i][k]=v; };
+  window.busAdd=()=>{ buses.unshift({no:'',driver:'',phone:'',route:'',arrive:'',notes:''}); document.getElementById('bus-search').value=''; busRender(); const f=document.querySelector('#bus-body input'); if(f) f.focus(); };
+  window.busDel=i=>{ if(!confirm(`حذف الحافلة ${buses[i].no||''} (${buses[i].driver||''})؟`)) return; buses.splice(i,1); busRender(); };
+  window.busSave=async function(){
+    const items=buses.filter(b=>String(b.no||'').trim()||String(b.driver||'').trim());
+    const btn=document.getElementById('bus-save'); btn.disabled=true; btn.textContent='جاري الحفظ…';
+    try{
+      const r=viaAdmin?await adminCall('busSave',{items}):await api('busSave',{items});
+      if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الحفظ',true); return; }
+      try{ localStorage.setItem('bewithus_buses',JSON.stringify(items)); }catch(e){}
+      buses=items; busRender(); document.getElementById('bus-status').textContent=`✓ حُفظت ${r.count} حافلة.`; showToast('حُفظت الحافلات والمسارات ✓');
+    }catch(e){ showToast('تعذر الاتصال',true); } finally{ btn.disabled=false; btn.textContent='💾 حفظ الحافلات'; }
+  };
+
+  // ---- coordinator grid + suggested warning stage ----
+  const LATE=['late_warning1','late_warning2','late_warning3'];
+  function yearStart(){ const n=new Date(); const y=n.getMonth()>=7?n.getFullYear():n.getFullYear()-1; return new Date(y,7,15).getTime(); }
+  function suggest(){
+    const p=document.getElementById('late-suggest'); if(!p) return;
+    ['late-b1','late-b2','late-b3'].forEach(id=>{ const b=document.getElementById(id); if(b) b.style.outline=''; });
+    if(typeof selectedStudent==='undefined'||!selectedStudent){ p.classList.add('hidden'); return; }
+    const n=messageArchive.filter(e=>e.phone===selectedStudent.phone&&LATE.includes(e.type)&&new Date(e.sentAt).getTime()>=yearStart()).length;
+    const next=Math.min(n+1,3);
+    p.textContent=n?`💡 أُرسل لهذه الطالبة ${n} ${n===1?'إنذار':'إنذارات'} تأخر هذا العام، المقترح الآن: الإنذار ${['','الأول','الثاني','الثالث'][next]}.`:'💡 لا إنذارات تأخر سابقة لهذه الطالبة هذا العام، المقترح: الإنذار الأول.';
+    p.classList.remove('hidden'); const b=document.getElementById('late-b'+next); if(b) b.style.outline='3px solid #6366f1';
+  }
+  function toggle(){ const w=document.getElementById('coordinator-grid-wrap'); if(w) w.classList.toggle('hidden', currentStaffRole!=='coordinator'); suggest(); }
+  ['changeStaffRole','selectStudent'].forEach(fn=>{ if(typeof window[fn]!=='function') return; const o=window[fn]; window[fn]=function(){ const r=o.apply(this,arguments); try{ toggle(); }catch(e){} return r; }; });
+  const lt=document.getElementById('late-time'); if(lt&&!lt.value){ const d=new Date(); lt.value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  try{ toggle(); }catch(e){}
 })();
 </script>
 </body>
