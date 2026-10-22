@@ -1858,6 +1858,7 @@
                             <button class="xw-btn" onclick="adminAudit()">سجل الدخول</button>
                             <button class="xw-btn primary" onclick="openStaffDirEditor()">🗂️ دليل الموظفات (الأسماء والأدوار والمواد)</button>
                             <button class="xw-btn" onclick="openBuses(true)">🚌 الحافلات المدرسية والمسارات</button>
+                            <button class="xw-btn warn" id="adm-support-btn" onclick="openSupportAdmin()">🛠 طلبات الدعم الفني <span id="adm-support-n" class="ml-n"></span></button>
                         </div>
                         <div id="adm-created" style="display:none" class="xw-ai"></div>
                         <input id="adm-search" class="xw-input" placeholder="بحث بالاسم…" oninput="adminRender()" style="width:100%;margin:8px 0">
@@ -7889,7 +7890,7 @@ body.has-login-pill{padding-bottom:0 !important}
 </script>
 <div id="support-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="sp-title">
   <div class="xw-panel" style="max-width:620px">
-    <div class="xw-head"><div><h3 id="sp-title">🛠 الدعم الفني</h3><div class="xw-sub">يصل طلبكِ إلى مسؤولة المنصة في «📨 الرسائل»، ويصلكِ الرد هناك.</div></div>
+    <div class="xw-head"><div><h3 id="sp-title">🛠 الدعم الفني</h3><div class="xw-sub">يصل طلبكِ إلى مسؤولة المنصة، وتتابعه من لوحة الإدارة. يصلكِ ردها في «📨 الرسائل» وتجدين حالة طلباتكِ هنا.</div></div>
       <button class="xw-x" onclick="closeDialog('support-dialog')" aria-label="إغلاق">✕</button></div>
     <div class="xw-body">
       <label class="ml-lbl" for="sp-kind">نوع الطلب</label>
@@ -7897,6 +7898,7 @@ body.has-login-pill{padding-bottom:0 !important}
       <label class="ml-lbl" for="sp-text">وصف المشكلة أو الطلب</label>
       <textarea id="sp-text" rows="5" class="xw-input" style="width:100%;resize:vertical" placeholder="مثال: لا تظهر قائمة طالبات الصف 10/5 بعد الاستيراد…"></textarea>
       <p class="xw-meta" style="margin-top:6px">يُرفق تلقائياً: دوركِ ومادتكِ والصف المفتوح، لتسهيل الحل.</p>
+      <div id="sp-mine" style="margin-top:14px"></div>
     </div>
     <div class="xw-foot"><button class="xw-btn primary" id="sp-send" onclick="sendSupport()">إرسال الطلب</button> <button class="xw-btn" onclick="closeDialog('support-dialog')">إلغاء</button></div>
   </div>
@@ -7916,7 +7918,7 @@ body.has-login-pill{padding-bottom:0 !important}
       </div>
       <p id="sd-status" class="xw-meta"></p>
       <div id="sd-created" class="xw-ai" style="display:none;margin-bottom:10px;line-height:1.9"></div>
-      <div style="overflow:auto"><table class="sd-table"><thead><tr><th>الاسم</th><th>الدور الوظيفي</th><th>المادة</th><th>الوظيفة / المسمى</th><th>نشطة</th><th></th></tr></thead><tbody id="sd-body"></tbody></table></div>
+      <div style="overflow:auto"><table class="sd-table"><thead><tr><th>الاسم</th><th>الدور الوظيفي</th><th>المادة</th><th>الوظيفة / المسمى</th><th style="width:130px">الهاتف</th><th>نشطة</th><th></th></tr></thead><tbody id="sd-body"></tbody></table></div>
       <datalist id="sd-subjects"></datalist>
     </div>
     <div class="xw-foot"><button class="xw-btn primary" id="sd-save" onclick="sdSave()">💾 حفظ الدليل</button> <button class="xw-btn" onclick="closeDialog('staffdir-dialog')">إغلاق</button></div>
@@ -7997,6 +7999,7 @@ body.has-login-pill{padding-bottom:0 !important}
       <td><select onchange="sdSet(${i},'role',this.value);sdRender()"><option value="">— بدون دور في المنصة —</option>${ROLE_OPTS.map(o=>`<option value="${o}" ${r.role===o?'selected':''}>${esc(roleLbl(o))}</option>`).join('')}</select></td>
       <td><input type="text" list="sd-subjects" value="${esc(r.subject)}" ${r.role==='subject_teacher'?'':'disabled placeholder="—"'} oninput="sdSet(${i},'subject',this.value)"></td>
       <td><input type="text" value="${esc(r.role==='subject_teacher'?(r.position||'معلمة'):r.job)}" oninput="sdSet(${i},'${r.role==='subject_teacher'?'position':'job'}',this.value)"></td>
+      <td><input type="text" inputmode="tel" value="${esc(r.phone||'')}" placeholder="968xxxxxxxx" oninput="sdSet(${i},'phone',this.value)"></td>
       <td style="text-align:center"><input type="checkbox" ${r.active!==false?'checked':''} onchange="sdSet(${i},'active',this.checked);sdRender()"></td>
       <td><button class="sd-del" title="حذف" onclick="sdDel(${i})">✕</button></td></tr>`:'').join('');
   };
@@ -8059,10 +8062,10 @@ body.has-login-pill{padding-bottom:0 !important}
       const name=String(it.name||'').replace(/\s+/g,' ').trim(); if(name.length<2) return;
       const m=mapJobTitle(it.job||'', it.subject||'');
       const role=it.role&&ROLE_OPTS.includes(it.role)?it.role:m.role;
-      const row={ name, role, subject: role==='subject_teacher'?(m.subject||it.subject||''):'', job: role==='subject_teacher'?'':(it.job||''), position: m.position||'', active:true };
+      const row={ name, role, subject: role==='subject_teacher'?(m.subject||it.subject||''):'', job: role==='subject_teacher'?'':(it.job||''), position: m.position||'', active:true, phone: String(it.phone||'').replace(/\D/g,'') };
       const key=typeof normalizeStaffName==='function'?normalizeStaffName(name):name;
       const ex=rows.find(r=>(typeof normalizeStaffName==='function'?normalizeStaffName(r.name):r.name)===key);
-      if(ex){ Object.assign(ex,{role:row.role||ex.role,subject:row.subject||ex.subject,job:row.job||ex.job,position:row.position||ex.position}); if(ex._state!=='new') ex._state='changed'; updated++; }
+      if(ex){ Object.assign(ex,{role:row.role||ex.role,subject:row.subject||ex.subject,job:row.job||ex.job,position:row.position||ex.position,phone:row.phone||ex.phone||''}); if(ex._state!=='new') ex._state='changed'; updated++; }
       else { rows.unshift(Object.assign(row,{_state:'new'})); added++; }
     });
     document.getElementById('sd-status').textContent=`استيراد من ${source}: أُضيفت ${added} وتحدّثت ${updated}. راجعي الأدوار والمواد (الأسطر الملونة) ثم اضغطي «حفظ الدليل».`;
@@ -8078,8 +8081,8 @@ body.has-login-pill{padding-bottom:0 !important}
       if(h<0){ showToast('لم أجد عموداً للاسم في الملف',true); return; }
       const head=grid[h].map(c=>String(c));
       const col=re=>head.findIndex(c=>re.test(c));
-      const cN=col(/اسم/), cJ=col(/الوظيفة|المسمى|الوظيفي/), cS=col(/المادة|التخصص/), cR=col(/الدور/);
-      const list=grid.slice(h+1).map(r=>({ name:r[cN], job:cJ>=0?r[cJ]:'', subject:cS>=0?r[cS]:'', role:'' })).filter(x=>String(x.name||'').trim().length>=2);
+      const cN=col(/اسم/), cJ=col(/الوظيفة|المسمى|الوظيفي/), cS=col(/المادة|التخصص/), cR=col(/الدور/), cP=col(/هاتف|الهاتف|جوال|نقال/);
+      const list=grid.slice(h+1).map(r=>({ name:r[cN], job:cJ>=0?r[cJ]:'', subject:cS>=0?r[cS]:'', role:'', phone:cP>=0?String(r[cP]||''):'' })).filter(x=>String(x.name||'').trim().length>=2);
       if(cR>=0) grid.slice(h+1).forEach((r,i)=>{ const v=String(r[cR]||''); const k=ROLE_OPTS.find(o=>roleLbl(o)===v||o===v); if(k&&list[i]) list[i].role=k; });
       mergeImported(list,'Excel');
     }catch(e){ showToast('تعذرت قراءة ملف Excel',true); }
@@ -8209,6 +8212,135 @@ body.has-login-pill{padding-bottom:0 !important}
   ['changeStaffRole','selectStudent'].forEach(fn=>{ if(typeof window[fn]!=='function') return; const o=window[fn]; window[fn]=function(){ const r=o.apply(this,arguments); try{ toggle(); }catch(e){} return r; }; });
   const lt=document.getElementById('late-time'); if(lt&&!lt.value){ const d=new Date(); lt.value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
   try{ toggle(); }catch(e){}
+})();
+</script>
+<div id="supadm-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="supadm-title">
+  <div class="xw-panel" style="max-width:900px">
+    <div class="xw-head"><div><h3 id="supadm-title">🛠 طلبات الدعم الفني</h3><div class="xw-sub">طلبات الموظفات تصلكِ هنا. غيّري الحالة واكتبي الرد، فيصل للموظفة في «📨 الرسائل».</div></div>
+      <button class="xw-x" onclick="closeDialog('supadm-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body">
+      <div class="ml-tabs"><button type="button" class="ml-tab on" data-f="open" onclick="supFilter('open')">المفتوحة</button><button type="button" class="ml-tab" data-f="all" onclick="supFilter('all')">كل الطلبات</button></div>
+      <div id="supadm-list"></div>
+    </div>
+    <div class="xw-foot"><button class="xw-btn" onclick="closeDialog('supadm-dialog')">إغلاق</button></div>
+  </div>
+</div>
+<div id="staffwa-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="swa-title">
+  <div class="xw-panel" style="max-width:640px">
+    <div class="xw-head"><div><h3 id="swa-title">💬 مراسلة عبر واتساب</h3><div id="swa-sub" class="xw-sub"></div></div>
+      <button class="xw-x" onclick="closeDialog('staffwa-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body">
+      <label class="ml-lbl">نماذج جاهزة</label>
+      <div id="swa-tpls" class="xw-chips" style="margin-bottom:8px"></div>
+      <label class="ml-lbl" for="swa-text">نص الرسالة</label>
+      <textarea id="swa-text" rows="7" class="xw-input" style="width:100%;resize:vertical"></textarea>
+    </div>
+    <div class="xw-foot"><button class="xw-btn primary" onclick="staffWaSend('web')">فتح في WhatsApp Web</button> <button class="xw-btn" onclick="staffWaSend('app')">فتح تطبيق واتساب</button> <button class="xw-btn" onclick="closeDialog('staffwa-dialog')">إلغاء</button></div>
+  </div>
+</div>
+<style>
+#supadm-dialog,#staffwa-dialog{z-index:10003 !important}
+.sup-item{border:1px solid #e2e8f0;border-right:5px solid #f59e0b;border-radius:14px;padding:10px 12px;margin-bottom:10px;background:#fff}
+.sup-item.done{border-right-color:#10b981;opacity:.85}.sup-item.prog{border-right-color:#3b82f6}
+.sup-item .h{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:12px;color:#475569}
+.sup-item .b{white-space:pre-wrap;margin:6px 0;font-size:14px;color:#0f172a}
+.sup-item textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:7px;font-family:inherit;font-size:13px}
+.sup-item .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.sup-st{font-weight:700;border-radius:999px;padding:2px 10px;font-size:11px}
+.sup-st.n{background:#fef3c7;color:#92400e}.sup-st.p{background:#dbeafe;color:#1e40af}.sup-st.d{background:#d1fae5;color:#065f46}
+.swa-btn{border:0;background:#dcfce7;color:#15803d;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+</style>
+<script>
+// ===== Support owned by the platform admin + staff phones/WhatsApp =====
+(function(){
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const roleLbl=r=>(typeof ROLE_DISPLAY_LABELS!=='undefined'&&ROLE_DISPLAY_LABELS[r])||r||'';
+  const stCls=s=>s==='تم الحل'?'d':s==='قيد المعالجة'?'p':'n';
+  const v12=()=>typeof scriptV!=='undefined'&&scriptV>=12;
+  // ---- admin side ----
+  let tickets=[], filter='open';
+  async function loadTickets(){
+    const r=await adminCall('supportList'); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر تحميل الطلبات',true); return false; }
+    tickets=r.items||[]; const n=document.getElementById('adm-support-n'); if(n) n.textContent=r.open?String(r.open):''; return true;
+  }
+  window.openSupportAdmin=async function(){
+    if(!v12()){ showToast('طلبات الدعم الفني تحتاج تحديث السكربت إلى الإصدار 12',true); return; }
+    const d=document.getElementById('supadm-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    openDialog('supadm-dialog'); document.getElementById('supadm-list').innerHTML='<p class="xw-meta">جاري التحميل…</p>';
+    if(await loadTickets()) supRender();
+  };
+  window.supFilter=function(f){ filter=f; document.querySelectorAll('#supadm-dialog .ml-tab').forEach(b=>b.classList.toggle('on',b.dataset.f===f)); supRender(); };
+  function supRender(){
+    const list=tickets.filter(t=>filter==='all'||t.status!=='تم الحل');
+    document.getElementById('supadm-list').innerHTML=list.length?list.map(t=>`<div class="sup-item ${stCls(t.status)==='d'?'done':stCls(t.status)==='p'?'prog':''}">
+      <div class="h"><span><b>${esc(t.from)}</b> — ${esc(roleLbl(t.role))} · ${esc(t.kind)} · رقم ${esc(t.id)}</span><span><span class="sup-st ${stCls(t.status)}">${esc(t.status)}</span> ${esc(t.t)}</span></div>
+      <div class="b">${esc(t.text)}</div>${t.page?`<div class="xw-meta">📍 ${esc(t.page)}</div>`:''}
+      ${t.reply?`<div class="xw-meta" style="margin-top:4px">آخر رد: ${esc(t.reply)}</div>`:''}
+      <textarea id="sr-${esc(t.id)}" rows="2" placeholder="اكتبي الرد للموظفة (اختياري)…"></textarea>
+      <div class="row"><select id="ss-${esc(t.id)}" class="xw-input">${['جديد','قيد المعالجة','تم الحل'].map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select>
+      <button class="xw-btn primary" onclick="supSave('${esc(t.id)}')">حفظ وإرسال الرد</button></div></div>`).join(''):`<p class="xw-meta" style="text-align:center;padding:20px">${filter==='open'?'لا توجد طلبات مفتوحة 👍':'لا توجد طلبات بعد.'}</p>`;
+  }
+  window.supSave=async function(id){
+    const reply=document.getElementById('sr-'+id).value.trim(), status=document.getElementById('ss-'+id).value;
+    const r=await adminCall('supportUpdate',{id,status,reply}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الحفظ',true); return; }
+    showToast(reply?'أُرسل الرد للموظفة ✓':'حُدّثت الحالة ✓'); await loadTickets(); supRender();
+  };
+  if(typeof adminLoad==='function'){ const a=adminLoad; adminLoad=async function(){ const r=await a.apply(this,arguments); try{ if(v12()&&adminState.code) loadTickets(); }catch(e){} return r; }; }
+  // ---- staff side: my tickets inside the support dialog ----
+  async function myTickets(){
+    const box=document.getElementById('sp-mine'); if(!box||!v12()) return;
+    try{ const r=await api('mySupport',{}); const it=(r&&r.items)||[];
+      box.innerHTML=it.length?`<label class="ml-lbl">طلباتي السابقة</label>`+it.slice(0,10).map(t=>`<div class="sup-item ${stCls(t.status)==='d'?'done':stCls(t.status)==='p'?'prog':''}"><div class="h"><span>${esc(t.kind)} · رقم ${esc(t.id)}</span><span><span class="sup-st ${stCls(t.status)}">${esc(t.status)}</span> ${esc(t.t)}</span></div><div class="b">${esc(t.text)}</div>${t.reply?`<div class="xw-meta">رد المسؤولة: ${esc(t.reply)}</div>`:''}</div>`).join(''):'';
+    }catch(e){}
+  }
+  const sb=document.getElementById('support-btn');
+  document.addEventListener('click',e=>{ if(e.target&&e.target.id==='support-btn') setTimeout(myTickets,50); });
+  if(typeof sendSupport==='function'){ const o=sendSupport; window.sendSupport=async function(){ const r=await o.apply(this,arguments); myTickets(); return r; }; }
+  // ---- staff phones + WhatsApp templates in «الهيئة التعليمية» ----
+  let contacts={};
+  const key=n=>(typeof normalizeStaffName==='function'?normalizeStaffName(n):String(n||'').trim());
+  async function loadContacts(){
+    try{ await scriptReady; }catch(e){}
+    if(!v12()||typeof staffSession==='undefined'||!staffSession) return;
+    try{ const r=await api('staffContacts',{}); if(r&&r.ok){ contacts={}; (r.items||[]).forEach(c=>{ contacts[key(c.name)]=c; }); } }catch(e){}
+  }
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); setTimeout(loadContacts,800); return r; }; }
+  setTimeout(loadContacts,2000);
+  const _render=renderStaffDirectoryList;
+  renderStaffDirectoryList=function(q){
+    const r=_render.apply(this,arguments);
+    const body=document.getElementById('staff-list-body'); if(!body) return r;
+    body.querySelectorAll('div.flex.items-center.justify-between').forEach(row=>{
+      const nm=(row.querySelector('span')||{}).textContent||''; const c=contacts[key(nm)];
+      if(c&&!row.querySelector('.swa-btn')){ const b=document.createElement('button'); b.type='button'; b.className='swa-btn'; b.textContent='💬 واتساب'; b.title='مراسلة '+nm; b.onclick=()=>openStaffWa(c); row.appendChild(b); }
+    });
+    return r;
+  };
+  if(typeof window.openStaffList==='function'){}
+  let waTarget=null;
+  const sender=()=>{ const n=(loggedInStaff&&loggedInStaff.name)||''; const t=roleLbl(currentStaffRole); return n?`${n} — ${t}`:t; };
+  const first=n=>String(n||'').split(' ')[0];
+  const TPLS=[
+    ['📅 تذكير باجتماع', c=>`السلام عليكم ورحمة الله وبركاته، الأستاذة/ ${first(c.name)} المحترمة،\n\nنذكّركم بالاجتماع يوم (......) الساعة (......) في (......)، ونأمل حضوركم.\n\nمع خالص الشكر والتقدير،\n${sender()}`],
+    ['📢 تعميم إداري', c=>`السلام عليكم ورحمة الله وبركاته، الأستاذة/ ${first(c.name)} المحترمة،\n\nنحيطكم علماً بـ: (......)\nنرجو الاطلاع والعمل بموجبه.\n\nشاكرين تعاونكم،\n${sender()}`],
+    ['📝 طلب تسليم', c=>`السلام عليكم ورحمة الله وبركاته، الأستاذة/ ${first(c.name)} المحترمة،\n\nنرجو التكرم بتسليم (الخطة / كشف الدرجات / ......)${c.subject?` لمادة ${c.subject}`:''} في موعد أقصاه (......).\n\nشاكرين حسن تعاونكم،\n${sender()}`],
+    ['🕒 مناوبة / إشراف', c=>`السلام عليكم ورحمة الله وبركاته، الأستاذة/ ${first(c.name)} المحترمة،\n\nنذكّركم بأن مناوبتكم/إشرافكم يوم (......) في (......) من الساعة (......).\n\nشاكرين جهودكم،\n${sender()}`],
+    ['🌟 شكر وتقدير', c=>`السلام عليكم ورحمة الله وبركاته، الأستاذة/ ${first(c.name)} المحترمة،\n\nنتقدم لكم بخالص الشكر والتقدير على جهودكم المتميزة في (......)، متمنين لكم دوام التوفيق والعطاء.\n\n${sender()}`],
+    ['✏️ رسالة فارغة', c=>`السلام عليكم ورحمة الله وبركاته، الأستاذة/ ${first(c.name)} المحترمة،\n\n\n\n${sender()}`]
+  ];
+  window.openStaffWa=function(c){
+    waTarget=c; const d=document.getElementById('staffwa-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    document.getElementById('swa-sub').textContent=`إلى: ${c.name}${c.subject?' — معلمة '+c.subject:(c.job?' — '+c.job:'')}`;
+    document.getElementById('swa-tpls').innerHTML=TPLS.map((t,i)=>`<button type="button" class="xw-btn" onclick="staffWaTpl(${i})">${t[0]}</button>`).join('');
+    staffWaTpl(0); openDialog('staffwa-dialog');
+  };
+  window.staffWaTpl=i=>{ document.getElementById('swa-text').value=TPLS[i][1](waTarget); };
+  window.staffWaSend=function(mode){
+    if(!waTarget) return; const t=document.getElementById('swa-text').value.trim(); if(!t){ showToast('اكتبي نص الرسالة',true); return; }
+    const ph=String(waTarget.phone).replace(/\D/g,''); const enc=encodeURIComponent(t);
+    window.open(mode==='web'?`https://web.whatsapp.com/send?phone=${ph}&text=${enc}`:`https://api.whatsapp.com/send?phone=${ph}&text=${enc}`,'_blank');
+    closeDialog('staffwa-dialog');
+  };
 })();
 </script>
 </body>
