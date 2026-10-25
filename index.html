@@ -8343,5 +8343,47 @@ body.has-login-pill{padding-bottom:0 !important}
   };
 })();
 </script>
+<script>
+/* حفظ تعديلات أرقام الطالبات لكل صف بحيث لا تضيع عند إعادة استيراد قائمة الصف */
+(function(){
+  var KEY='kn_student_edits';
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ return {}; } }
+  function store(o){ try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){} }
+  function nk(n){ return String(n||'').replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim(); }
+  function cls(){ try{ return localStorage.getItem('school_active_class_name') || (document.getElementById('active-class-display')||{}).textContent || ''; }catch(e){ return ''; } }
+  function applyEdits(){
+    var c=String(cls()).trim(), all=load(), map=all[c]; if(!map) return 0;
+    var n=0;
+    students.forEach(function(s){ var o=map[nk(s.name)]; if(o && o.phone && s.phone!==o.phone){ s.phone=o.phone; n++; } });
+    if(n){ saveStudentsToStorage(); }
+    return n;
+  }
+  window.knApplyStudentEdits=applyEdits;
+  var origSave=saveEditedPhone;
+  saveEditedPhone=function(){
+    var id=editingStudentId, before=(students.find(function(s){return s.id===id;})||{}).phone;
+    var r=origSave.apply(this, arguments);
+    var st=students.find(function(s){return s.id===id;});
+    if(st && st.phone && st.phone!==before){
+      var c=String(cls()).trim(), all=load(); all[c]=all[c]||{};
+      all[c][nk(st.name)]={phone:st.phone, ts:Date.now()}; store(all);
+    }
+    return r;
+  };
+  window.saveEditedPhone=saveEditedPhone;
+  var origImp=importFromGoogleDrive;
+  importFromGoogleDrive=async function(){
+    var r=await origImp.apply(this, arguments);
+    try{
+      if(applyEdits()){
+        renderStudentsList(document.getElementById('search-input') ? document.getElementById('search-input').value : '');
+        updateStats();
+      }
+    }catch(e){ console.warn(e); }
+    return r;
+  };
+  window.importFromGoogleDrive=importFromGoogleDrive;
+})();
+</script>
 </body>
 </html>
