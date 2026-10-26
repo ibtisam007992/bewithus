@@ -554,7 +554,8 @@
                 <!-- Leadership tools (principal / vice principal) -->
                 <div class="v5-lead xw-chips" style="display:none;margin:0">
                     <button class="xw-btn primary" onclick="openLeaderDashboard(false)">📊 لوحة القيادة</button>
-                    <button class="xw-btn" onclick="openAnnouncements()">📢 تعاميم المدرسة</button>
+                    <button class="xw-btn" onclick="openAnnouncements()">📢 تعاميم أولياء الأمور</button>
+                    <button class="xw-btn" id="circ-btn" style="display:none" onclick="openStaffCirculars()">📜 تعاميم الهيئة</button>
                     <button class="xw-btn" onclick="openEarlyWarning()">⚠ الإنذار المبكر</button>
                     <button class="xw-btn" onclick="openBuses()">🚌 الحافلات</button>
                 </div>
@@ -892,6 +893,19 @@
                                 <button onclick="applyTemplate('nurse_medical_file')" class="text-xs bg-slate-200 hover:bg-slate-300 text-indigo-700 p-2.5 rounded-xl border border-indigo-500/40 flex flex-col items-center gap-1.5 transition"><span>تحديث الملف الصحي</span></button>
                                 <button onclick="applyTemplate('nurse_medication')" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-800 p-2.5 rounded-xl border border-amber-500/40 flex flex-col items-center gap-1.5 transition"><span>دواء الطالبة في المدرسة</span></button>
                             </div>
+                        </div>
+
+                        <!-- Social worker / psychologist case templates (drop-down) -->
+                        <div class="mb-4 hidden" id="sp-case-wrap">
+                            <label for="sp-case-select" class="block text-xs font-semibold text-slate-700 mb-2">نماذج الأخصائية (دراسة الحالة والمتابعة):</label>
+                            <select id="sp-case-select" onchange="if(this.value) applyTemplate(this.value)" class="w-full bg-white border border-violet-400/60 rounded-xl p-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-violet-600">
+                                <option value="">— اختاري النموذج —</option>
+                                <option value="sp_case_absence">دراسة حالة - غياب طالبة</option>
+                                <option value="sp_case_late">دراسة حالة - تأخر عن الطابور</option>
+                                <option value="sp_case_behavior">دراسة حالة سلوكية</option>
+                                <option value="sp_parent_notice">إشعار ولي الأمر</option>
+                                <option value="sp_praise">ثناء وتكريم</option>
+                            </select>
                         </div>
 
                         <!-- Systems Specialist Template Buttons (absence / tardiness / early-leave) -->
@@ -3051,8 +3065,8 @@
                     // and (per the user's request) the social worker and
                     // psychologist too, since absence/tardiness/early-leave
                     // follow-up is part of their duties as well.
-                    if (value === 'systems_specialist' || value === 'social_worker' || value === 'psychologist') systemsGrid.classList.remove('hidden');
-                    else systemsGrid.classList.add('hidden');
+                    // حُذف قسم نماذج غياب - تأخر - استئذان بطلب الإدارة؛ حلّت محله قائمة الأخصائيات.
+                    systemsGrid.classList.add('hidden');
                 }
                 if (selectedStudent) applyTemplate(value);
                 if (selectedStudent) updateSystemsCaseTracking();
@@ -8383,6 +8397,244 @@ body.has-login-pill{padding-bottom:0 !important}
     return r;
   };
   window.importFromGoogleDrive=importFromGoogleDrive;
+})();
+</script>
+<script>
+/* نماذج الأخصائية الاجتماعية والنفسية (قائمة منسدلة) */
+(function(){
+  const SP={sp_case_absence:'دراسة حالة - غياب طالبة',sp_case_late:'دراسة حالة - تأخر عن الطابور',sp_case_behavior:'دراسة حالة سلوكية',sp_parent_notice:'إشعار ولي الأمر',sp_praise:'ثناء وتكريم'};
+  try{ Object.assign(TEMPLATE_TYPE_LABELS,SP); }catch(e){}
+  const isSp=r=>r==='social_worker'||r==='psychologist';
+  function title(){ return String(STAFF_ROLE_SIGNATURES[currentStaffRole]||'الأخصائية الاجتماعية').split(':')[0].trim(); }
+  const g0=generateMessageText;
+  generateMessageText=function(type,student){
+    if(!SP[type]) return g0.apply(this,arguments);
+    const name=student?student.name:'(اسم الطالبة)', t=title(), hi=`السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\n`;
+    const visit=`نرجو التكرم بالحضور إلى المدرسة يوم (......) الموافق (..../..../........) الساعة (......) لمقابلة ${t}، أو التواصل معنا لتحديد موعد يناسبكم.`;
+    const conf='علماً بأن جميع المعلومات تُعامل بسرية تامة، وهدفنا مصلحة ابنتكم واستقرارها.';
+    switch(type){
+      case 'sp_case_absence': return hi+`تتواصل معكم ${t} بمدرسة خولة بنت حكيم (9-12) بشأن تكرار غياب ابنتكم عن المدرسة، وقد بدأنا دراسة حالتها للتعرف على أسباب الغياب ومساعدتها على الانتظام في الدوام.\n\n${visit} ${conf} 🤝`;
+      case 'sp_case_late': return hi+`تتواصل معكم ${t} بمدرسة خولة بنت حكيم (9-12) بشأن تكرار تأخر ابنتكم عن الطابور الصباحي (بعد الساعة 7:15)، وقد بدأنا دراسة حالتها للتعرف على أسباب التأخر والعمل معكم على معالجتها.\n\n${visit} ${conf} ⏰`;
+      case 'sp_case_behavior': return hi+`تتواصل معكم ${t} بمدرسة خولة بنت حكيم (9-12) بشأن ملاحظات سلوكية تخص ابنتكم تستدعي المتابعة المشتركة بين البيت والمدرسة، وقد بدأنا دراسة حالتها لمساعدتها على تعديل السلوك بأسلوب تربوي داعم.\n\n${visit} ${conf} 💙`;
+      case 'sp_parent_notice': return hi+`تحيطكم ${t} بمدرسة خولة بنت حكيم (9-12) علماً بـ (......................) فيما يخص ابنتكم.\n\nنأمل منكم التكرم بالاطلاع والتعاون معنا، ويسعدنا تواصلكم لأي استفسار. شاكرين لكم حسن تعاونكم. 📩`;
+      case 'sp_praise': return hi+`يسر ${t} بمدرسة خولة بنت حكيم (9-12) أن تتقدم لكم بخالص الشكر والتقدير على ما تتحلى به ابنتكم من (سلوك متميز / التزام وانضباط / مبادرة وتعاون)، وقد تم تكريمها تقديراً لذلك.\n\nنفخر بها ونتمنى لها دوام التميز والنجاح، ونثمّن دوركم الكبير في تربيتها. 🌟🏅`;
+    }
+  };
+  if(typeof resolveStaffSignature==='function'){ const r0=resolveStaffSignature; resolveStaffSignature=function(type){ if(SP[type]) return STAFF_ROLE_SIGNATURES[currentStaffRole]||''; return r0.apply(this,arguments); }; }
+  function vis(r){ const w=document.getElementById('sp-case-wrap'); if(w) w.classList.toggle('hidden',!isSp(r)); const s=document.getElementById('sp-case-select'); if(s) s.value=''; }
+  const c0=changeStaffRole; changeStaffRole=function(v){ const r=c0.apply(this,arguments); vis(v); return r; };
+  try{ vis(currentStaffRole); }catch(e){}
+})();
+</script>
+<div id="circ-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="circ-title">
+  <div class="xw-panel" style="max-width:680px">
+    <div class="xw-head"><div><h3 id="circ-title">📜 تعاميم الهيئة التدريسية والإدارية</h3><div class="xw-sub">يصل التعميم إلى «📨 الرسائل» لدى كل موظفة من الفئات المختارة، وتظهر لكِ أعداد من قرأته.</div></div>
+      <button class="xw-x" onclick="closeDialog('circ-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body">
+      <div class="xw-chips" style="margin-bottom:10px"><button type="button" class="xw-btn primary" id="circ-tab-new" onclick="circTab('new')">تعميم جديد</button><button type="button" class="xw-btn" id="circ-tab-old" onclick="circTab('old')">التعاميم السابقة</button></div>
+      <div id="circ-new">
+        <label class="ml-lbl">موجّه إلى</label>
+        <div class="circ-aud">
+          <label><input type="checkbox" value="t" checked> المعلمات</label>
+          <label><input type="checkbox" value="a"> الإدارة</label>
+          <label><input type="checkbox" value="s"> الأخصائيات</label>
+        </div>
+        <p class="xw-meta" style="margin:4px 0 0">الإدارة: مساعدة المديرة، المنسقة، أخصائية الأنظمة · الأخصائيات: الاجتماعية، النفسية، التوجيه المهني، الممرضة.</p>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <div style="width:120px"><label class="ml-lbl" for="circ-no">رقم التعميم</label><input id="circ-no" class="xw-input" style="width:100%" inputmode="numeric"></div>
+          <div style="flex:1;min-width:200px"><label class="ml-lbl" for="circ-subj">الموضوع</label><input id="circ-subj" class="xw-input" style="width:100%" placeholder="مثال: اجتماع الهيئة التدريسية"></div>
+        </div>
+        <label class="ml-lbl" for="circ-tpl" style="margin-top:10px">نموذج جاهز (اختياري)</label>
+        <select id="circ-tpl" class="xw-input" style="width:100%" onchange="circUseTpl(this.value)">
+          <option value="">— بدون —</option><option value="meet">دعوة لاجتماع</option><option value="duty">تذكير بالمناوبة والإشراف</option><option value="tasks">تسليم أعمال / سجلات</option><option value="min">تعميم وزاري</option><option value="thanks">شكر وتقدير</option>
+        </select>
+        <label class="ml-lbl" for="circ-text" style="margin-top:10px">نص التعميم</label>
+        <textarea id="circ-text" rows="7" class="xw-input" style="width:100%;resize:vertical"></textarea>
+        <button type="button" class="xw-btn primary" id="circ-send" style="margin-top:10px;width:100%" onclick="circSend()">إرسال التعميم</button>
+      </div>
+      <div id="circ-old" style="display:none"></div>
+    </div>
+  </div>
+</div>
+<style>
+.circ-aud{display:flex;gap:8px;flex-wrap:wrap}.circ-aud label{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;font-weight:700;font-size:14px;cursor:pointer}
+.circ-aud input{width:18px;height:18px}.circ-item{border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}.circ-item .h{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#475569;margin-bottom:6px;flex-wrap:wrap}.circ-item .b{white-space:pre-wrap;font-size:13px;color:#0f172a}
+</style>
+<script>
+/* تعاميم المديرة الموجهة للمعلمات والإدارة والأخصائيات (عبر المراسلات الداخلية) */
+(function(){
+  const AUD={t:{l:'المعلمات',r:['subject_teacher','homeroom_teacher']},a:{l:'الإدارة',r:['vice_principal','coordinator','systems_specialist']},s:{l:'الأخصائيات',r:['social_worker','psychologist','career_counselor','nurse']}};
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const TPL={
+    meet:['اجتماع','نأمل منكن التكرم بحضور الاجتماع المقرر عقده يوم (......) الموافق (..../..../........) الساعة (......) في (......)، لمناقشة (......).\n\nنرجو الالتزام بالموعد.'],
+    duty:['المناوبة والإشراف اليومي','نذكّركن بالالتزام بجدول المناوبة والإشراف اليومي (الطابور الصباحي – الفسحة – نهاية الدوام) حسب الجدول المعتمد، والتواجد في المواقع المحددة في الوقت المحدد، حرصاً على سلامة الطالبات وانضباط اليوم الدراسي.'],
+    tasks:['تسليم الأعمال والسجلات','نأمل التكرم بتسليم (......) في موعد أقصاه يوم (......) الموافق (..../..../........)، وذلك إلى (......).\n\nشاكرين لكن تعاونكن والتزامكن.'],
+    min:['تعميم وزاري','إشارة إلى تعميم وزارة التعليم رقم (......) بتاريخ (..../..../........) بشأن (......)، نأمل منكن الاطلاع عليه والعمل بما ورد فيه، ومراجعة الإدارة لأي استفسار.'],
+    thanks:['شكر وتقدير','تتقدم إدارة المدرسة بخالص الشكر والتقدير على جهودكن المخلصة في (......)، والتي كان لها الأثر الطيب في نجاح (......).\n\nبارك الله في جهودكن ودمتن ذخراً للمدرسة.']
+  };
+  const isPrin=()=>{ try{ return (loggedInStaff&&loggedInStaff.role==='principal')||(typeof staffSession!=='undefined'&&staffSession&&staffSession.mode==='master'&&currentStaffRole==='principal'); }catch(e){ return false; } };
+  function show(){ const b=document.getElementById('circ-btn'); if(b) b.style.display=isPrin()?'':'none'; }
+  const NK='kn_circ_no';
+  function nextNo(){ let n=0; try{ n=parseInt(localStorage.getItem(NK)||'0',10)||0; }catch(e){} return n+1; }
+  window.circUseTpl=function(k){ if(!TPL[k]) return; const s=document.getElementById('circ-subj'); if(!s.value.trim()) s.value=TPL[k][0]; document.getElementById('circ-text').value=TPL[k][1]; };
+  window.circTab=function(t){ document.getElementById('circ-new').style.display=t==='new'?'':'none'; document.getElementById('circ-old').style.display=t==='old'?'':'none'; document.getElementById('circ-tab-new').classList.toggle('primary',t==='new'); document.getElementById('circ-tab-old').classList.toggle('primary',t==='old'); if(t==='old') loadOld(); };
+  async function loadOld(){
+    const box=document.getElementById('circ-old'); box.innerHTML='<p class="xw-meta">جاري التحميل…</p>';
+    try{ const r=await api('inbox',{}); const rows=((r&&r.ok&&r.items)||[]).filter(i=>i.box!=='in'&&/^تعميم/.test(i.to||''));
+      box.innerHTML=rows.length?rows.map(i=>`<div class="circ-item"><div class="h"><b>${esc(i.to)}</b><span>${esc(i.t)}${i.readCount?` — قرأته ${i.readCount}`:''}</span></div><div class="b">${esc(i.text)}</div></div>`).join(''):'<p class="xw-meta" style="text-align:center;padding:16px">لم تُرسَل تعاميم بعد.</p>';
+    }catch(e){ box.innerHTML='<p class="xw-meta">تعذر التحميل</p>'; }
+  }
+  window.circSend=async function(){
+    const keys=[...document.querySelectorAll('.circ-aud input:checked')].map(i=>i.value);
+    if(!keys.length){ showToast('اختاري فئة واحدة على الأقل',true); return; }
+    const no=document.getElementById('circ-no').value.trim(), subj=document.getElementById('circ-subj').value.trim(), body=document.getElementById('circ-text').value.trim();
+    if(!subj||!body){ showToast('اكتبي الموضوع ونص التعميم',true); return; }
+    const roles=[].concat(...keys.map(k=>AUD[k].r)), aud=keys.map(k=>AUD[k].l).join('، ');
+    const yr=new Date().getFullYear();
+    const text=`📜 تعميم رقم (${no||'—'}) لعام ${yr}م\nإلى: الفاضلات ${aud}\nالموضوع: ${subj}\n\nالسلام عليكم ورحمة الله وبركاته،\n\n${body}\n\nوتفضلن بقبول فائق الاحترام والتقدير،\n${STAFF_ROLE_SIGNATURES.principal||'مديرة المدرسة'}`;
+    if(!confirm(`سيُرسل التعميم إلى: ${aud}. متابعة؟`)) return;
+    const btn=document.getElementById('circ-send'); btn.disabled=true; btn.textContent='جاري الإرسال…';
+    try{ const r=await api('sendInternal',{roles,text,label:`تعميم رقم ${no||'—'}: ${subj} (إلى ${aud})`.slice(0,200)});
+      if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الإرسال',true); return; }
+      if(/^\d+$/.test(no)) try{ localStorage.setItem(NK,no); }catch(e){}
+      showToast('أُرسل التعميم ✓'); document.getElementById('circ-text').value=''; document.getElementById('circ-subj').value=''; document.getElementById('circ-tpl').value='';
+      document.getElementById('circ-no').value=nextNo(); circTab('old');
+    }catch(e){ showToast('تعذر الاتصال',true); } finally{ btn.disabled=false; btn.textContent='إرسال التعميم'; }
+  };
+  window.openStaffCirculars=function(){
+    if(typeof scriptV==='undefined'||scriptV<8){ showToast('التعاميم تحتاج السكربت الإصدار 8 أو أحدث',true); return; }
+    const d=document.getElementById('circ-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    document.getElementById('circ-no').value=nextNo(); circTab('new'); openDialog('circ-dialog');
+  };
+  const c0=changeStaffRole; changeStaffRole=function(){ const r=c0.apply(this,arguments); show(); return r; };
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); show(); return r; }; }
+  if(typeof logoutStaff==='function'){ const l=logoutStaff; logoutStaff=function(){ const r=l.apply(this,arguments); show(); return r; }; }
+  setTimeout(show,1500);
+})();
+</script>
+<div id="kn-icons" aria-label="أدوات سريعة">
+  <button type="button" id="kn-bell" class="kn-ic" onclick="knBell()" aria-label="التنبيهات: الرسائل والتعاميم" title="التنبيهات"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="kn-bell-n" class="kn-n"></span></button>
+  <button type="button" id="kn-report" class="kn-ic" onclick="knReport()" aria-label="إبلاغ عن مشكلة" title="إبلاغ عن مشكلة"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></button>
+  <button type="button" id="kn-help" class="kn-ic" onclick="knTour(true)" aria-label="جولة تعريفية بالصفحة" title="جولة تعريفية"><span style="font-size:22px;font-weight:800;color:#0d9488;line-height:1">؟</span></button>
+  <div id="kn-bell-panel" role="dialog" aria-label="التنبيهات"></div>
+</div>
+<div id="kn-tour-hole"></div>
+<div id="kn-tour-card" role="dialog" aria-live="polite"></div>
+<style>
+#kn-icons{position:fixed;top:12px;left:12px;z-index:46;display:none;gap:10px;direction:rtl}
+#kn-icons .kn-ic{position:relative;width:46px;height:46px;border-radius:14px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(15,23,42,.08)}
+#kn-icons .kn-ic:hover{background:#fff;border-color:#0d9488}
+#kn-icons .kn-ic:focus-visible{outline:3px solid #0d9488;outline-offset:2px}
+.kn-n{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 5px;border-radius:999px;background:#dc2626;color:#fff;font-size:12px;font-weight:800;display:none;align-items:center;justify-content:center;border:2px solid #fff}
+.kn-n.on{display:flex}
+#kn-bell.ring svg{animation:knring .9s ease 2}
+@keyframes knring{0%,100%{transform:rotate(0)}20%{transform:rotate(14deg)}40%{transform:rotate(-12deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-4deg)}}
+@media (prefers-reduced-motion:reduce){#kn-bell.ring svg{animation:none}}
+#kn-bell-panel{display:none;position:absolute;top:56px;left:0;width:min(360px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 12px 32px rgba(15,23,42,.18);padding:10px}
+#kn-bell-panel.open{display:block}
+#kn-bell-panel h4{margin:2px 4px 8px;font-size:14px;font-weight:800;color:#0f172a}
+.kn-it{display:block;width:100%;text-align:right;border:1px solid #f1f5f9;background:#f8fafc;border-radius:12px;padding:9px 10px;margin-bottom:6px;cursor:pointer;font-family:inherit}
+.kn-it:hover{border-color:#0d9488;background:#fff}
+.kn-it .k{font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;margin-left:6px}
+.kn-it .k.c{background:#ede9fe;color:#5b21b6}.kn-it .k.m{background:#e0f2fe;color:#075985}
+.kn-it .f{font-size:12px;color:#475569}.kn-it .x{font-size:13px;color:#0f172a;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kn-all{width:100%;border:0;background:#0d9488;color:#fff;border-radius:12px;padding:9px;font-weight:800;cursor:pointer;font-family:inherit}
+body:has([id$="-modal"]:not(.hidden)) #kn-icons{display:none !important}
+#kn-tour-hole{display:none;position:fixed;z-index:10050;border-radius:14px;box-shadow:0 0 0 9999px rgba(15,23,42,.62);outline:3px solid #2dd4bf;pointer-events:none;transition:all .25s ease}
+#kn-tour-card{display:none;position:fixed;z-index:10051;width:min(340px,calc(100vw - 24px));background:#fff;border-radius:16px;padding:16px;box-shadow:0 16px 40px rgba(0,0,0,.3);direction:rtl}
+#kn-tour-card h5{margin:0 0 6px;font-size:16px;font-weight:800;color:#0f172a}
+#kn-tour-card p{margin:0;font-size:14px;line-height:1.8;color:#334155}
+#kn-tour-card .nav{display:flex;align-items:center;gap:8px;margin-top:12px}
+#kn-tour-card .nav .c{font-size:12px;color:#64748b;margin-left:auto}
+#kn-tour-card button{border:0;border-radius:10px;padding:7px 14px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px}
+#kn-tour-card .nx{background:#0d9488;color:#fff}#kn-tour-card .pv{background:#f1f5f9;color:#334155}#kn-tour-card .sk{background:transparent;color:#be123c}
+@media (prefers-reduced-motion:reduce){#kn-tour-hole{transition:none}}
+@media (max-width:640px){#login-user-pill{max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:thin}}
+</style>
+<script>
+/* شريط الأدوات السريعة: جرس التنبيهات (رسائل وتعاميم) + إبلاغ عن مشكلة + جولة تعريفية */
+(function(){
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const logged=()=>{ try{ return !!loggedInStaff; }catch(e){ return false; } };
+  const v8=()=>typeof scriptV!=='undefined'&&scriptV>=8&&typeof staffSession!=='undefined'&&!!staffSession;
+  let last=0;
+  function setN(n){ const e=document.getElementById('kn-bell-n'); if(!e) return; n=+n||0; e.textContent=n>99?'99+':String(n); e.classList.toggle('on',n>0);
+    if(n>last){ const b=document.getElementById('kn-bell'); b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } last=n; }
+  // يتبع عدّاد «📨 الرسائل» الموجود فيتحدّث الجرس تلقائياً كل دقيقة
+  function watch(){ const src=document.getElementById('ml-badge'); if(!src){ setTimeout(watch,1500); return; }
+    setN(parseInt(src.textContent,10)||0); new MutationObserver(()=>setN(parseInt(src.textContent,10)||0)).observe(src,{childList:true,characterData:true,subtree:true}); }
+  function show(){ const bar=document.getElementById('kn-icons'); if(bar) bar.style.display=logged()?'flex':'none'; if(!logged()) closePanel(); }
+  function closePanel(){ const p=document.getElementById('kn-bell-panel'); if(p) p.classList.remove('open'); }
+  window.knBell=async function(){
+    const p=document.getElementById('kn-bell-panel');
+    if(p.classList.contains('open')){ closePanel(); return; }
+    p.classList.add('open');
+    if(!v8()){ p.innerHTML='<h4>🔔 التنبيهات</h4><p class="xw-meta">تظهر هنا الرسائل والتعاميم الجديدة بعد تسجيل الدخول بحسابكِ.</p>'; return; }
+    p.innerHTML='<h4>🔔 التنبيهات</h4><p class="xw-meta">جاري التحميل…</p>';
+    let items=[]; try{ const r=await api('inbox',{}); items=((r&&r.ok&&r.items)||[]).filter(i=>i.box==='in'); }catch(e){}
+    const unread=items.filter(i=>!i.read), list=(unread.length?unread:items).slice(0,8);
+    p.innerHTML=`<h4>🔔 ${unread.length?`لديكِ ${unread.length} ${unread.length===1?'تنبيه جديد':'تنبيهات جديدة'}`:'لا توجد تنبيهات جديدة'}</h4>`+
+      (list.length?list.map(i=>{ const c=/^📜\s*تعميم/.test(i.text||''); return `<button type="button" class="kn-it" onclick="knOpenMail()"><span class="k ${c?'c':'m'}">${c?'تعميم':'رسالة'}</span><span class="f">من: <b>${esc(i.from)}</b> — ${esc(i.t)}${i.read?'':' • جديد'}</span><div class="x">${esc(i.text)}</div></button>`; }).join(''):'<p class="xw-meta" style="padding:6px 4px">ستظهر هنا الرسائل والتعاميم فور وصولها.</p>')+
+      '<button type="button" class="kn-all" onclick="knOpenMail()">فتح كل الرسائل والتعاميم</button>';
+  };
+  window.knOpenMail=function(){ closePanel(); if(typeof openStaffMail==='function') openStaffMail(); };
+  window.knReport=function(){ closePanel(); const b=document.getElementById('support-btn'); if(b&&b.style.display!=='none') b.click(); else showToast('الإبلاغ عن مشكلة يحتاج تسجيل الدخول بحسابكِ (السكربت الإصدار 9 أو أحدث)',true); };
+  document.addEventListener('click',e=>{ const bar=document.getElementById('kn-icons'); if(bar&&!bar.contains(e.target)) closePanel(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePanel(); if(tourOn) endTour(); } });
+
+  // ---------- الجولة التعريفية ----------
+  const isRole=(...r)=>{ try{ return r.includes(currentStaffRole); }catch(e){ return false; } };
+  const STEPS=[
+    {s:'#kn-bell',t:'🔔 جرس التنبيهات',d:'يظهر عليه رقم أحمر عند وصول رسالة من زميلة أو تعميم من الإدارة. اضغطيه لعرض أحدث التنبيهات وفتحها.'},
+    {s:'#kn-report',t:'⚠ إبلاغ عن مشكلة',d:'إذا واجهتِ خطأ أو احتجتِ مساعدة، اضغطي هنا واكتبي وصف المشكلة؛ يصل طلبكِ لمسؤولة المنصة ويصلكِ ردّها في الرسائل.'},
+    {s:'#kn-help',t:'؟ الجولة التعريفية',d:'يمكنكِ إعادة هذه الجولة في أي وقت من هذا الزر.'},
+    {s:'.v5-lead',t:'أدوات القيادة',d:'لوحة القيادة، وتعاميم أولياء الأمور، والإنذار المبكر، والحافلات.',when:()=>isRole('principal','vice_principal')},
+    {s:'#circ-btn',t:'📜 تعاميم الهيئة',d:'اكتبي تعميماً موجهاً للمعلمات أو الإدارة أو الأخصائيات، فيصل لكل واحدة منهن في الرسائل مع جرس تنبيه، وتتابعين عدد من قرأته.'},
+    {s:'button[onclick="openDriveImportModal()"]',t:'استيراد الصف',d:'اختاري الصف لتحميل قائمة طالباته وأرقام أولياء أمورهن.'},
+    {s:'#search-input',t:'البحث عن طالبة',d:'اكتبي جزءاً من اسم الطالبة أو رقم ولي الأمر للوصول إليها بسرعة.'},
+    {s:'#students-list-container',t:'قائمة طالبات الصف',d:'اضغطي على اسم الطالبة لاختيارها. زر ✏️ لتعديل رقم ولي الأمر (يُحفظ ولا يضيع عند إعادة الاستيراد)، ومربع الاختيار للإرسال الجماعي.'},
+    {s:'#sp-case-wrap',t:'نماذج الأخصائية',d:'اختاري من القائمة: دراسة حالة (غياب، تأخر عن الطابور، سلوكية)، أو إشعار ولي الأمر، أو ثناء وتكريم.'},
+    {s:'#nurse-grid-wrap',t:'نماذج الممرضة',d:'نماذج جاهزة للتواصل الصحي مع ولي الأمر.'},
+    {s:'#subject-templates-grid-wrap',t:'نماذج الرسائل',d:'اختاري النموذج المناسب فيُكتب النص تلقائياً باسم الطالبة.'},
+    {s:'#staff-templates-grid-wrap',t:'نماذج الرسائل',d:'اختاري النموذج المناسب لدوركِ فيُكتب النص تلقائياً باسم الطالبة.'},
+    {s:'#my-tpl-bar',t:'قوالبي',d:'احفظي نصوصكِ المتكررة كقوالب خاصة بكِ، وتظهر لكِ على أي جهاز.'},
+    {s:'#whatsapp-text',t:'نص الرسالة',d:'راجعي النص وعدّليه إن رغبتِ قبل الإرسال؛ يُضاف توقيعكِ ورابط ردّ ولي الأمر تلقائياً.'},
+    {s:'#btn-send-wa-web',t:'الإرسال عبر واتساب',d:'أرسلي الرسالة عبر واتساب ويب أو التطبيق، وتُحفظ في أرشيفكِ الخاص.'},
+    {s:'button[onclick="openArchiveModal()"]',t:'أرشيف الرسائل',d:'سجل بكل ما أرسلتِه لأولياء الأمور، مع ردودهم.'},
+    {s:'#mail-btn',t:'📨 الرسائل',d:'المراسلات الداخلية بين الموظفات، وفيها تصلكِ التعاميم وردود الدعم الفني.'},
+    {s:'#login-user-pill',t:'حسابكِ',d:'اسمكِ ودوركِ، وتغيير كلمة المرور، وتسجيل الخروج.'}
+  ];
+  let tourOn=false, idx=0, steps=[];
+  const visible=el=>{ if(!el) return false; const r=el.getBoundingClientRect(); return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=='hidden'; };
+  function place(){
+    const st=steps[idx], el=document.querySelector(st.s), hole=document.getElementById('kn-tour-hole'), card=document.getElementById('kn-tour-card');
+    const big=el.getBoundingClientRect().height>window.innerHeight*0.6;
+    { const rr=el.getBoundingClientRect(); const fixed=getComputedStyle(el).position==='fixed'||!!el.closest('#kn-icons,#login-user-pill'); if(!fixed) window.scrollTo({top:Math.max(0,window.scrollY+rr.top-(big?80:(window.innerHeight-rr.height)/2)),left:0,behavior:'auto'}); }
+    const r=el.getBoundingClientRect(), pad=6, top=Math.max(4,r.top-pad), h=Math.min(r.height+pad*2,window.innerHeight-top-4);
+    Object.assign(hole.style,{display:'block',top:top+'px',left:(r.left-pad)+'px',width:(r.width+pad*2)+'px',height:h+'px'});
+    card.innerHTML=`<h5>${st.t}</h5><p>${st.d}</p><div class="nav"><span class="c">${idx+1} من ${steps.length}</span>${idx>0?'<button type="button" class="pv" onclick="knTourGo(-1)">السابق</button>':''}<button type="button" class="nx" onclick="knTourGo(1)">${idx===steps.length-1?'إنهاء':'التالي'}</button><button type="button" class="sk" onclick="knTourEnd()">تخطّي</button></div>`;
+    card.style.display='block';
+    const cw=card.offsetWidth, ch=card.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
+    let y=top+h+12; if(y+ch>vh-8) y=top-ch-12; if(y<8) y=Math.max(8,Math.min(vh-ch-8,top+12));
+    let x=r.left+r.width/2-cw/2; x=Math.max(12,Math.min(vw-cw-12,x));
+    card.style.top=y+'px'; card.style.left=x+'px';
+    const nx=card.querySelector('.nx'); if(nx) nx.focus({preventScroll:true});
+  }
+  window.knTourGo=function(d){ idx+=d; if(idx>=steps.length||idx<0){ endTour(); return; } place(); };
+  function endTour(){ tourOn=false; document.getElementById('kn-tour-hole').style.display='none'; document.getElementById('kn-tour-card').style.display='none'; try{ localStorage.setItem(doneKey(),'1'); }catch(e){} }
+  window.knTourEnd=endTour;
+  const doneKey=()=>'kn_tour_v1_'+((typeof loggedInStaff!=='undefined'&&loggedInStaff&&loggedInStaff.name)||'');
+  window.knTour=function(manual){
+    closePanel();
+    if(document.querySelector('.xw-overlay.open')&&!manual) return;
+    steps=STEPS.filter(st=>(!st.when||st.when())&&visible(document.querySelector(st.s)));
+    if(!steps.length) return; idx=0; tourOn=true; place();
+  };
+  window.addEventListener('resize',()=>{ if(tourOn) place(); });
+  function autoTour(){ if(!logged()) return; let done=false; try{ done=!!localStorage.getItem(doneKey()); }catch(e){ done=true; } if(!done) setTimeout(()=>knTour(false),2600); }
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); show(); autoTour(); return r; }; }
+  if(typeof logoutStaff==='function'){ const l=logoutStaff; logoutStaff=function(){ const r=l.apply(this,arguments); show(); setN(0); if(tourOn) endTour(); return r; }; }
+  setTimeout(()=>{ show(); watch(); },1200);
 })();
 </script>
 </body>
