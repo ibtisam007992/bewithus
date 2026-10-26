@@ -3065,8 +3065,9 @@
                     // and (per the user's request) the social worker and
                     // psychologist too, since absence/tardiness/early-leave
                     // follow-up is part of their duties as well.
-                    // حُذف قسم نماذج غياب - تأخر - استئذان بطلب الإدارة؛ حلّت محله قائمة الأخصائيات.
-                    systemsGrid.classList.add('hidden');
+                    // قسم نماذج غياب - تأخر - استئذان: لأخصائية الأنظمة فقط (حُذف من بقية الأدوار بطلب الإدارة).
+                    if (value === 'systems_specialist') systemsGrid.classList.remove('hidden');
+                    else systemsGrid.classList.add('hidden');
                 }
                 if (selectedStudent) applyTemplate(value);
                 if (selectedStudent) updateSystemsCaseTracking();
@@ -8635,6 +8636,76 @@ body:has([id$="-modal"]:not(.hidden)) #kn-icons{display:none !important}
   if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); show(); autoTour(); return r; }; }
   if(typeof logoutStaff==='function'){ const l=logoutStaff; logoutStaff=function(){ const r=l.apply(this,arguments); show(); setN(0); if(tourOn) endTour(); return r; }; }
   setTimeout(()=>{ show(); watch(); },1200);
+})();
+</script>
+<div id="wa-confirm" role="dialog" aria-live="polite" aria-labelledby="wa-confirm-title"></div>
+<style>
+#wa-confirm{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:60;width:min(520px,calc(100vw - 24px));max-height:60vh;overflow:auto;background:#fff;border:2px solid #f59e0b;border-radius:18px;box-shadow:0 14px 36px rgba(15,23,42,.25);padding:14px 16px;direction:rtl}
+#wa-confirm.on{display:block}
+#wa-confirm h4{margin:0 0 4px;font-size:15px;font-weight:800;color:#0f172a}
+#wa-confirm .sub{font-size:12px;color:#64748b;margin:0 0 10px}
+#wa-confirm .row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f1f5f9;flex-wrap:wrap}
+#wa-confirm .row .who{flex:1;min-width:160px;font-size:13px;color:#0f172a}
+#wa-confirm .row .who small{display:block;color:#64748b;font-size:11px}
+#wa-confirm button{border:0;border-radius:10px;padding:7px 12px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px}
+#wa-confirm .y{background:#059669;color:#fff}#wa-confirm .n{background:#fee2e2;color:#b91c1c}#wa-confirm .r{background:#f1f5f9;color:#0f766e}
+#wa-confirm .all{display:flex;gap:8px;margin-top:8px}
+body:has([id$="-modal"]:not(.hidden)) #wa-confirm{display:none !important}
+</style>
+<script>
+/* لا تُحتسب رسالة واتساب «مُرسلة» إلا بعد أن تؤكد الموظفة أنها أرسلتها فعلاً */
+(function(){
+  const KEY='kn_wa_pending';
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let pending=[]; try{ pending=JSON.parse(localStorage.getItem(KEY)||'[]')||[]; }catch(e){ pending=[]; }
+  const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(pending)); }catch(e){} };
+  function refresh(){
+    const f=[()=>updateStats(),()=>selectedStudent&&renderStudentMessageHistory(selectedStudent),()=>renderStudentsList(document.getElementById('search-input')?document.getElementById('search-input').value:''),()=>updateSystemsCaseTracking(),()=>renderFollowupDueBanner()];
+    f.forEach(fn=>{ try{ fn(); }catch(e){} });
+  }
+  // يشغّل دالة الإرسال الأصلية (التي تفتح واتساب) لكن يؤجّل التسجيل في الأرشيف والعداد والمزامنة
+  function deferred(fn){
+    return function(){
+      const n0=messageArchive.length, c0=sentCount;
+      const b0=backupArchiveEntryToGoogleSheet, r0=registerReplyLink;
+      backupArchiveEntryToGoogleSheet=function(){ return Promise.resolve(); }; registerReplyLink=function(){ return Promise.resolve(); };
+      let res; try{ res=fn.apply(this,arguments); } finally { backupArchiveEntryToGoogleSheet=b0; registerReplyLink=r0; }
+      const added=messageArchive.length-n0;
+      if(added>0){
+        const items=messageArchive.splice(0,added);
+        sentCount=Math.max(0,sentCount-(sentCount-c0)); localStorage.setItem('school_sent_count',sentCount);
+        try{ saveArchiveToStorage(); }catch(e){}
+        items.reverse().forEach(it=>pending.push(it)); save(); refresh(); render();
+      }
+      return res;
+    };
+  }
+  function confirmOne(id){
+    const i=pending.findIndex(p=>String(p.id)===String(id)); if(i<0) return;
+    const it=pending.splice(i,1)[0]; save();
+    messageArchive.unshift(it); sentCount++; localStorage.setItem('school_sent_count',sentCount);
+    try{ saveArchiveToStorage(); }catch(e){}
+    try{ backupArchiveEntryToGoogleSheet(it); }catch(e){} try{ registerReplyLink(it); }catch(e){}
+  }
+  function dropOne(id){ pending=pending.filter(p=>String(p.id)!==String(id)); save(); }
+  window.waConfirm=function(id){ confirmOne(id); refresh(); render(); showToast('تم تسجيل الرسالة كمُرسلة ✓'); };
+  window.waDrop=function(id){ dropOne(id); render(); showToast('لم تُحتسب الرسالة'); };
+  window.waConfirmAll=function(){ pending.slice().forEach(p=>confirmOne(p.id)); refresh(); render(); showToast('تم تسجيل الرسائل كمُرسلة ✓'); };
+  window.waDropAll=function(){ pending=[]; save(); render(); };
+  window.waReopen=function(id){ const p=pending.find(x=>String(x.id)===String(id)); if(!p) return;
+    const u=(p.mode==='web'?'https://web.whatsapp.com/send':'https://api.whatsapp.com/send')+`?phone=${p.phone}&text=${encodeURIComponent(p.message)}`; window.open(u,'_blank'); };
+  function render(){
+    const box=document.getElementById('wa-confirm'); if(!box) return;
+    if(!pending.length){ box.classList.remove('on'); box.innerHTML=''; return; }
+    const lbl=t=>(typeof TEMPLATE_TYPE_LABELS!=='undefined'&&TEMPLATE_TYPE_LABELS[t])||'رسالة';
+    box.innerHTML=`<h4 id="wa-confirm-title">هل أُرسلت ${pending.length>1?'هذه الرسائل':'الرسالة'} فعلاً على واتساب؟</h4><p class="sub">لا تُحتسب الرسالة ولا تُحفظ في الأرشيف إلا بعد تأكيدكِ.</p>`+
+      pending.map(p=>`<div class="row"><div class="who">${esc(p.studentName)}<small>${esc(lbl(p.type))} — ${esc(new Date(p.sentAt).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'}))}</small></div><button type="button" class="y" onclick="waConfirm('${p.id}')">✅ أُرسلت</button><button type="button" class="n" onclick="waDrop('${p.id}')">✖ لم تُرسل</button><button type="button" class="r" onclick="waReopen('${p.id}')" title="فتح المحادثة مرة أخرى">↻ فتح</button></div>`).join('')+
+      (pending.length>1?'<div class="all"><button type="button" class="y" onclick="waConfirmAll()">✅ تأكيد الكل</button><button type="button" class="n" onclick="waDropAll()">✖ لم يُرسل شيء</button></div>':'');
+    box.classList.add('on');
+  }
+  sendWhatsApp=deferred(sendWhatsApp); window.sendWhatsApp=sendWhatsApp;
+  if(typeof openNextBulkMessage==='function'){ openNextBulkMessage=deferred(openNextBulkMessage); window.openNextBulkMessage=openNextBulkMessage; }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render); else render();
 })();
 </script>
 </body>
