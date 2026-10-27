@@ -409,12 +409,12 @@
 
         <!-- TOP BRANDING BANNER (static, official) -->
         <div id="top-banner-wrapper" class="w-full banner-container">
-            <div class="w-full max-w-full flex items-center justify-center relative z-10">
+            <div class="max-w-7xl w-full mx-auto px-4 md:px-6 lg:px-8 pt-3 md:pt-5 pb-3 md:pb-4 relative z-10">
                 <picture style="display:block;width:100%">
-                    <source media="(max-width: 700px)" srcset="banner.webp?v=2">
-                    <img id="top-banner-img" src="banner_wide.webp?v=2" width="3209" height="440" decoding="async" fetchpriority="high"
+                    <source media="(max-width: 700px)" srcset="banner.webp?v=3">
+                    <img id="top-banner-img" src="banner_wide.webp?v=3" width="3209" height="440" decoding="async" fetchpriority="high"
                          alt="سلطنة عُمان - وزارة التعليم - مدرسة خولة بنت حكيم للبنات (9-12) - منصة كُنْ مَعَنا - خُطى خولة"
-                         style="display:block;width:100%;max-width:1500px;height:auto;margin:0 auto;object-fit:contain">
+                         style="display:block;width:100%;height:auto;margin:0 auto">
                 </picture>
             </div>
         </div>
@@ -8839,6 +8839,11 @@ body:not(.dark-mode) #login-user-pill{border-color:rgba(176,141,87,.45) !importa
 #top-banner-wrapper img{transform:none !important;transition:none !important}
 .banner-light-beam,#banner-spotlight-layer{display:none !important}
 .banner-container{animation:none !important;border-bottom:0 !important}
+/* البانر ثلاثي الأبعاد: لوحة بارزة بمحاذاة جوانب محتوى الصفحة */
+#top-banner-wrapper,#top-banner-wrapper > div.relative.z-10{background:transparent !important}
+#top-banner-img{border-radius:18px;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 0 #c9b48a,0 4px 0 #b08d57,0 6px 0 #8c6e3d,0 18px 30px -8px rgba(60,20,25,.30),0 8px 12px -6px rgba(60,20,25,.20)}
+@media (max-width:700px){#top-banner-img{border-radius:14px}}
+#top-banner-wrapper::after{display:none !important}
 /* البطاقة المختارة في قائمة الطالبات: فاتحة وواضحة */
 body:not(.dark-mode) #students-list-container > .bg-cyan-700{background:#fbf5f5 !important;border:2px solid var(--om-maroon) !important;color:var(--om-ink) !important;box-shadow:0 4px 14px rgba(123,30,43,.12) !important}
 body:not(.dark-mode) #students-list-container > .bg-cyan-700 h4{color:var(--om-ink) !important}
