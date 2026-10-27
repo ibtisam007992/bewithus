@@ -407,26 +407,14 @@
 
     <div class="relative z-10 flex flex-col min-h-screen">
 
-        <!-- TOP BRANDING BANNER (Interactive Glowing & Animated Banner) -->
-        <div id="top-banner-wrapper" class="w-full bg-slate-50 banner-container shadow-[0_10px_30px_rgba(0,0,0,0.8)] group cursor-pointer">
-            <!-- Animated Sweeping Beam -->
-            <div class="banner-light-beam"></div>
-            
-            <!-- Mouse Interactive Light Spotlight Overlay -->
-            <div id="banner-spotlight-layer" class="banner-spotlight opacity-80 group-hover:opacity-100"></div>
-            
-            <!-- Glowing Corner Ambient Lights -->
-            <div class="absolute -top-12 -left-12 w-48 h-48 bg-cyan-500/30 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
-            <div class="absolute -bottom-12 -right-12 w-48 h-48 bg-amber-500/30 rounded-full blur-3xl pointer-events-none animate-pulse" style="animation-delay: 2s;"></div>
-
-            <!-- Banner Image with Subtle Interactive Tilt / Zoom Effect -->
-            <div class="w-full max-w-full flex items-center justify-center bg-slate-50 relative z-10">
+        <!-- TOP BRANDING BANNER (static, official) -->
+        <div id="top-banner-wrapper" class="w-full banner-container">
+            <div class="w-full max-w-full flex items-center justify-center relative z-10">
                 <picture style="display:block;width:100%">
-                    <source media="(max-width: 700px)" srcset="banner.webp">
-                    <img id="top-banner-img" src="banner_wide.webp" width="3209" height="440" decoding="async" fetchpriority="high"
-                         alt="بانر منصة كُنْ مَعَنا - مدرسة خولة بنت حكيم (9-12)"
-                         style="display:block;width:100%;max-width:1500px;height:auto;margin:0 auto;object-fit:contain"
-                         class="transition-transform duration-500 ease-out group-hover:scale-[1.015]">
+                    <source media="(max-width: 700px)" srcset="banner.webp?v=2">
+                    <img id="top-banner-img" src="banner_wide.webp?v=2" width="3209" height="440" decoding="async" fetchpriority="high"
+                         alt="سلطنة عُمان - وزارة التعليم - مدرسة خولة بنت حكيم للبنات (9-12) - منصة كُنْ مَعَنا - خُطى خولة"
+                         style="display:block;width:100%;max-width:1500px;height:auto;margin:0 auto;object-fit:contain">
                 </picture>
             </div>
         </div>
@@ -4897,6 +4885,7 @@
         }
 
         function initBannerInteraction() {
+            return; // البانر ثابت رسمي بلا حركة
             const banner = document.getElementById('top-banner-wrapper');
             const spotlight = document.getElementById('banner-spotlight-layer');
             const bannerImg = document.getElementById('top-banner-img');
@@ -8845,6 +8834,11 @@ body:not(.dark-mode) :focus-visible{outline-color:var(--om-gold) !important}
 body:not(.dark-mode) input[type=checkbox],body:not(.dark-mode) input[type=radio]{accent-color:var(--om-maroon)}
 body:not(.dark-mode) #login-user-pill{border-color:rgba(176,141,87,.45) !important}
 #kn-tour-hole{outline-color:var(--om-gold) !important}
+/* البانر الرسمي الثابت */
+#top-banner-wrapper,#top-banner-wrapper > div.relative.z-10{background:#f9f8f5 !important;box-shadow:none !important;cursor:default !important}
+#top-banner-wrapper img{transform:none !important;transition:none !important}
+.banner-light-beam,#banner-spotlight-layer{display:none !important}
+.banner-container{animation:none !important;border-bottom:0 !important}
 /* البطاقة المختارة في قائمة الطالبات: فاتحة وواضحة */
 body:not(.dark-mode) #students-list-container > .bg-cyan-700{background:#fbf5f5 !important;border:2px solid var(--om-maroon) !important;color:var(--om-ink) !important;box-shadow:0 4px 14px rgba(123,30,43,.12) !important}
 body:not(.dark-mode) #students-list-container > .bg-cyan-700 h4{color:var(--om-ink) !important}

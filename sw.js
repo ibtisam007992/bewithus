@@ -1,7 +1,7 @@
 // Service worker for "كُنْ مَعَنا": makes the platform installable and lets
 // the last-loaded copy open when the connection drops. The page itself is
 // always fetched fresh from the network first, so updates appear right away.
-const CACHE = 'bewithus-v7';
+const CACHE = 'bewithus-v8';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './banner.webp', './banner_wide.webp', './tw.css'];
 
 self.addEventListener('install', event => {
