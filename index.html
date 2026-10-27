@@ -852,14 +852,18 @@
 
                         <!-- Coordinator: morning lateness warnings (after 7:15) + school buses -->
                         <div class="mb-4 hidden" id="coordinator-grid-wrap">
-                            <label class="block text-xs font-semibold text-slate-700 mb-2">⏰ إنذارات التأخر الصباحي (بعد الساعة 7:15):</label>
-                            <p id="late-suggest" class="hidden text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 mb-2"></p>
-                            <div class="it-row" style="margin-bottom:8px"><label>وقت وصول الطالبة <input id="late-time" type="time" class="it-in" min="07:15" style="width:120px"></label></div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <button id="late-b1" onclick="applyTemplate('late_warning1')" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-800 p-2.5 rounded-xl border border-amber-500/40 font-bold transition">إنذار أول</button>
-                                <button id="late-b2" onclick="applyTemplate('late_warning2')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-800 p-2.5 rounded-xl border border-orange-500/40 font-bold transition">إنذار ثانٍ</button>
-                                <button id="late-b3" onclick="applyTemplate('late_warning3')" class="text-xs bg-slate-200 hover:bg-slate-300 text-red-800 p-2.5 rounded-xl border border-red-500/40 font-bold transition">إنذار ثالث</button>
-                            </div>
+                            <label for="coord-bus-tpl" class="block text-xs font-semibold text-slate-700 mb-2">🚌 رسائل سائقي الحافلات — اختاري نموذج الرسالة:</label>
+                            <select id="coord-bus-tpl" onchange="if(this.value){ busWaOpenWith(this.value); this.value=''; }" class="w-full bg-white border border-sky-400/60 rounded-xl p-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-sky-600">
+                                <option value="">— اختاري نموذج الرسالة —</option>
+                                <option value="remind">تذكير بموعد الوصول وخط السير</option>
+                                <option value="late">تأخر وصول الحافلة</option>
+                                <option value="dismiss">تغيير موعد الانصراف</option>
+                                <option value="off">تعطيل الدراسة</option>
+                                <option value="student">طالبة لن تستقل الحافلة</option>
+                                <option value="safety">تعليمات السلامة</option>
+                                <option value="free">رسالة عامة</option>
+                            </select>
+                            <p class="text-[11px] text-slate-500 mt-1">تُفتح نافذة الحافلات بالنموذج المختار، فتحددين السائقين وترسلين لهم عبر واتساب.</p>
                             <button type="button" onclick="openBuses()" class="mt-2 w-full text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 p-2.5 rounded-xl border border-sky-400/50 font-bold transition">🚌 الحافلات المدرسية: السائقون والمسارات</button>
                         </div>
 
@@ -8260,6 +8264,11 @@ body.has-login-pill{padding-bottom:0 !important}
     bwaDone.add(d.key); busWaList();
     const left=[...bwaSel].filter(k=>!bwaDone.has(k)).length;
     document.getElementById('bwa-next').textContent=left?`📤 فتح واتساب للسائق التالي (${left} متبقٍ)`:'✓ انتهى — فُتحت لكل المحددين';
+  };
+  window.busWaOpenWith=async function(k){
+    await openBuses(); if(!document.getElementById('bus-dialog').classList.contains('open')) return;
+    if(document.getElementById('bus-wa').style.display==='none') busWaToggle();
+    document.getElementById('bwa-tpl').value=k; busWaTpl(k);
   };
   window.openBuses=async function(fromAdmin){
     if(typeof scriptV==='undefined'||scriptV<10){ showToast('الحافلات تحتاج تحديث السكربت إلى الإصدار 10',true); return; }
