@@ -1452,7 +1452,7 @@
                                 <th class="p-2.5">التاريخ والوقت</th>
                                 <th class="p-2.5">اسم الطالبة</th>
                                 <th class="p-2.5">الصف</th>
-                                <th class="p-2.5">المادة</th>
+                                <th class="p-2.5">المادة / الدور</th>
                                 <th class="p-2.5">المرسلة / معلمة المادة</th>
                                 <th class="p-2.5">نص الرسالة</th>
                                 <th class="p-2.5 text-center">إجراء</th>
@@ -3008,7 +3008,7 @@
                 id: Date.now(),
                 studentName: selectedStudent.name,
                 phone: phone,
-                subject: currentSubjectName,
+                subject: (typeof archiveSubjectFor === 'function' ? archiveSubjectFor(currentStaffRole) : currentSubjectName),
                 teacherName: getArchiveSenderName(),
                 senderName: loggedInStaff ? loggedInStaff.name : '',
                 replyToken: replyToken || '',
@@ -3193,7 +3193,7 @@
                 id: Date.now() + bulkQueueIndex,
                 studentName: student.name,
                 phone: student.phone,
-                subject: currentSubjectName,
+                subject: (typeof archiveSubjectFor === 'function' ? archiveSubjectFor(currentStaffRole) : currentSubjectName),
                 teacherName: getArchiveSenderName(),
                 senderName: loggedInStaff ? loggedInStaff.name : '',
                 replyToken: replyToken || '',
@@ -6841,7 +6841,7 @@ ${history ? `- سجل الرسائل السابقة لهذه الطالبة:\n${
                 <h1>ملف الطالبة الشامل — ${pilotEsc(profileState.name)}</h1>
                 <p class="meta">${pilotEsc(document.getElementById('sp-sub').innerText)} — مدرسة خولة بنت حكيم (9-12) — ${new Date().toLocaleDateString('ar-OM')}</p>
                 ${ai.style.display === 'block' ? `<div class="ai"><b>الملخص الذكي:</b>\n${pilotEsc(ai.innerText)}</div>` : ''}
-                <table><thead><tr><th>التاريخ</th><th>المرسلة</th><th>المادة</th><th>النوع</th><th>الرسالة</th><th>رد ولي الأمر</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+                <table><thead><tr><th>التاريخ</th><th>المرسلة</th><th>المادة / الدور</th><th>النوع</th><th>الرسالة</th><th>رد ولي الأمر</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
             printHtmlDocument(html);
         }
 
@@ -8803,6 +8803,38 @@ body:has([id$="-modal"]:not(.hidden)) #wa-confirm{display:none !important}
   sendWhatsApp=deferred(sendWhatsApp); window.sendWhatsApp=sendWhatsApp;
   if(typeof openNextBulkMessage==='function'){ openNextBulkMessage=deferred(openNextBulkMessage); window.openNextBulkMessage=openNextBulkMessage; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render); else render();
+})();
+</script>
+<script>
+/* أرشيف الرسائل: عمود «المادة» يعرض الدور الإداري/التخصصي لغير معلمات المواد بدل اسم مادة افتراضية */
+(function(){
+  function roleTitle(r){
+    let t=''; try{ t=String(STAFF_ROLE_SIGNATURES[r]||'').split(':')[0].trim(); }catch(e){}
+    if(!t){ try{ t=ROLE_DISPLAY_LABELS[r]||''; }catch(e){} }
+    return t;
+  }
+  window.archiveSubjectFor=function(role){
+    if(!role||role==='subject_teacher') return currentSubjectName;
+    return roleTitle(role)||currentSubjectName;
+  };
+  function roleOf(e){
+    if(e.signerRole) return e.signerRole;
+    try{ if(typeof roleFromSenderLabel==='function') return roleFromSenderLabel(e.teacherName); }catch(x){}
+    return '';
+  }
+  window.fixArchiveSubjects=function(){
+    let n=0;
+    try{ messageArchive.forEach(e=>{ const r=roleOf(e); if(r&&r!=='subject_teacher'){ const t=roleTitle(r); if(t&&e.subject!==t){ e.subject=t; n++; } } }); }catch(x){}
+    if(n){ try{ saveArchiveToStorage(); }catch(x){} }
+    return n;
+  };
+  ['renderArchiveTable','syncArchiveFromSheet','renderStudentMessageHistory','openStudentProfile'].forEach(fn=>{
+    if(typeof window[fn]!=='function') return; const o=window[fn];
+    window[fn]=function(){ fixArchiveSubjects(); const r=o.apply(this,arguments);
+      if(r&&typeof r.then==='function') return r.then(v=>{ if(fixArchiveSubjects()&&fn==='syncArchiveFromSheet'){ try{ renderArchiveTable(document.getElementById('archive-search-input')?document.getElementById('archive-search-input').value:''); }catch(x){} } return v; });
+      return r; };
+  });
+  fixArchiveSubjects();
 })();
 </script>
 <style id="omani-official-theme">
