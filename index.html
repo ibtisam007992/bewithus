@@ -8152,10 +8152,30 @@ body.has-login-pill{padding-bottom:0 !important}
     <div class="xw-body">
       <div class="xw-chips" style="margin-bottom:8px">
         <button class="xw-btn bus-edit" onclick="busAdd()">＋ إضافة حافلة</button>
+        <button class="xw-btn bus-edit" id="bus-wa-toggle" onclick="busWaToggle()" style="background:#dcfce7;color:#166534;border-color:#86efac">💬 مراسلة السائقين</button>
         <button class="xw-btn bus-admin" onclick="document.getElementById('bus-pdf').click()" title="مسؤولة المنصة: استيراد قائمة الحافلات من ملف PDF">📄 استيراد من PDF</button>
         <input type="file" id="bus-pdf" accept="application/pdf" style="display:none" onchange="busImportPdf(this)">
         <button class="xw-btn bus-edit" onclick="busLoadYear()" title="يملأ الجدول ببيانات ملف الحافلات المعتمد للعام الدراسي 2026/2027">📋 جدول 2026/2027</button>
         <input id="bus-search" class="xw-input" placeholder="ابحثي باسم منطقة أو سائق أو رقم حافلة…" oninput="busRender()" style="flex:1;min-width:200px">
+      </div>
+      <div id="bus-wa" class="bus-edit" style="display:none">
+        <div class="bwa-grid">
+          <div>
+            <label class="ml-lbl" for="bwa-tpl">نموذج الرسالة</label>
+            <select id="bwa-tpl" class="xw-input" style="width:100%" onchange="busWaTpl(this.value)"></select>
+            <label class="ml-lbl" for="bwa-text" style="margin-top:8px">نص الرسالة <small style="font-weight:400;color:#64748b">— {السائق} و{اللوحة} تُستبدل تلقائياً لكل سائق</small></label>
+            <textarea id="bwa-text" rows="7" class="xw-input" style="width:100%;resize:vertical"></textarea>
+          </div>
+          <div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><label class="ml-lbl" style="margin:0">السائقون</label><input id="bwa-q" class="xw-input" placeholder="تصفية بالمنطقة أو الاسم…" oninput="busWaList()" style="flex:1;min-width:140px"><button type="button" class="xw-btn" onclick="busWaAll(true)">تحديد الظاهر</button><button type="button" class="xw-btn" onclick="busWaAll(false)">إلغاء</button></div>
+            <div id="bwa-list" class="bwa-list"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          <button type="button" class="xw-btn primary" id="bwa-next" onclick="busWaNext()">📤 فتح واتساب للسائق التالي</button>
+          <span id="bwa-prog" class="xw-meta"></span>
+        </div>
+        <hr style="margin:12px 0;border:0;border-top:1px solid #e2e8f0">
       </div>
       <p id="bus-status" class="xw-meta"></p>
       <div style="overflow:auto"><table class="sd-table"><thead><tr><th style="width:90px">رقم اللوحة</th><th>اسم السائق</th><th style="width:150px">هاتف السائق</th><th style="min-width:280px">المسار / المناطق</th><th style="width:110px">وقت الوصول</th><th>ملاحظات</th><th></th></tr></thead><tbody id="bus-body"></tbody></table></div>
@@ -8163,7 +8183,7 @@ body.has-login-pill{padding-bottom:0 !important}
     <div class="xw-foot"><button class="xw-btn primary bus-edit" id="bus-save" onclick="busSave()">💾 حفظ الحافلات</button> <button class="xw-btn" onclick="closeDialog('bus-dialog')">إغلاق</button></div>
   </div>
 </div>
-<style>#bus-dialog{z-index:10002 !important}.bus-route{min-height:38px;resize:vertical;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:5px 7px;font-family:inherit;font-size:13px}.bus-wa{color:#15803d;text-decoration:none;font-size:16px}#bus-dialog.ro .bus-edit,#bus-dialog.ro .sd-del{display:none}.bus-admin{display:none !important}#bus-dialog.adm .bus-admin{display:inline-flex !important}</style>
+<style>#bus-dialog{z-index:10002 !important}.bus-route{min-height:38px;resize:vertical;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:5px 7px;font-family:inherit;font-size:13px}.bus-wa{color:#15803d;text-decoration:none;font-size:16px}#bus-dialog.ro .bus-edit,#bus-dialog.ro .sd-del{display:none}.bus-admin{display:none !important}#bus-dialog.adm .bus-admin{display:inline-flex !important}.bwa-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.bwa-grid{grid-template-columns:1fr}}.bwa-list{max-height:230px;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;margin-top:6px;padding:4px}.bwa-list label{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px}.bwa-list label:hover{background:#f0fdf4}.bwa-list input{width:18px;height:18px;margin-top:2px;flex:none}.bwa-list small{display:block;color:#64748b;font-size:11px}.bwa-list .done{opacity:.55}</style>
 <script>
 // ===== School buses (drivers + routes) and coordinator lateness warnings =====
 (function(){
@@ -8202,6 +8222,45 @@ body.has-login-pill{padding-bottom:0 !important}
       st.textContent=`📄 استُوردت ${list.length} حافلة من «${f.name}». راجعي البيانات ثم اضغطي «💾 حفظ الحافلات» لاعتمادها.`;
     }catch(e){ st.textContent='تعذرت قراءة PDF: '+(e.message||'خطأ'); }
   };
+  // ---- مراسلة سائقي الحافلات عبر واتساب (المنسقات والإدارة) ----
+  const BWA_TPL={
+    remind:['تذكير بموعد الوصول وخط السير','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق} (حافلة رقم {اللوحة})\n\nنذكّركم بضرورة وصول الحافلة إلى المدرسة قبل الساعة 7:00 صباحاً، والالتزام بخط السير ونقاط التوقف المعتمدة. شاكرين تعاونكم.'],
+    late:['تأخر وصول الحافلة','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق} (حافلة رقم {اللوحة})\n\nلوحظ تأخر وصول الحافلة إلى المدرسة اليوم. نرجو الحرص على الالتزام بموعد الوصول، وإبلاغ المدرسة مسبقاً عند حدوث أي ظرف طارئ. شاكرين تعاونكم.'],
+    dismiss:['تغيير موعد الانصراف','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق} (حافلة رقم {اللوحة})\n\nنحيطكم علماً بأن انصراف الطالبات يوم (......) الموافق (..../..../........) سيكون الساعة (......) بدلاً من الموعد المعتاد. نرجو الحضور في الوقت المحدد.'],
+    off:['تعطيل الدراسة','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق} (حافلة رقم {اللوحة})\n\nنحيطكم علماً بتعطيل الدراسة يوم (......) الموافق (..../..../........) بسبب (......)، وعليه لا يلزم نقل الطالبات في هذا اليوم.'],
+    student:['طالبة لن تستقل الحافلة','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق} (حافلة رقم {اللوحة})\n\nنحيطكم علماً بأن الطالبة (......) لن تستقل الحافلة يوم (......)، بناءً على طلب ولي أمرها.'],
+    safety:['تعليمات السلامة','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق} (حافلة رقم {اللوحة})\n\nحرصاً على سلامة الطالبات نرجو الالتزام بالسرعة المحددة، وعدم إنزال الطالبات إلا في نقاط التوقف الآمنة، والتأكد من نزول جميع الطالبات قبل مغادرة الحافلة. شاكرين حرصكم.'],
+    free:['رسالة عامة','السلام عليكم ورحمة الله وبركاته،\nالأخ الفاضل/ {السائق}\n\n']
+  };
+  let bwaSel=new Set(), bwaDone=new Set();
+  const bwaKey=b=>String(b.phone||'').replace(/\D/g,'')+'|'+String(b.driver||'').trim();
+  const bwaTel=v=>{ const d=String(v||'').replace(/\D/g,''); return d.length===8?'968'+d:d; };
+  function bwaDrivers(){ const seen=new Map(); buses.forEach(b=>{ if(!String(b.phone||'').replace(/\D/g,'')) return; const k=bwaKey(b); if(!seen.has(k)) seen.set(k,{key:k,driver:b.driver,phone:bwaTel(b.phone),nos:[],routes:[]}); const x=seen.get(k); if(b.no&&!x.nos.includes(b.no)) x.nos.push(b.no); if(b.route) x.routes.push(String(b.route).split('/')[0].trim()); }); return [...seen.values()]; }
+  function bwaSign(){ let t='إدارة المدرسة'; try{ if(!viaAdmin&&STAFF_ROLE_SIGNATURES[currentStaffRole]) t=STAFF_ROLE_SIGNATURES[currentStaffRole]; }catch(e){} let n=''; try{ n=(!viaAdmin&&loggedInStaff&&loggedInStaff.name&&!/:/.test(t))?' أ. '+loggedInStaff.name:''; }catch(e){} return `\n\n${t}${n}\nمدرسة خولة بنت حكيم للبنات (9-12)`; }
+  window.busWaToggle=function(){ const w=document.getElementById('bus-wa'), on=w.style.display==='none'; w.style.display=on?'':'none';
+    if(on){ const sel=document.getElementById('bwa-tpl'); if(!sel.options.length){ sel.innerHTML=Object.entries(BWA_TPL).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join(''); busWaTpl('remind'); } bwaDone.clear(); busWaList(); } };
+  window.busWaTpl=k=>{ if(BWA_TPL[k]) document.getElementById('bwa-text').value=BWA_TPL[k][1]; };
+  window.busWaList=function(){
+    const q=(document.getElementById('bwa-q').value||'').trim();
+    const ok=d=>!q||(typeof studentMatchesQuery==='function'?studentMatchesQuery({name:d.driver+' '+d.nos.join(' ')+' '+d.routes.join(' '),phone:d.phone},q):(d.driver+d.routes.join(' ')).includes(q));
+    const list=bwaDrivers();
+    document.getElementById('bwa-list').innerHTML=list.filter(ok).map(d=>`<label class="${bwaDone.has(d.key)?'done':''}"><input type="checkbox" data-k="${esc(d.key)}" ${bwaSel.has(d.key)?'checked':''} onchange="busWaPick(this)"><span>${bwaDone.has(d.key)?'✅ ':''}<b>${esc(d.driver)}</b> — ${esc(d.nos.join('، ')||'بلا لوحة')}<small>${esc([...new Set(d.routes)].join('، '))} · ${esc(d.phone)}</small></span></label>`).join('')||'<p class="xw-meta" style="padding:8px">لا يوجد سائقون بأرقام هواتف.</p>';
+    busWaProg();
+  };
+  window.busWaPick=el=>{ if(el.checked) bwaSel.add(el.dataset.k); else bwaSel.delete(el.dataset.k); busWaProg(); };
+  window.busWaAll=on=>{ document.querySelectorAll('#bwa-list input[type=checkbox]').forEach(i=>{ i.checked=on; if(on) bwaSel.add(i.dataset.k); else bwaSel.delete(i.dataset.k); }); busWaProg(); };
+  function busWaProg(){ const n=bwaSel.size, d=[...bwaSel].filter(k=>bwaDone.has(k)).length; document.getElementById('bwa-prog').textContent=n?`المحدد: ${n} سائق — فُتح منها ${d}`:'حدّدي سائقاً أو أكثر'; }
+  window.busWaNext=function(){
+    const txt=document.getElementById('bwa-text').value.trim(); if(!txt){ showToast('اكتبي نص الرسالة',true); return; }
+    if(!bwaSel.size){ showToast('حدّدي سائقاً واحداً على الأقل',true); return; }
+    const d=bwaDrivers().find(x=>bwaSel.has(x.key)&&!bwaDone.has(x.key));
+    if(!d){ showToast('فُتحت الرسالة لكل السائقين المحددين ✓'); return; }
+    const msg=txt.replace(/\{السائق\}/g,d.driver||'').replace(/\{اللوحة\}/g,d.nos.join(' و ')||'—')+bwaSign();
+    window.open(`https://api.whatsapp.com/send?phone=${d.phone}&text=${encodeURIComponent(msg)}`,'_blank');
+    bwaDone.add(d.key); busWaList();
+    const left=[...bwaSel].filter(k=>!bwaDone.has(k)).length;
+    document.getElementById('bwa-next').textContent=left?`📤 فتح واتساب للسائق التالي (${left} متبقٍ)`:'✓ انتهى — فُتحت لكل المحددين';
+  };
   window.openBuses=async function(fromAdmin){
     if(typeof scriptV==='undefined'||scriptV<10){ showToast('الحافلات تحتاج تحديث السكربت إلى الإصدار 10',true); return; }
     viaAdmin=!!fromAdmin && typeof adminState!=='undefined' && !!adminState.code;
@@ -8209,6 +8268,7 @@ body.has-login-pill{padding-bottom:0 !important}
     if(!canEdit){ showToast('الحافلات المدرسية متاحة للمنسقات والمديرة ومساعدة المديرة فقط',true); return; }
     const d=document.getElementById('bus-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
     d.classList.toggle('ro',!canEdit); d.classList.toggle('adm',viaAdmin);
+    document.getElementById('bus-wa').style.display='none'; bwaSel=new Set(); bwaDone=new Set(); document.getElementById('bwa-next').textContent='📤 فتح واتساب للسائق التالي';
     document.getElementById('bus-sub').textContent=canEdit?'اكتبي بيانات كل حافلة ومسارها كما تريدين، ثم «حفظ الحافلات». تظهر للمنسقات والإدارة.':'عرض فقط. التعديل للمنسقة والإدارة.';
     openDialog('bus-dialog'); document.getElementById('bus-status').textContent='جاري التحميل…';
     buses=[];
