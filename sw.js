@@ -1,7 +1,7 @@
 // Service worker for "كُنْ مَعَنا": makes the platform installable and lets
 // the last-loaded copy open when the connection drops. The page itself is
 // always fetched fresh from the network first, so updates appear right away.
-const CACHE = 'bewithus-v9';
+const CACHE = 'bewithus-v10';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './banner.webp', './banner_wide.webp', './tw.css'];
 
 self.addEventListener('install', event => {
@@ -20,8 +20,10 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // Google Sheets, WhatsApp, CDNs: untouched
+  // الصفحة نفسها تُطلب دائماً بلا ذاكرة مؤقتة للمتصفح، فتظهر التحديثات فور نشرها
+  const isPage = req.mode === 'navigate' || /\/$|\.html$/.test(url.pathname);
   event.respondWith(
-    fetch(req).then(res => {
+    (isPage ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req)).then(res => {
       if (res && res.ok) {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy));

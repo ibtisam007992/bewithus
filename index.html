@@ -8819,7 +8819,11 @@ body:has([id$="-modal"]:not(.hidden)) #wa-confirm{display:none !important}
   };
   function roleOf(e){
     if(e.signerRole) return e.signerRole;
-    try{ if(typeof roleFromSenderLabel==='function') return roleFromSenderLabel(e.teacherName); }catch(x){}
+    try{ if(typeof roleFromSenderLabel==='function'){ const r=roleFromSenderLabel(e.teacherName); if(r) return r; } }catch(x){}
+    // اسم المرسِلة مكتوب بشرطة مختلفة (– أو -) أو بلا دور مسجَّل: نبحث عن مسمى الدور داخل الاسم
+    const tn=String(e.teacherName||''); if(!tn) return '';
+    try{ for(const k of Object.keys(ROLE_DISPLAY_LABELS)){ if(k==='subject_teacher') continue; const l=ROLE_DISPLAY_LABELS[k]; if(l&&tn.indexOf(l)!==-1) return k; } }catch(x){}
+    try{ for(const k of Object.keys(STAFF_ROLE_SIGNATURES)){ const l=String(STAFF_ROLE_SIGNATURES[k]||'').split(':')[0].trim(); if(l&&tn.indexOf(l)!==-1) return k; } }catch(x){}
     return '';
   }
   window.fixArchiveSubjects=function(){
