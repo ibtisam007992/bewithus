@@ -8152,6 +8152,8 @@ body.has-login-pill{padding-bottom:0 !important}
     <div class="xw-body">
       <div class="xw-chips" style="margin-bottom:8px">
         <button class="xw-btn bus-edit" onclick="busAdd()">＋ إضافة حافلة</button>
+        <button class="xw-btn bus-admin" onclick="document.getElementById('bus-pdf').click()" title="مسؤولة المنصة: استيراد قائمة الحافلات من ملف PDF">📄 استيراد من PDF</button>
+        <input type="file" id="bus-pdf" accept="application/pdf" style="display:none" onchange="busImportPdf(this)">
         <button class="xw-btn bus-edit" onclick="busLoadYear()" title="يملأ الجدول ببيانات ملف الحافلات المعتمد للعام الدراسي 2026/2027">📋 جدول 2026/2027</button>
         <input id="bus-search" class="xw-input" placeholder="ابحثي باسم منطقة أو سائق أو رقم حافلة…" oninput="busRender()" style="flex:1;min-width:200px">
       </div>
@@ -8161,7 +8163,7 @@ body.has-login-pill{padding-bottom:0 !important}
     <div class="xw-foot"><button class="xw-btn primary bus-edit" id="bus-save" onclick="busSave()">💾 حفظ الحافلات</button> <button class="xw-btn" onclick="closeDialog('bus-dialog')">إغلاق</button></div>
   </div>
 </div>
-<style>#bus-dialog{z-index:10002 !important}.bus-route{min-height:38px;resize:vertical;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:5px 7px;font-family:inherit;font-size:13px}.bus-wa{color:#15803d;text-decoration:none;font-size:16px}#bus-dialog.ro .bus-edit,#bus-dialog.ro .sd-del{display:none}</style>
+<style>#bus-dialog{z-index:10002 !important}.bus-route{min-height:38px;resize:vertical;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:5px 7px;font-family:inherit;font-size:13px}.bus-wa{color:#15803d;text-decoration:none;font-size:16px}#bus-dialog.ro .bus-edit,#bus-dialog.ro .sd-del{display:none}.bus-admin{display:none !important}#bus-dialog.adm .bus-admin{display:inline-flex !important}</style>
 <script>
 // ===== School buses (drivers + routes) and coordinator lateness warnings =====
 (function(){
@@ -8176,13 +8178,37 @@ body.has-login-pill{padding-bottom:0 !important}
     buses=copyYear(); document.getElementById('bus-search').value=''; busRender();
     document.getElementById('bus-status').textContent='📋 حُمّل جدول 2026/2027 (30 حافلة). اضغطي «💾 حفظ الحافلات» لاعتماده للجميع.';
   };
+  // استيراد قائمة الحافلات من PDF (لمسؤولة المنصة فقط، من لوحة الإدارة)
+  window.busImportPdf=async function(input){
+    const f=input.files&&input.files[0]; input.value=''; if(!f) return;
+    if(!viaAdmin){ showToast('الاستيراد من PDF لمسؤولة المنصة فقط',true); return; }
+    if(f.size>15*1024*1024){ showToast('ملف PDF كبير جداً (الحد 15 ميجابايت)',true); return; }
+    if(typeof geminiGenerate!=='function'){ showToast('خدمة قراءة PDF غير متاحة',true); return; }
+    const st=document.getElementById('bus-status'); st.textContent='جاري قراءة ملف PDF… (قد يستغرق دقيقة)';
+    try{
+      const b64=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=rej; r.readAsDataURL(f); });
+      const data=await geminiGenerate({
+        contents:[{parts:[{text:'هذا جدول الحافلات المدرسية لمدرسة في سلطنة عُمان. استخرجي كل صف من الجدول كما هو مكتوب بالضبط: رقم لوحة الحافلة، اسم السائق، رقم هاتف السائق، سعة الحافلة، والمنطقة مع كل نقاط التوقف (افصلي بينها بـ " / "). إذا احتوى صف واحد على سائقين فاجعلي لكل سائق صفاً مستقلاً برقمه ولوحته وسعته مع المنطقة نفسها. لا تخترعي أي بيانات، واتركي الحقل فارغاً إذا لم يُذكر. أعيدي JSON فقط.'},{inline_data:{mime_type:'application/pdf',data:b64}}]}],
+        generationConfig:{temperature:0, responseMimeType:'application/json', responseSchema:{type:'ARRAY',items:{type:'OBJECT',properties:{no:{type:'STRING'},driver:{type:'STRING'},phone:{type:'STRING'},capacity:{type:'STRING'},route:{type:'STRING'}},required:['driver','route']}}}
+      });
+      const txt=((data&&data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
+      let list=JSON.parse(txt.replace(/^```[a-z]*\n?|```$/g,''));
+      if(!Array.isArray(list)) list=[];
+      const tel=v=>{ const d=String(v||'').replace(/\D/g,''); return d.length===8?'968'+d:d; };
+      list=list.map(x=>({no:String(x.no||'').replace(/\D/g,''), driver:String(x.driver||'').trim(), phone:tel(x.phone), route:String(x.route||'').replace(/\s+/g,' ').trim(), arrive:'', notes:String(x.capacity||'').replace(/\D/g,'')?`سعة الحافلة: ${String(x.capacity).replace(/\D/g,'')} راكبة`:''})).filter(x=>x.driver||x.no);
+      if(!list.length){ st.textContent='لم أجد حافلات في الملف. تأكدي أنه جدول الحافلات.'; return; }
+      if(buses.some(b=>String(b.no||'').trim()||String(b.driver||'').trim()) && !confirm(`وُجدت ${list.length} حافلة في الملف. سيُستبدل الجدول الحالي بها. متابعة؟`)){ st.textContent='أُلغي الاستيراد.'; return; }
+      buses=list; document.getElementById('bus-search').value=''; busRender();
+      st.textContent=`📄 استُوردت ${list.length} حافلة من «${f.name}». راجعي البيانات ثم اضغطي «💾 حفظ الحافلات» لاعتمادها.`;
+    }catch(e){ st.textContent='تعذرت قراءة PDF: '+(e.message||'خطأ'); }
+  };
   window.openBuses=async function(fromAdmin){
     if(typeof scriptV==='undefined'||scriptV<10){ showToast('الحافلات تحتاج تحديث السكربت إلى الإصدار 10',true); return; }
     viaAdmin=!!fromAdmin && typeof adminState!=='undefined' && !!adminState.code;
     canEdit=viaAdmin || (typeof currentStaffRole!=='undefined' && EDIT.includes(currentStaffRole));
     if(!canEdit){ showToast('الحافلات المدرسية متاحة للمنسقات والمديرة ومساعدة المديرة فقط',true); return; }
     const d=document.getElementById('bus-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
-    d.classList.toggle('ro',!canEdit);
+    d.classList.toggle('ro',!canEdit); d.classList.toggle('adm',viaAdmin);
     document.getElementById('bus-sub').textContent=canEdit?'اكتبي بيانات كل حافلة ومسارها كما تريدين، ثم «حفظ الحافلات». تظهر للمنسقات والإدارة.':'عرض فقط. التعديل للمنسقة والإدارة.';
     openDialog('bus-dialog'); document.getElementById('bus-status').textContent='جاري التحميل…';
     buses=[];
