@@ -546,6 +546,8 @@
                     <button class="xw-btn" id="circ-btn" style="display:none" onclick="openStaffCirculars()">📜 تعاميم الهيئة التعليمية</button>
                     <button class="xw-btn" onclick="openEarlyWarning()">⚠ الإنذار المبكر</button>
                     <button class="xw-btn" onclick="openBuses()">🚌 الحافلات</button>
+                    <button class="xw-btn" onclick="openMultiParty()">👥 تعدد جهات المتابعة</button>
+                    <button class="xw-btn" onclick="sendMonthNow()">🗓 تقرير الشهر</button>
                 </div>
 
                 <!-- Early warning banner: leadership roles only, filled by refreshEarlyWarningBanner() -->
@@ -842,6 +844,7 @@
                         <div class="mb-4 hidden" id="role-tpl-wrap">
                             <label for="role-tpl-select" id="role-tpl-label" class="block text-xs font-semibold text-slate-700 mb-2">نماذج مهامي:</label>
                             <select id="role-tpl-select" onchange="if(this.value) applyTemplate(this.value)" class="w-full bg-white border border-slate-300 rounded-xl p-3 text-sm font-bold text-slate-800 focus:outline-none"></select>
+                            <button type="button" id="mp-btn-sp" onclick="openMultiParty()" class="hidden mt-2 w-full text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 p-2.5 rounded-xl border border-slate-300 font-bold transition">👥 طالبات تتابعهن أكثر من جهة</button>
                         </div>
 
                         <!-- Coordinator: morning lateness warnings (after 7:15) + school buses -->
@@ -926,6 +929,18 @@
                                 <button onclick="applyTemplate('systems_early_leave')" class="text-xs bg-slate-200 hover:bg-slate-300 text-cyan-700 p-2.5 rounded-xl border border-cyan-500/40 flex flex-col items-center gap-1.5 transition hover:border-cyan-400">
                                     <span>استئذان (خروج مبكر)</span>
                                 </button>
+                            </div>
+
+                            <!-- Morning lateness warnings (after 7:15), owned by the systems specialist -->
+                            <div class="mt-3 border-t border-slate-200 pt-3">
+                                <label class="block text-xs font-semibold text-slate-700 mb-2">⏰ إنذارات التأخر الصباحي (بعد الساعة 7:15):</label>
+                                <p id="late-suggest" class="hidden text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 mb-2"></p>
+                                <div class="it-row" style="margin-bottom:8px"><label>وقت وصول الطالبة <input id="late-time" type="time" class="it-in" min="07:15" style="width:120px" oninput="if(activeTemplateType&&/^late_warning/.test(activeTemplateType)) applyTemplate(activeTemplateType)"></label></div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button id="late-b1" onclick="applyTemplate('late_warning1')" class="text-xs bg-slate-200 hover:bg-slate-300 text-amber-800 p-2.5 rounded-xl border border-amber-500/40 transition">إنذار أول</button>
+                                    <button id="late-b2" onclick="applyTemplate('late_warning2')" class="text-xs bg-slate-200 hover:bg-slate-300 text-orange-800 p-2.5 rounded-xl border border-orange-500/40 transition">إنذار ثانٍ</button>
+                                    <button id="late-b3" onclick="applyTemplate('late_warning3')" class="text-xs bg-slate-200 hover:bg-slate-300 text-red-800 p-2.5 rounded-xl border border-red-500/40 transition">إنذار ثالث</button>
+                                </div>
                             </div>
 
                             <!-- Case tracking: current stage, overdue follow-up warning, closing
@@ -2439,9 +2454,9 @@
             'systems_absence_warning3': 'أخصائية الأنظمة المدرسية',
             'systems_tardiness': 'أخصائية الأنظمة المدرسية',
             'systems_early_leave': 'أخصائية الأنظمة المدرسية',
-            'late_warning1': 'منسقة الشؤون المدرسية',
-            'late_warning2': 'منسقة الشؤون المدرسية',
-            'late_warning3': 'منسقة الشؤون المدرسية',
+            'late_warning1': 'أخصائية الأنظمة المدرسية',
+            'late_warning2': 'أخصائية الأنظمة المدرسية',
+            'late_warning3': 'أخصائية الأنظمة المدرسية',
             'nurse_sick_pickup': 'الممرضة المدرسية',
             'nurse_injury': 'الممرضة المدرسية',
             'nurse_screening': 'الممرضة المدرسية',
@@ -2600,7 +2615,7 @@
                     const arr = at ? `حيث وصلت الساعة (${at})` : 'حيث وصلت بعد بدء الطابور';
                     if (type === 'late_warning1') return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنحيطكم علماً بتأخر ابنتكم عن الحضور الصباحي اليوم ${day}، ${arr}، علماً بأن موعد الحضور قبل الساعة 7:15 صباحاً.\n\nهذا إشعار أول، ونرجو التكرم بالحرص على حضورها مبكراً حتى لا يفوتها الطابور والحصة الأولى. شاكرين تعاونكم. ⏰`;
                     if (type === 'late_warning2') return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنود إفادتكم بتكرار تأخر ابنتكم عن الحضور الصباحي للمرة الثانية، وكان آخرها اليوم ${day}، ${arr}، بعد الموعد المحدد (7:15 صباحاً).\n\nهذا إنذار ثانٍ، ونرجو التعاون معنا في معالجة أسباب التأخر والالتزام بالموعد، تجنباً لاتخاذ الإجراءات المنصوص عليها في لائحة شؤون الطلبة. ⚠️`;
-                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنأسف لإبلاغكم بتكرار تأخر ابنتكم عن الحضور الصباحي للمرة الثالثة، وكان آخرها اليوم ${day}، ${arr}، بعد الموعد المحدد (7:15 صباحاً).\n\nهذا إنذار ثالث، ونرجو التكرم بالحضور إلى المدرسة خلال أسبوع لمقابلة منسقة الشؤون المدرسية والإدارة، لمناقشة الأمر واتخاذ ما يلزم وفق لائحة شؤون الطلبة. 🏫`;
+                    return `السلام عليكم ورحمة الله وبركاته، الفاضل/ة ولي أمر الطالبة: ${name}.\n\nنأسف لإبلاغكم بتكرار تأخر ابنتكم عن الحضور الصباحي للمرة الثالثة، وكان آخرها اليوم ${day}، ${arr}، بعد الموعد المحدد (7:15 صباحاً).\n\nهذا إنذار ثالث، ونرجو التكرم بالحضور إلى المدرسة خلال أسبوع لمقابلة أخصائية الأنظمة المدرسية والإدارة، لمناقشة الأمر واتخاذ ما يلزم وفق لائحة شؤون الطلبة. 🏫`;
                 }
                 case 'staff_summon': {
                     const t = String(STAFF_ROLE_SIGNATURES[currentStaffRole] || 'إدارة المدرسة').split(':')[0].trim();
@@ -8477,6 +8492,25 @@ body.has-login-pill{padding-bottom:0 !important}
     return n;
   }
   window.knApplyStudentEdits=applyEdits;
+  // مشاركة التعديلات مع كل الموظفات عبر السكربت (الإصدار 13 أو أحدث)
+  function srv(){ try{ return typeof scriptV!=='undefined' && scriptV>=13 && typeof staffSession!=='undefined' && staffSession && staffSession.token; }catch(e){ return false; } }
+  function push(c, name, phone, prev){
+    if(!srv()) return;
+    api('savePhoneEdit',{cls:c,name:name,phone:phone,prev:prev||''}).then(function(r){
+      if(r&&r.ok){ var all=load(); var o=all[c]&&all[c][nk(name)]; if(o){ delete o.pending; store(all); } }
+    }).catch(function(){});
+  }
+  async function pull(c){
+    if(!srv()||!c) return 0;
+    try{
+      var r=await api('phoneEdits',{cls:c}); if(!r||!r.ok) return 0;
+      var all=load(); all[c]=all[c]||{};
+      (r.items||[]).forEach(function(x){ var k=nk(x.name), o=all[c][k]; if(!o||!o.pending) all[c][k]={phone:String(x.phone), by:x.by, t:x.t}; });
+      Object.keys(all[c]).forEach(function(k){ var o=all[c][k]; if(o&&o.pending){ var st=students.find(function(s){ return nk(s.name)===k; }); push(c, st?st.name:k, o.phone, ''); } });
+      store(all); return applyEdits();
+    }catch(e){ return 0; }
+  }
+  window.knPullStudentEdits=async function(){ var n=await pull(String(cls()).trim()); if(n){ try{ renderStudentsList(document.getElementById('search-input')?document.getElementById('search-input').value:''); updateStats(); }catch(e){} } return n; };
   var origSave=saveEditedPhone;
   saveEditedPhone=function(){
     var id=editingStudentId, before=(students.find(function(s){return s.id===id;})||{}).phone;
@@ -8484,7 +8518,8 @@ body.has-login-pill{padding-bottom:0 !important}
     var st=students.find(function(s){return s.id===id;});
     if(st && st.phone && st.phone!==before){
       var c=String(cls()).trim(), all=load(); all[c]=all[c]||{};
-      all[c][nk(st.name)]={phone:st.phone, ts:Date.now()}; store(all);
+      all[c][nk(st.name)]={phone:st.phone, ts:Date.now(), pending:true}; store(all);
+      push(c, st.name, st.phone, before);
     }
     return r;
   };
@@ -8493,6 +8528,7 @@ body.has-login-pill{padding-bottom:0 !important}
   importFromGoogleDrive=async function(){
     var r=await origImp.apply(this, arguments);
     try{
+      await pull(String(cls()).trim());
       if(applyEdits()){
         renderStudentsList(document.getElementById('search-input') ? document.getElementById('search-input').value : '');
         updateStats();
@@ -8501,6 +8537,7 @@ body.has-login-pill{padding-bottom:0 !important}
     return r;
   };
   window.importFromGoogleDrive=importFromGoogleDrive;
+  if(typeof applyStaffLogin==='function'){ var al=applyStaffLogin; applyStaffLogin=function(){ var r=al.apply(this,arguments); setTimeout(function(){ (typeof scriptReady!=='undefined'?scriptReady:Promise.resolve()).then(window.knPullStudentEdits).catch(function(){}); },1200); return r; }; }
 })();
 </script>
 <script>
@@ -8585,7 +8622,7 @@ body.has-login-pill{padding-bottom:0 !important}
   async function loadOld(){
     const box=document.getElementById('circ-old'); box.innerHTML='<p class="xw-meta">جاري التحميل…</p>';
     try{ const r=await api('inbox',{}); const rows=((r&&r.ok&&r.items)||[]).filter(i=>i.box!=='in'&&/^تعميم/.test(i.to||''));
-      box.innerHTML=rows.length?rows.map(i=>`<div class="circ-item"><div class="h"><b>${esc(i.to)}</b><span>${esc(i.t)}${i.readCount?` — قرأته ${i.readCount}`:''}</span></div><div class="b">${esc(i.text)}</div></div>`).join(''):'<p class="xw-meta" style="text-align:center;padding:16px">لم تُرسَل تعاميم بعد.</p>';
+      box.innerHTML=rows.length?rows.map(i=>`<div class="circ-item"><div class="h"><b>${esc(i.to)}</b><span>${esc(i.t)}${i.readCount?` — قرأته ${i.readCount}`:''}</span></div><div class="b">${esc(i.text)}</div><div class="circ-rd"><button type="button" class="xw-btn" onclick="circReaders('${esc(i.id)}',this)">👁 من قرأت ومن لم تقرأ</button><div id="crd-${esc(i.id)}"></div></div></div>`).join(''):'<p class="xw-meta" style="text-align:center;padding:16px">لم تُرسَل تعاميم بعد.</p>';
     }catch(e){ box.innerHTML='<p class="xw-meta">تعذر التحميل</p>'; }
   }
   window.circSend=async function(){
@@ -8619,6 +8656,7 @@ body.has-login-pill{padding-bottom:0 !important}
 <div id="kn-icons" aria-label="أدوات سريعة">
   <button type="button" id="kn-bell" class="kn-ic" onclick="knBell()" aria-label="التنبيهات: الرسائل والتعاميم" title="التنبيهات"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="kn-bell-n" class="kn-n"></span></button>
   <button type="button" id="kn-report" class="kn-ic" onclick="knReport()" aria-label="إبلاغ عن مشكلة" title="إبلاغ عن مشكلة"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></button>
+  <button type="button" id="kn-guide" class="kn-ic" onclick="knGuide()" aria-label="دليل استخدام دوري" title="دليل الاستخدام لدوري (للطباعة)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/></svg></button>
   <button type="button" id="kn-help" class="kn-ic" onclick="knTour(true)" aria-label="جولة تعريفية بالصفحة" title="جولة تعريفية"><span style="font-size:22px;font-weight:800;color:#7b1e2b;line-height:1">؟</span></button>
   <div id="kn-bell-panel" role="dialog" aria-label="التنبيهات"></div>
 </div>
@@ -8931,6 +8969,435 @@ body:has([id$="-modal"]:not(.hidden)) #wa-confirm{display:none !important}
   }
   const c0=changeStaffRole; changeStaffRole=function(v){ const r=c0.apply(this,arguments); try{ render(v); }catch(e){} return r; };
   try{ render(currentStaffRole); }catch(e){}
+})();
+</script>
+<script>
+/* تنبيه قبل إرسال رسالة فيها فراغات لم تُكمَل مثل (......) أو (..../..../........) */
+(function(){
+  const RX=/\(\s*[.…]{3,}[^)]*\)/g;
+  function check(){
+    const ta=document.getElementById('whatsapp-text'); if(!ta) return true;
+    const t=ta.value||''; const m=t.match(RX); if(!m) return true;
+    const i=t.search(RX); try{ ta.focus(); ta.setSelectionRange(i,i+m[0].length); ta.scrollIntoView({block:'center'}); }catch(e){}
+    try{ showToast(`في الرسالة ${m.length===1?'فراغ لم يُكمل':m.length+' فراغات لم تُكمل'} — أكمليه قبل الإرسال`,true); }catch(e){}
+    return confirm(`تنبيه: في نص الرسالة ${m.length===1?'فراغ واحد لم يُكمل':m.length+' فراغات لم تُكمل'} مثل ${m[0]}\n\nحدّدته لكِ في النص. اضغطي «إلغاء» لإكماله، أو «موافق» للإرسال كما هو.`);
+  }
+  window.knCheckBlanks=check;
+  ['sendWhatsApp','sendBulkWhatsApp'].forEach(fn=>{ if(typeof window[fn]!=='function') return; const o=window[fn]; window[fn]=function(){ if(!check()) return; return o.apply(this,arguments); }; });
+})();
+</script>
+<div id="mp-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="mp-title">
+  <div class="xw-panel" style="max-width:820px">
+    <div class="xw-head"><div><h3 id="mp-title">👥 طالبات تتابعهن أكثر من جهة</h3><div class="xw-sub">طالبات وصلت أولياء أمورهن رسائل من عدة مرسِلات (معلمات، أخصائيات، ممرضة، إدارة) خلال الفترة المحددة — للتنبه المبكر لحالتهن.</div></div>
+      <button class="xw-x" onclick="closeDialog('mp-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body">
+      <div class="xw-filter"><label>الفترة <select id="mp-days" onchange="mpLoad()"><option value="14">آخر أسبوعين</option><option value="30">آخر شهر</option><option value="60">آخر شهرين</option></select></label>
+        <label>عدد الجهات على الأقل <select id="mp-min" onchange="mpLoad()"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option></select></label></div>
+      <div id="mp-list"></div>
+    </div>
+  </div>
+</div>
+<style>
+.circ-rd{margin-top:8px}.circ-rd .xw-btn{font-size:12px;padding:5px 10px}
+.crd-box{margin-top:8px;border:1px solid var(--om-line,#e5e0d8);border-radius:12px;padding:10px;background:#faf8f5;font-size:13px}
+.crd-box b{display:block;margin-bottom:4px}.crd-box .ok{color:#2f5d50}.crd-box .no{color:#9b1c1c}
+.crd-box .nm{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}.crd-box .nm span{background:#fff;border:1px solid #e5e0d8;border-radius:999px;padding:2px 10px;font-size:12px}
+.mp-item{border:1px solid #e5e0d8;border-right:5px solid #7b1e2b;border-radius:14px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.mp-item .t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800}
+.mp-item .s{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.mp-item .s span{font-size:12px;background:#f4f2ee;border-radius:999px;padding:2px 10px}
+/* ===== الوضع الليلي بالهوية الرسمية (عنابي داكن + أخضر + ذهبي) ===== */
+body.dark-mode{background:#161213 !important;color:#efe8e2 !important}
+body.dark-mode #canvas-container{background-image:radial-gradient(rgba(201,166,106,.06) 1.1px,transparent 1.5px) !important}
+body.dark-mode .glass-panel,body.dark-mode .glass-card{background:#211a1b !important;border-color:#3d3132 !important;box-shadow:none}
+body.dark-mode .bg-white,body.dark-mode .bg-slate-50,body.dark-mode .bg-slate-100,body.dark-mode .bg-slate-200,body.dark-mode .bg-slate-300,body.dark-mode [class*="bg-slate-100/"],body.dark-mode [class*="bg-slate-200/"]{background-color:#2a2122 !important}
+body.dark-mode .hover\:bg-slate-300:hover,body.dark-mode .hover\:bg-slate-200:hover,body.dark-mode .hover\:bg-slate-100:hover{background-color:#3a2d2f !important}
+body.dark-mode .text-slate-900,body.dark-mode .text-slate-800,body.dark-mode .text-slate-700,body.dark-mode h1,body.dark-mode h2,body.dark-mode h3,body.dark-mode h4{color:#efe8e2 !important}
+body.dark-mode .text-slate-600,body.dark-mode .text-slate-500,body.dark-mode .text-slate-400{color:#b3a9a1 !important}
+body.dark-mode .border-slate-200,body.dark-mode .border-slate-300,body.dark-mode [class*="border-slate-"]{border-color:#3d3132 !important}
+body.dark-mode input,body.dark-mode textarea,body.dark-mode select{background-color:#1c1617 !important;color:#efe8e2 !important;border-color:#4a3a3c !important}
+body.dark-mode [class*="bg-gradient-to-"]:not([class*="bg-clip-text"]){background-image:none !important;background-color:#8f2c3a !important;color:#fff !important;border-color:#8f2c3a !important}
+body.dark-mode [class*="bg-gradient-to-"][class*="emerald"],body.dark-mode [class*="bg-gradient-to-"][class*="teal"],body.dark-mode [class*="bg-gradient-to-"][class*="green"]{background-color:#3f7a68 !important;border-color:#3f7a68 !important}
+body.dark-mode .xw-overlay{background:rgba(10,8,8,.78)}
+body.dark-mode .xw-panel{background:#211a1b !important;border-color:#3d3132 !important;border-top:4px solid #8f2c3a !important;color:#efe8e2}
+body.dark-mode .xw-head,body.dark-mode .xw-foot{border-color:#3d3132 !important}
+body.dark-mode .xw-head h3,body.dark-mode .xw-kpi .n,body.dark-mode .xw-card .name{color:#efe8e2 !important}
+body.dark-mode .xw-sub,body.dark-mode .xw-meta,body.dark-mode .xw-kpi .l{color:#b3a9a1 !important}
+body.dark-mode .xw-btn{background:#2a2122 !important;border-color:#4a3a3c !important;color:#efe8e2 !important}
+body.dark-mode .xw-btn.primary{background:#8f2c3a !important;border-color:#8f2c3a !important;color:#fff !important}
+body.dark-mode .xw-kpi,body.dark-mode .xw-card,body.dark-mode .xw-tl li,body.dark-mode .circ-item,body.dark-mode .mp-item,body.dark-mode .crd-box,body.dark-mode .ml-item,body.dark-mode .kn-it,body.dark-mode .bwa-list,body.dark-mode .circ-aud label,body.dark-mode .sd-table td,body.dark-mode .sd-table th{background:#2a2122 !important;border-color:#3d3132 !important;color:#efe8e2 !important}
+body.dark-mode .xw-chip,body.dark-mode .mp-item .s span,body.dark-mode .crd-box .nm span{background:#3a2d2f !important;color:#efe8e2 !important;border-color:#4a3a3c !important}
+body.dark-mode #login-user-pill,body.dark-mode #kn-icons .kn-ic,body.dark-mode #kn-bell-panel,body.dark-mode #kn-tour-card,body.dark-mode #wa-confirm{background:#211a1b !important;color:#efe8e2 !important;border-color:#4a3a3c !important}
+body.dark-mode #kn-tour-card h5,body.dark-mode #kn-tour-card p,body.dark-mode #wa-confirm h4,body.dark-mode #kn-bell-panel h4{color:#efe8e2 !important}
+body.dark-mode #ai-suite,body.dark-mode #ai-suite button{background:#2a2122 !important;color:#e9b8bf !important;border-color:#4a3a3c !important}
+body.dark-mode #students-list-container > .bg-cyan-700{background:#3a1f24 !important;border:2px solid #c9a66a !important}
+body.dark-mode #students-list-container > .bg-cyan-700 h4{color:#efe8e2 !important}
+body.dark-mode #selected-student-phone{background:#1c3029 !important;color:#a9d3c4 !important;border-color:#2f5a4c !important}
+body.dark-mode a{color:#a9d3c4}
+body.dark-mode .ml-tab,body.dark-mode .ml-people,body.dark-mode #ml-picked span,body.dark-mode .circ-item{background:#2a2122 !important;color:#efe8e2 !important;border-color:#4a3a3c !important}
+body.dark-mode .ml-tab.on{background:#8f2c3a !important;color:#fff !important}
+body.dark-mode .sp-open-btn,body.dark-mode .mt-save,body.dark-mode #login-user-pill button,body.dark-mode .it-in{background:#2a2122 !important;color:#e9b8bf !important;border-color:#4a3a3c !important}
+body.dark-mode .sp-open-btn:hover,body.dark-mode .mt-save:hover{background:#3a2d2f !important}
+body.dark-mode #top-banner-img{box-shadow:0 2px 0 #8c6e3d,0 4px 0 #5a4628,0 18px 30px -8px rgba(0,0,0,.6) !important}
+body.dark-mode .bg-amber-100{background-color:#382e1e !important}
+body.dark-mode .bg-amber-50{background-color:#382e1e !important}
+body.dark-mode .bg-amber-500{background-color:#a8874f !important}
+body.dark-mode .bg-amber-900{background-color:#382e1e !important}
+body.dark-mode .bg-amber-950{background-color:#382e1e !important}
+body.dark-mode .bg-amber-950\/40{background-color:#382e1e !important}
+body.dark-mode .bg-amber-950\/80{background-color:#382e1e !important}
+body.dark-mode .bg-blue-900{background-color:#3a1f24 !important}
+body.dark-mode .bg-blue-900\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-blue-950{background-color:#3a1f24 !important}
+body.dark-mode .bg-blue-950\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-cyan-400{background-color:#3f7a68 !important}
+body.dark-mode .bg-cyan-400\/40{background-color:#3f7a68 !important}
+body.dark-mode .bg-cyan-500{background-color:#3f7a68 !important}
+body.dark-mode .bg-cyan-600{background-color:#3f7a68 !important}
+body.dark-mode .bg-cyan-700{background-color:#3f7a68 !important}
+body.dark-mode .bg-cyan-900{background-color:#1c3029 !important}
+body.dark-mode .bg-cyan-900\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-cyan-900\/80{background-color:#1c3029 !important}
+body.dark-mode .bg-cyan-950{background-color:#1c3029 !important}
+body.dark-mode .bg-cyan-950\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-cyan-950\/5{background-color:#1c3029 !important}
+body.dark-mode .bg-cyan-950\/80{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-100{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-50{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-600{background-color:#3f7a68 !important}
+body.dark-mode .bg-emerald-900{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-900\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-950{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-950\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-950\/5{background-color:#1c3029 !important}
+body.dark-mode .bg-emerald-950\/60{background-color:#1c3029 !important}
+body.dark-mode .bg-fuchsia-900{background-color:#3a1f24 !important}
+body.dark-mode .bg-fuchsia-950{background-color:#3a1f24 !important}
+body.dark-mode .bg-fuchsia-950\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-indigo-100{background-color:#3a1f24 !important}
+body.dark-mode .bg-indigo-50{background-color:#3a1f24 !important}
+body.dark-mode .bg-indigo-600{background-color:#8f2c3a !important}
+body.dark-mode .bg-indigo-900{background-color:#3a1f24 !important}
+body.dark-mode .bg-indigo-900\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-indigo-950{background-color:#3a1f24 !important}
+body.dark-mode .bg-indigo-950\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-lime-900{background-color:#1c3029 !important}
+body.dark-mode .bg-lime-950{background-color:#1c3029 !important}
+body.dark-mode .bg-lime-950\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-orange-600{background-color:#a8874f !important}
+body.dark-mode .bg-orange-900{background-color:#382e1e !important}
+body.dark-mode .bg-orange-950{background-color:#382e1e !important}
+body.dark-mode .bg-orange-950\/40{background-color:#382e1e !important}
+body.dark-mode .bg-pink-900{background-color:#3a1f24 !important}
+body.dark-mode .bg-pink-900\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-pink-950{background-color:#3a1f24 !important}
+body.dark-mode .bg-pink-950\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-purple-900{background-color:#3a1f24 !important}
+body.dark-mode .bg-purple-900\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-purple-900\/60{background-color:#3a1f24 !important}
+body.dark-mode .bg-purple-900\/80{background-color:#3a1f24 !important}
+body.dark-mode .bg-purple-950{background-color:#3a1f24 !important}
+body.dark-mode .bg-purple-950\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-red-50{background-color:#3d1c1c !important}
+body.dark-mode .bg-red-600{background-color:#a33a3a !important}
+body.dark-mode .bg-rose-100{background-color:#3d1c1c !important}
+body.dark-mode .bg-rose-900{background-color:#3d1c1c !important}
+body.dark-mode .bg-rose-950{background-color:#3d1c1c !important}
+body.dark-mode .bg-rose-950\/40{background-color:#3d1c1c !important}
+body.dark-mode .bg-sky-50{background-color:#1c3029 !important}
+body.dark-mode .bg-sky-900{background-color:#1c3029 !important}
+body.dark-mode .bg-sky-950{background-color:#1c3029 !important}
+body.dark-mode .bg-sky-950\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-teal-900{background-color:#1c3029 !important}
+body.dark-mode .bg-teal-950{background-color:#1c3029 !important}
+body.dark-mode .bg-teal-950\/40{background-color:#1c3029 !important}
+body.dark-mode .bg-violet-900{background-color:#3a1f24 !important}
+body.dark-mode .bg-violet-950{background-color:#3a1f24 !important}
+body.dark-mode .bg-violet-950\/40{background-color:#3a1f24 !important}
+body.dark-mode .bg-yellow-900{background-color:#382e1e !important}
+body.dark-mode .bg-yellow-950{background-color:#382e1e !important}
+body.dark-mode .bg-yellow-950\/40{background-color:#382e1e !important}
+body.dark-mode .border-amber-400{border-color:#6b5733 !important}
+body.dark-mode .border-amber-400\/60{border-color:#6b5733 !important}
+body.dark-mode .border-amber-400\/70{border-color:#6b5733 !important}
+body.dark-mode .border-amber-500{border-color:#6b5733 !important}
+body.dark-mode .border-amber-500\/30{border-color:#6b5733 !important}
+body.dark-mode .border-amber-500\/40{border-color:#6b5733 !important}
+body.dark-mode .border-amber-500\/50{border-color:#6b5733 !important}
+body.dark-mode .border-amber-600{border-color:#6b5733 !important}
+body.dark-mode .border-amber-600\/40{border-color:#6b5733 !important}
+body.dark-mode .border-amber-800{border-color:#6b5733 !important}
+body.dark-mode .border-amber-800\/50{border-color:#6b5733 !important}
+body.dark-mode .border-amber-800\/80{border-color:#6b5733 !important}
+body.dark-mode .border-blue-500{border-color:#6b2a33 !important}
+body.dark-mode .border-blue-500\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-cyan-500{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-500\/20{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-500\/30{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-500\/40{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-500\/50{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-600{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-600\/40{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-700{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-700\/60{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-700\/80{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-800{border-color:#2f5a4c !important}
+body.dark-mode .border-cyan-800\/50{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-200{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-400{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-400\/50{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-500{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-500\/30{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-500\/40{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-500\/50{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-700{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-700\/60{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-800{border-color:#2f5a4c !important}
+body.dark-mode .border-emerald-800\/60{border-color:#2f5a4c !important}
+body.dark-mode .border-fuchsia-500{border-color:#6b2a33 !important}
+body.dark-mode .border-fuchsia-500\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-indigo-200{border-color:#6b2a33 !important}
+body.dark-mode .border-indigo-400{border-color:#6b2a33 !important}
+body.dark-mode .border-indigo-400\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-indigo-500{border-color:#6b2a33 !important}
+body.dark-mode .border-indigo-500\/30{border-color:#6b2a33 !important}
+body.dark-mode .border-indigo-500\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-lime-500{border-color:#2f5a4c !important}
+body.dark-mode .border-lime-500\/40{border-color:#2f5a4c !important}
+body.dark-mode .border-orange-500{border-color:#6b5733 !important}
+body.dark-mode .border-orange-500\/30{border-color:#6b5733 !important}
+body.dark-mode .border-orange-500\/40{border-color:#6b5733 !important}
+body.dark-mode .border-orange-600{border-color:#6b5733 !important}
+body.dark-mode .border-orange-600\/40{border-color:#6b5733 !important}
+body.dark-mode .border-pink-500{border-color:#6b2a33 !important}
+body.dark-mode .border-pink-500\/30{border-color:#6b2a33 !important}
+body.dark-mode .border-pink-500\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-purple-500{border-color:#6b2a33 !important}
+body.dark-mode .border-purple-500\/30{border-color:#6b2a33 !important}
+body.dark-mode .border-purple-500\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-purple-500\/50{border-color:#6b2a33 !important}
+body.dark-mode .border-purple-700{border-color:#6b2a33 !important}
+body.dark-mode .border-purple-700\/50{border-color:#6b2a33 !important}
+body.dark-mode .border-red-200{border-color:#6e2b2b !important}
+body.dark-mode .border-red-300{border-color:#6e2b2b !important}
+body.dark-mode .border-red-500{border-color:#6e2b2b !important}
+body.dark-mode .border-red-500\/30{border-color:#6e2b2b !important}
+body.dark-mode .border-red-500\/40{border-color:#6e2b2b !important}
+body.dark-mode .border-red-600{border-color:#6e2b2b !important}
+body.dark-mode .border-red-600\/40{border-color:#6e2b2b !important}
+body.dark-mode .border-rose-500{border-color:#6e2b2b !important}
+body.dark-mode .border-rose-500\/30{border-color:#6e2b2b !important}
+body.dark-mode .border-rose-500\/40{border-color:#6e2b2b !important}
+body.dark-mode .border-sky-400{border-color:#2f5a4c !important}
+body.dark-mode .border-sky-400\/50{border-color:#2f5a4c !important}
+body.dark-mode .border-sky-400\/60{border-color:#2f5a4c !important}
+body.dark-mode .border-sky-500{border-color:#2f5a4c !important}
+body.dark-mode .border-sky-500\/30{border-color:#2f5a4c !important}
+body.dark-mode .border-sky-500\/40{border-color:#2f5a4c !important}
+body.dark-mode .border-teal-500{border-color:#2f5a4c !important}
+body.dark-mode .border-teal-500\/40{border-color:#2f5a4c !important}
+body.dark-mode .border-violet-400{border-color:#6b2a33 !important}
+body.dark-mode .border-violet-400\/60{border-color:#6b2a33 !important}
+body.dark-mode .border-violet-500{border-color:#6b2a33 !important}
+body.dark-mode .border-violet-500\/40{border-color:#6b2a33 !important}
+body.dark-mode .border-yellow-500{border-color:#6b5733 !important}
+body.dark-mode .border-yellow-500\/40{border-color:#6b5733 !important}
+body.dark-mode .hover\:bg-amber-100:hover{background-color:#382e1e !important}
+body.dark-mode .hover\:bg-amber-900\/60:hover{background-color:#382e1e !important}
+body.dark-mode .hover\:bg-blue-800\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-blue-900\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-cyan-500:hover{background-color:#3f7a68 !important}
+body.dark-mode .hover\:bg-cyan-800\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-cyan-900:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-cyan-900\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-emerald-100:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-emerald-500:hover{background-color:#3f7a68 !important}
+body.dark-mode .hover\:bg-emerald-800\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-emerald-900\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-fuchsia-900\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-indigo-500:hover{background-color:#8f2c3a !important}
+body.dark-mode .hover\:bg-indigo-800\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-indigo-900\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-lime-900\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-orange-900\/60:hover{background-color:#382e1e !important}
+body.dark-mode .hover\:bg-pink-800\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-pink-900\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-purple-800\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-purple-900\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-red-500:hover{background-color:#a33a3a !important}
+body.dark-mode .hover\:bg-rose-900\/60:hover{background-color:#3d1c1c !important}
+body.dark-mode .hover\:bg-sky-100:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-sky-900\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-teal-900\/60:hover{background-color:#1c3029 !important}
+body.dark-mode .hover\:bg-violet-900\/60:hover{background-color:#3a1f24 !important}
+body.dark-mode .hover\:bg-yellow-900\/60:hover{background-color:#382e1e !important}
+body.dark-mode .hover\:border-amber-400:hover{border-color:#6b5733 !important}
+body.dark-mode .hover\:border-amber-500\/40:hover{border-color:#6b5733 !important}
+body.dark-mode .hover\:border-blue-400:hover{border-color:#6b2a33 !important}
+body.dark-mode .hover\:border-cyan-400:hover{border-color:#2f5a4c !important}
+body.dark-mode .hover\:border-cyan-500\/50:hover{border-color:#2f5a4c !important}
+body.dark-mode .hover\:border-indigo-300:hover{border-color:#6b2a33 !important}
+body.dark-mode .hover\:border-indigo-400:hover{border-color:#6b2a33 !important}
+body.dark-mode .hover\:border-orange-400:hover{border-color:#6b5733 !important}
+body.dark-mode .hover\:border-orange-500:hover{border-color:#6b5733 !important}
+body.dark-mode .hover\:border-pink-500\/60:hover{border-color:#6b2a33 !important}
+body.dark-mode .hover\:border-purple-400:hover{border-color:#6b2a33 !important}
+body.dark-mode .hover\:border-purple-500\/40:hover{border-color:#6b2a33 !important}
+body.dark-mode .hover\:border-red-400:hover{border-color:#6e2b2b !important}
+body.dark-mode .hover\:border-red-500:hover{border-color:#6e2b2b !important}
+body.dark-mode .hover\:border-rose-400:hover{border-color:#6e2b2b !important}
+body.dark-mode .hover\:border-teal-400:hover{border-color:#2f5a4c !important}
+body.dark-mode .hover\:text-amber-600:hover{color:#e3c992 !important}
+body.dark-mode .hover\:text-cyan-600:hover{color:#a9d3c4 !important}
+body.dark-mode .hover\:text-emerald-700:hover{color:#a9d3c4 !important}
+body.dark-mode .text-amber-200{color:#e3c992 !important}
+body.dark-mode .text-amber-300{color:#e3c992 !important}
+body.dark-mode .text-amber-400{color:#e3c992 !important}
+body.dark-mode .text-amber-600{color:#e3c992 !important}
+body.dark-mode .text-amber-700{color:#e3c992 !important}
+body.dark-mode .text-amber-700\/90{color:#e3c992 !important}
+body.dark-mode .text-amber-800{color:#e3c992 !important}
+body.dark-mode .text-amber-900{color:#e3c992 !important}
+body.dark-mode .text-blue-200{color:#e9b8bf !important}
+body.dark-mode .text-blue-700{color:#e9b8bf !important}
+body.dark-mode .text-cyan-200{color:#a9d3c4 !important}
+body.dark-mode .text-cyan-300{color:#a9d3c4 !important}
+body.dark-mode .text-cyan-400{color:#a9d3c4 !important}
+body.dark-mode .text-cyan-600{color:#a9d3c4 !important}
+body.dark-mode .text-cyan-700{color:#a9d3c4 !important}
+body.dark-mode .text-cyan-800{color:#a9d3c4 !important}
+body.dark-mode .text-emerald-200{color:#a9d3c4 !important}
+body.dark-mode .text-emerald-400{color:#a9d3c4 !important}
+body.dark-mode .text-emerald-600{color:#a9d3c4 !important}
+body.dark-mode .text-emerald-700{color:#a9d3c4 !important}
+body.dark-mode .text-emerald-800{color:#a9d3c4 !important}
+body.dark-mode .text-fuchsia-200{color:#e9b8bf !important}
+body.dark-mode .text-indigo-200{color:#e9b8bf !important}
+body.dark-mode .text-indigo-600{color:#e9b8bf !important}
+body.dark-mode .text-indigo-700{color:#e9b8bf !important}
+body.dark-mode .text-indigo-700\/90{color:#e9b8bf !important}
+body.dark-mode .text-indigo-800{color:#e9b8bf !important}
+body.dark-mode .text-lime-200{color:#a9d3c4 !important}
+body.dark-mode .text-orange-200{color:#e3c992 !important}
+body.dark-mode .text-orange-600{color:#e3c992 !important}
+body.dark-mode .text-orange-700{color:#e3c992 !important}
+body.dark-mode .text-orange-800{color:#e3c992 !important}
+body.dark-mode .text-pink-200{color:#e9b8bf !important}
+body.dark-mode .text-pink-600{color:#e9b8bf !important}
+body.dark-mode .text-pink-700{color:#e9b8bf !important}
+body.dark-mode .text-pink-700\/90{color:#e9b8bf !important}
+body.dark-mode .text-purple-200{color:#e9b8bf !important}
+body.dark-mode .text-purple-600{color:#e9b8bf !important}
+body.dark-mode .text-purple-700{color:#e9b8bf !important}
+body.dark-mode .text-purple-700\/90{color:#e9b8bf !important}
+body.dark-mode .text-purple-800{color:#e9b8bf !important}
+body.dark-mode .text-red-600{color:#f0b4ad !important}
+body.dark-mode .text-red-700{color:#f0b4ad !important}
+body.dark-mode .text-red-800{color:#f0b4ad !important}
+body.dark-mode .text-rose-200{color:#f0b4ad !important}
+body.dark-mode .text-rose-600{color:#f0b4ad !important}
+body.dark-mode .text-rose-700{color:#f0b4ad !important}
+body.dark-mode .text-rose-800{color:#f0b4ad !important}
+body.dark-mode .text-sky-200{color:#a9d3c4 !important}
+body.dark-mode .text-sky-600{color:#a9d3c4 !important}
+body.dark-mode .text-sky-700{color:#a9d3c4 !important}
+body.dark-mode .text-sky-900{color:#a9d3c4 !important}
+body.dark-mode .text-teal-200{color:#a9d3c4 !important}
+body.dark-mode .text-teal-700{color:#a9d3c4 !important}
+body.dark-mode .text-teal-800{color:#a9d3c4 !important}
+body.dark-mode .text-violet-200{color:#e9b8bf !important}
+body.dark-mode .text-violet-800{color:#e9b8bf !important}
+body.dark-mode .text-yellow-200{color:#e3c992 !important}
+</style>
+<script>
+/* تعدد جهات المتابعة + تقرير الشهر + قارئات التعاميم + دليل الاستخدام لكل دور */
+(function(){
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const v13=()=>typeof scriptV!=='undefined'&&scriptV>=13&&typeof staffSession!=='undefined'&&!!staffSession;
+  const needV=()=>showToast('هذه الميزة تحتاج تحديث السكربت إلى الإصدار 13',true);
+  // ---- طالبات تتابعهن أكثر من جهة ----
+  window.openMultiParty=function(){
+    if(!v13()){ needV(); return; }
+    const d=document.getElementById('mp-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    openDialog('mp-dialog'); mpLoad();
+  };
+  window.mpLoad=async function(){
+    const box=document.getElementById('mp-list'); box.innerHTML='<p class="xw-meta">جاري التحميل…</p>';
+    try{ const r=await api('multiParty',{days:+document.getElementById('mp-days').value,min:+document.getElementById('mp-min').value});
+      if(!r||!r.ok){ box.innerHTML=`<p class="xw-meta">${esc((r&&r.error)||'تعذر التحميل')}</p>`; return; }
+      box.innerHTML=r.items.length?r.items.map(x=>`<div class="mp-item"><div class="t"><span>${esc(x.student)}</span><span class="xw-meta">${x.senders.length} جهات — ${x.n} رسائل — آخرها ${esc(x.last)}</span></div><div class="s">${x.senders.map(s=>`<span>${esc(s.s)} (${s.n})</span>`).join('')}</div></div>`).join(''):'<p class="xw-empty">لا توجد طالبات بهذا الشرط في الفترة المحددة.</p>';
+    }catch(e){ box.innerHTML='<p class="xw-meta">تعذر الاتصال</p>'; }
+  };
+  function mpBtn(){ const b=document.getElementById('mp-btn-sp'); if(b) b.classList.toggle('hidden',!['social_worker','psychologist'].includes(currentStaffRole)); }
+  if(typeof changeStaffRole==='function'){ const c=changeStaffRole; changeStaffRole=function(){ const r=c.apply(this,arguments); try{ mpBtn(); }catch(e){} return r; }; }
+  try{ mpBtn(); }catch(e){}
+  // ---- تقرير الشهر الحالي حتى اليوم (يصل إلى الرسائل) ----
+  window.sendMonthNow=async function(){
+    if(!v13()){ needV(); return; }
+    try{ const r=await api('monthlyInbox',{current:true}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر إعداد التقرير',true); return; }
+      showToast('✓ وصل تقرير الشهر حتى اليوم إلى «📨 الرسائل»'); if(typeof openStaffMail==='function') setTimeout(openStaffMail,600);
+    }catch(e){ showToast('تعذر الاتصال',true); }
+  };
+  // ---- من قرأت التعميم ومن لم تقرأ + تذكير ----
+  window.circReaders=async function(id,btn){
+    const box=document.getElementById('crd-'+id); if(!box) return;
+    if(box.innerHTML){ box.innerHTML=''; return; }
+    if(!v13()){ needV(); return; }
+    box.innerHTML='<p class="xw-meta">جاري التحميل…</p>';
+    try{ const r=await api('circStatus',{id}); if(!r||!r.ok){ box.innerHTML=`<p class="xw-meta">${esc((r&&r.error)||'تعذر التحميل')}</p>`; return; }
+      box.innerHTML=`<div class="crd-box"><b class="ok">✅ قرأته (${r.readers.length} من ${r.total})</b><div class="nm">${r.readers.map(n=>`<span>${esc(n)}</span>`).join('')||'<span>لا أحد بعد</span>'}</div>
+        <b class="no">⏳ لم تقرأه بعد (${r.pending.length})</b><div class="nm">${r.pending.map(n=>`<span>${esc(n)}</span>`).join('')||'<span>الجميع قرأ ✓</span>'}</div>
+        ${r.pending.length?`<button type="button" class="xw-btn primary" onclick="circRemind('${esc(id)}',this)">🔔 تذكير من لم تقرأ (${r.pending.length})</button>`:''}</div>`;
+    }catch(e){ box.innerHTML='<p class="xw-meta">تعذر الاتصال</p>'; }
+  };
+  window.circRemind=async function(id,btn){
+    btn.disabled=true; btn.textContent='جاري الإرسال…';
+    try{ const r=await api('remindUnread',{id}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الإرسال',true); btn.disabled=false; btn.textContent='🔔 تذكير'; return; }
+      showToast(`✓ أُرسل التذكير إلى ${r.count} ${r.count===1?'موظفة':'موظفات'}`); btn.textContent='✓ أُرسل التذكير';
+    }catch(e){ showToast('تعذر الاتصال',true); btn.disabled=false; }
+  };
+  // ---- دليل الاستخدام لكل دور (صفحة للطباعة) ----
+  const TOOLS={
+    principal:['«📊 لوحة القيادة» لمتابعة أداء التواصل في المدرسة.','«📜 تعاميم الهيئة التعليمية» لإرسال تعميم للمعلمات أو الإدارة أو الأخصائيات ومتابعة من قرأته وتذكير من لم تقرأ.','«📢 تعاميم أولياء الأمور» لنشر تعميم يظهر في سجل كل ولي أمر.','«⚠ الإنذار المبكر» و«👥 تعدد جهات المتابعة» لاكتشاف الطالبات اللواتي يحتجن تدخلاً.','«🗓 تقرير الشهر» يصل إلى الرسائل، ويصل تلقائياً أول كل شهر.','«🚌 الحافلات» لبيانات السائقين والمسارات.'],
+    vice_principal:['«📊 لوحة القيادة» و«⚠ الإنذار المبكر» و«👥 تعدد جهات المتابعة».','«🗓 تقرير الشهر» يصل إلى الرسائل.','«🚌 الحافلات» لبيانات السائقين والمسارات.'],
+    coordinator:['قائمة «رسائل سائقي الحافلات» لمراسلة السائقين عبر واتساب حسب المنطقة.','«🚌 الحافلات المدرسية» لتحديث بيانات الحافلات والمسارات وحفظها.'],
+    systems_specialist:['أزرار الغياب (الإشعار الأول ثم التنبيه الثاني ثم الإنذار الثالث) والاستئذان، مع متابعة الحالة وإغلاقها.','«إنذارات التأخر الصباحي»: سجّلي وقت وصول الطالبة، والمنصة تقترح الإنذار المناسب.'],
+    social_worker:['«👥 طالبات تتابعهن أكثر من جهة» للتنبه المبكر.','زر «📩 استدعاء ولي أمر» لتحديد موعد مقابلة.'],
+    psychologist:['«👥 طالبات تتابعهن أكثر من جهة» للتنبه المبكر.','زر «📩 استدعاء ولي أمر» لتحديد موعد مقابلة.'],
+    nurse:['أزرار نماذج الصحة المدرسية الستة.','زر «📩 استدعاء ولي أمر» عند الحاجة.'],
+    subject_teacher:['اختاري مادتكِ تظهر نماذجها: ثناء، واجب، اختبار، غياب وتأخر، استدعاء.','«قوالبي» لحفظ رسائلكِ المتكررة.']
+  };
+  window.knGuide=function(){
+    let role=''; try{ role=currentStaffRole; }catch(e){}
+    const roleName=(typeof ROLE_DISPLAY_LABELS!=='undefined'&&ROLE_DISPLAY_LABELS[role])||'الموظفة';
+    const who=(typeof loggedInStaff!=='undefined'&&loggedInStaff&&loggedInStaff.name)||'';
+    const sel=[...document.querySelectorAll('#role-tpl-select option')].slice(1).map(o=>o.text);
+    const grids=['subject-templates-grid-wrap','nurse-grid-wrap','systems-specialist-grid-wrap'].map(id=>document.getElementById(id)).filter(e=>e&&e.offsetParent).flatMap(e=>[...e.querySelectorAll('button')].filter(b=>b.offsetParent).map(b=>{ const m=(b.getAttribute('onclick')||'').match(/applyTemplate\('([^']+)'\)/); return m&&typeof TEMPLATE_TYPE_LABELS!=='undefined'&&TEMPLATE_TYPE_LABELS[m[1]]?TEMPLATE_TYPE_LABELS[m[1]]:(m?b.innerText.trim():''); }).filter(t=>t&&t.length<45));
+    const tpls=[...new Set(sel.concat(grids))];
+    const tools=(TOOLS[role]||[]).map(t=>`<li>${esc(t)}</li>`).join('');
+    const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>دليل الاستخدام — ${esc(roleName)}</title><style>
+      @page{size:A4;margin:14mm}body{font-family:Tahoma,Arial,sans-serif;color:#1f1d1b;margin:0;line-height:1.75;font-size:13.5px}
+      header{border-bottom:4px solid #7b1e2b;padding-bottom:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}
+      h1{color:#5e1822;font-size:22px;margin:0}h2{color:#2f5d50;font-size:15px;margin:14px 0 6px;border-right:4px solid #b08d57;padding-right:8px}
+      .sub{color:#6b665f;font-size:12px}ol,ul{margin:0;padding-right:20px}li{margin-bottom:3px}
+      .grid{columns:2;column-gap:24px}.grid li{break-inside:avoid}.note{background:#faf6ee;border:1px solid #e5d3ae;border-radius:8px;padding:8px 12px;margin-top:12px;font-size:12.5px}
+      footer{margin-top:16px;color:#6b665f;font-size:11px;border-top:1px solid #e5e0d8;padding-top:6px}</style></head><body>
+      <header><div><h1>دليل الاستخدام — ${esc(roleName)}</h1><div class="sub">منصة «كُنْ مَعَنا» — مدرسة خولة بنت حكيم للبنات (9-12)${who?' — '+esc(who):''}</div></div><div class="sub">${new Date().toLocaleDateString('ar-OM')}</div></header>
+      <h2>خطوات إرسال رسالة لولي الأمر</h2><ol>
+        <li>سجّلي الدخول باسمكِ ودوركِ وكلمة المرور الخاصة بكِ.</li><li>اختاري الصف من «استيراد الصف»، ثم اضغطي اسم الطالبة.</li>
+        <li>اختاري النموذج المناسب من نماذج دوركِ؛ يُكتب النص باسم الطالبة ويُضاف توقيعكِ تلقائياً.</li>
+        <li>أكملي أي فراغ (......) — تنبّهكِ المنصة إن بقي فراغ قبل الإرسال.</li>
+        <li>اضغطي «إرسال عبر WhatsApp Web» أو «فتح بتطبيق الواتساب»، ثم أكّدي «✅ أُرسلت» عند العودة للمنصة.</li></ol>
+      <h2>نماذج رسائل دوركِ</h2>${tpls.length?`<ul class="grid">${tpls.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p>تظهر نماذجكِ بعد اختيار المادة أو الدور.</p>'}
+      ${tools?`<h2>أدوات خاصة بدوركِ</h2><ul>${tools}</ul>`:''}
+      <h2>أدوات عامة</h2><ul>
+        <li>🔔 الجرس: تنبيه بالرسائل والتعاميم الجديدة.</li><li>📨 الرسائل: المراسلات الداخلية والتعاميم وردود الدعم الفني.</li>
+        <li>⚠ إبلاغ عن مشكلة: يصل طلبكِ لمسؤولة المنصة.</li><li>✏️ تعديل رقم ولي الأمر: يُحفظ ويظهر لكل الزميلات.</li>
+        <li>أرشيف الرسائل: كل ما أرسلتِه مع ردود أولياء الأمور.</li><li>؟ الجولة التعريفية: شرح أجزاء الصفحة في أي وقت.</li></ul>
+      <div class="note">للمساعدة: اضغطي «⚠ إبلاغ عن مشكلة» داخل المنصة، أو تواصلي مع مسؤولة المنصة أ. ابتسام الرواس.</div>
+      <footer>أُعدّ تلقائياً من منصة «كُنْ مَعَنا».</footer><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`;
+    const w=window.open('','_blank'); if(!w){ showToast('اسمحي بالنوافذ المنبثقة لطباعة الدليل',true); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+  };
 })();
 </script>
 <style id="omani-official-theme">
