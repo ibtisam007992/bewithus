@@ -3033,7 +3033,7 @@
                 teacherName: getArchiveSenderName(),
                 senderName: loggedInStaff ? loggedInStaff.name : '',
                 replyToken: replyToken || '',
-                type: activeTemplateType,
+                type: (typeof knResolveType === 'function' ? knResolveType(activeTemplateType, message) : activeTemplateType),
                 signerRole: currentStaffRole,
                 className: document.getElementById('active-class-display') ? document.getElementById('active-class-display').textContent : '',
                 message: message,
@@ -3218,7 +3218,7 @@
                 teacherName: getArchiveSenderName(),
                 senderName: loggedInStaff ? loggedInStaff.name : '',
                 replyToken: replyToken || '',
-                type: activeTemplateType,
+                type: (typeof knResolveType === 'function' ? knResolveType(activeTemplateType, message) : activeTemplateType),
                 signerRole: currentStaffRole,
                 className: classLabel,
                 message: message,
@@ -9398,6 +9398,43 @@ body.dark-mode .text-yellow-200{color:#e3c992 !important}
     const w=window.open('','_blank'); if(!w){ showToast('اسمحي بالنوافذ المنبثقة لطباعة الدليل',true); return; }
     w.document.open(); w.document.write(html); w.document.close();
   };
+})();
+</script>
+<script>
+/* نوع الرسالة في الأرشيف يُحدَّد من محتواها الفعلي: إذا كتبت المعلمة نصاً مختلفاً عن النموذج
+   (من «قوالبي» أو بالتعديل)، لا يُسجَّل «ثناء وتميز» لرسالة تقصير مثلاً */
+(function(){
+  const CONCERN=/تقاعس|كسل|تقصير|إهمال|اهمال|لم تسلّم|لم تسلم|عدم تسليم|عدم إنجاز|عدم انجاز|لم تقم|لم تنجز|ضعف|تراجع|تدني|تدنّي|انخفاض|مخالفة|سلوك غير|سلوكيات غير|نقص في|عدم الالتزام|عدم التزام|لم تلتزم/;
+  const ATTEND=/غياب|تغيب|تغيّب|التأخر الصباحي|تأخر صباحي|تأخرها الصباحي|التأخر عن الحضور|الطابور الصباحي|استئذان|خروج مبكر|انتظام ابنتكم/;
+  const PRAISE=/تفوق|تفوّق|تميز|تميّز|ثناء|الممتازة|نفخر|يسرني|يسعدني إفادتكم|شكر وتقدير|متميز|متميّز/;
+  function body(t){ return String(t||'').split(/\n\s*(?:التوقيع|للرد على المدرسة|سجل تواصل المدرسة)/)[0]; }
+  function cat(t){ t=body(t); if(CONCERN.test(t)) return 'concern'; if(ATTEND.test(t)) return 'attendance'; if(PRAISE.test(t)) return 'praise'; return ''; }
+  const LBL={student_concern:'متابعة تقصير',custom_msg:'رسالة خاصة'};
+  try{ Object.assign(TEMPLATE_TYPE_LABELS,LBL); }catch(e){}
+  const tplCat={};
+  function catOfType(type){
+    if(type in tplCat) return tplCat[type];
+    let c=''; try{ c=cat(generateMessageText(type,{name:'الطالبة',phone:'',id:0})); }catch(e){}
+    return tplCat[type]=c;
+  }
+  window.knResolveType=function(type,msg){
+    if(!msg) return type;
+    const m=cat(msg); const t=catOfType(type);
+    if(m===t) return type;
+    if(m==='concern') return 'student_concern';
+    if(m==='attendance') return (t==='attendance')?type:'absence_tardiness';
+    if(m==='praise') return 'praise';
+    return 'custom_msg';
+  };
+  // تصحيح الرسائل القديمة المسجَّلة «ثناء وتميز» ومحتواها غير ذلك
+  window.knFixArchiveTypes=function(){
+    let n=0;
+    try{ messageArchive.forEach(e=>{ if(e && e.type==='praise' && e.message){ const r=knResolveType('praise', e.message); if(r!=='praise'){ e.type=r; n++; } } }); }catch(x){}
+    if(n){ try{ saveArchiveToStorage(); }catch(x){} }
+    return n;
+  };
+  if(typeof window.fixArchiveSubjects==='function'){ const f=window.fixArchiveSubjects; window.fixArchiveSubjects=function(){ const a=f.apply(this,arguments); return a+knFixArchiveTypes(); }; }
+  knFixArchiveTypes();
 })();
 </script>
 <style id="omani-official-theme">
