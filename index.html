@@ -9557,7 +9557,7 @@ body.dark-mode .cls-grid b{color:#efe8e2}body.dark-mode .cls-tabs button[aria-se
     if(!v14()){ wrap.classList.add('hidden'); if(btn) btn.style.display=''; return; }
     let items=[], note='';
     try{ const r=await api('classList',{}); items=(r&&r.ok&&r.items)||[]; note=(r&&r.note)||''; }catch(e){}
-    if(!items.length){ wrap.classList.add('hidden'); if(btn) btn.style.display=''; return; }
+    if(!items.length){ sel.innerHTML='<option value="">— لم تُرفع قاعدة بيانات الطالبات بعد —</option>'; wrap.title='ترفعها مسؤولة المنصة من لوحة الإدارة ← قاعدة بيانات الطالبات'; wrap.classList.remove('hidden'); if(btn) btn.style.display=''; return; }
     list=items;
     const cur=String(localStorage.getItem('school_active_class_name')||'');
     const by={}; items.forEach(x=>{ (by[x.grade]=by[x.grade]||[]).push(x); });
