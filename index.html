@@ -9458,6 +9458,13 @@ body.dark-mode .text-yellow-200{color:#e3c992 !important}
       <div id="sdb-current" class="xw-meta" style="margin-bottom:10px"></div>
       <label class="xw-btn primary" style="display:inline-flex;cursor:pointer">📂 اختيار ملفات Excel<input type="file" id="sdb-files" accept=".xlsx,.xls" multiple style="display:none" onchange="sdbRead(this)"></label>
       <div id="sdb-preview" style="margin-top:12px"></div>
+      <hr style="margin:16px 0;border:0;border-top:1px solid #e5e0d8">
+      <h4 style="margin:0 0 4px;font-size:15px;font-weight:800">👩‍🏫 توزيع الصفوف على المعلمات</h4>
+      <p class="xw-meta" style="margin:0 0 8px">ارفعي ملف «المعلمات والصفوف»، فترى كل معلمة مادة الشعب التي تدرّسها فقط. الإدارة والأخصائيات والممرضة والمنسقة وأخصائية الأنظمة ومعلمات الموسيقى يرين كل الصفوف. المسار المهني والتقني = شعب السياحة.</p>
+      <div id="tch-current" class="xw-meta" style="margin-bottom:8px"></div>
+      <label class="xw-btn" style="display:inline-flex;cursor:pointer">📂 اختيار ملف توزيع الصفوف<input type="file" id="tch-file" accept=".xlsx,.xls" style="display:none" onchange="tchRead(this)"></label>
+      <div id="tch-preview" style="margin-top:10px"></div>
+      <button type="button" class="xw-btn primary" id="tch-save" disabled style="margin-top:8px" onclick="tchSave()">💾 حفظ توزيع الصفوف</button>
     </div>
     <div class="xw-foot"><button class="xw-btn" onclick="closeDialog('sdb-dialog')">إغلاق</button><button class="xw-btn primary" id="sdb-save" disabled onclick="sdbSave()">💾 حفظ في قاعدة البيانات</button></div>
   </div>
@@ -9497,12 +9504,13 @@ body.dark-mode .cls-grid b{color:#efe8e2}body.dark-mode .cls-tabs button[aria-se
     const d=document.getElementById('cls-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
     openDialog('cls-dialog');
     document.getElementById('cls-grid').innerHTML='<p class="xw-meta">جاري التحميل…</p>';
-    try{ const r=await api('classList',{}); list=(r&&r.ok&&r.items)||[]; }catch(e){ list=[]; }
+    let note=''; try{ const r=await api('classList',{}); list=(r&&r.ok&&r.items)||[]; note=(r&&r.note)||''; }catch(e){ list=[]; }
     if(!list.length){ document.getElementById('cls-tabs').innerHTML=''; document.getElementById('cls-grid').innerHTML='<p class="xw-empty">لم تُرفع قاعدة بيانات الطالبات بعد. تستطيع مسؤولة المنصة رفعها من «لوحة الإدارة ← 📚 قاعدة بيانات الطالبات».</p>'; return; }
     const grades=[...new Set(list.map(x=>x.grade))].sort((a,b)=>a-b);
     const cur=String(localStorage.getItem('school_active_class_name')||''); const cg=(cur.match(/الصف\s+(\d+)/)||[])[1];
     grade=grades.includes(cg)?cg:grades[0];
     document.getElementById('cls-sub').textContent=`من قاعدة بيانات طالبات المدرسة — ${list.reduce((a,x)=>a+x.count,0)} طالبة في ${list.length} شعبة`;
+    if(note) document.getElementById('cls-sub').textContent=note+` — ${list.length} شعبة`;
     renderTabs(grades); renderGrid();
   };
   function renderTabs(grades){
@@ -9538,6 +9546,7 @@ body.dark-mode .cls-grid b{color:#efe8e2}body.dark-mode .cls-tabs button[aria-se
   window.openStudentsDb=async function(){
     const d=document.getElementById('sdb-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
     openDialog('sdb-dialog'); parsed=[]; document.getElementById('sdb-preview').innerHTML=''; document.getElementById('sdb-save').disabled=true;
+    tch=[]; document.getElementById('tch-preview').innerHTML=''; document.getElementById('tch-save').disabled=true; if(!(typeof scriptV!=='undefined'&&scriptV<14)) tchCurrent();
     const cur=document.getElementById('sdb-current'); cur.textContent='';
     if(typeof scriptV!=='undefined'&&scriptV<14){ cur.innerHTML='<div class="sdb-warn">تحتاج هذه الميزة تحديث سكربت الردود إلى الإصدار 14.</div>'; return; }
     try{ const r=await adminCall('studentsSummary'); if(r&&r.ok&&r.items.length){ const by={}; r.items.forEach(x=>{ (by[x.grade]=by[x.grade]||[]).push(x); });
@@ -9574,6 +9583,35 @@ body.dark-mode .cls-grid b{color:#efe8e2}body.dark-mode .cls-tabs button[aria-se
       (parsed.length?`<p class="xw-meta" style="margin-top:8px">المجموع ${parsed.length} طالبة. عند الحفظ تُستبدل بيانات الصفوف ${Object.keys(by).sort((a,b)=>a-b).join('، ')} فقط.</p>`:'');
     document.getElementById('sdb-save').disabled=!parsed.length;
   };
+  // ---- توزيع الصفوف على المعلمات ----
+  let tch=[];
+  // "12/1" → "12-1" ، "12 مهني وتقني/2" → "12-2 سياحة"
+  function secCode(t){ t=String(t).trim(); let m=t.match(/^(\d{1,2})\s*(?:مهني|المسار المهني|سياحة)[^\/]*\/\s*(\d{1,2})/); if(m) return `${m[1]}-${m[2]} سياحة`;
+    m=t.match(/^(\d{1,2})\s*[\/-]\s*(\d{1,2})\s*(سياحة)?/); return m?`${m[1]}-${m[2]}${m[3]?' سياحة':''}`:''; }
+  window.tchRead=async function(input){
+    const f=input.files[0]; input.value=''; if(!f) return;
+    if(typeof XLSX==='undefined'){ showToast('مكتبة Excel لم تُحمَّل بعد',true); return; }
+    try{ const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+      const sn=wb.SheetNames.find(n=>/المعلمات/.test(n))||wb.SheetNames[0];
+      const a=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:false});
+      let h=a.findIndex(r=>r.some(c=>/اسم المعلمة/.test(String(c)))); if(h<0) h=0;
+      const H=a[h].map(c=>String(c).trim()); const iN=H.findIndex(c=>/اسم/.test(c)), iS=H.findIndex(c=>/^المادة$/.test(c)), iC=H.findIndex(c=>/الشعب/.test(c));
+      if(iN<0||iC<0){ showToast('لم أجد عمودي «اسم المعلمة» و«الشعب التي تدرسها»',true); return; }
+      tch=a.slice(h+1).map(r=>({ name:String(r[iN]||'').replace(/\s+/g,' ').trim(), subject:iS>=0?String(r[iS]||'').trim():'', sections:String(r[iC]||'').split(/[،,]/).map(secCode).filter(Boolean) })).filter(x=>x.name);
+      const none=tch.filter(x=>!x.sections.length);
+      document.getElementById('tch-preview').innerHTML=`<div class="sdb-g"><h4>${tch.length} معلمة — ${tch.reduce((a,x)=>a+x.sections.length,0)} إسناد شعبة</h4><div class="secs">${tch.slice(0,8).map(x=>`<span>${esc(x.name)}: ${x.sections.map(display).map(d=>d.replace('الصف ','')).join('، ')}</span>`).join('')}${tch.length>8?'<span>…</span>':''}</div></div>`+
+        (none.length?`<div class="sdb-warn">${none.length} معلمات بلا شعب في الملف (سيرين كل الصفوف): ${none.map(x=>esc(x.name)).join('، ')}</div>`:'');
+      document.getElementById('tch-save').disabled=!tch.length;
+    }catch(e){ showToast('تعذرت قراءة الملف',true); }
+  };
+  window.tchSave=async function(){
+    if(!tch.length) return; const b=document.getElementById('tch-save'); b.disabled=true; b.textContent='جاري الحفظ…';
+    try{ const r=await adminCall('teachImport',{items:tch}); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الحفظ',true); b.disabled=false; return; }
+      showToast(`✓ حُفظ توزيع الصفوف لـ ${r.count} معلمة`); tch=[]; document.getElementById('tch-preview').innerHTML=(r.unmatched&&r.unmatched.length)?`<div class="sdb-warn">معلمات في دليل الموظفات لم تُطابَق أسماؤهن في الملف، فسيرين كل الصفوف حتى تُصحَّح أسماؤهن: ${r.unmatched.map(esc).join('، ')}</div>`:''; tchCurrent();
+    }catch(e){ showToast('تعذر الاتصال',true); b.disabled=false; } finally{ b.textContent='💾 حفظ توزيع الصفوف'; }
+  };
+  async function tchCurrent(){ const el=document.getElementById('tch-current'); el.textContent='';
+    try{ const r=await adminCall('teachGet'); if(r&&r.ok) el.textContent=r.items.length?`المحفوظ حالياً: توزيع ${r.items.length} معلمة.`:'لم يُحفظ توزيع الصفوف بعد — حتى يُحفظ ترى كل المعلمات كل الصفوف.'; }catch(e){} }
   window.sdbSave=async function(){
     if(!parsed.length) return;
     const grades=[...new Set(parsed.map(x=>(String(x.cls).match(/^\s*(\d{1,2})/)||[])[1]).filter(Boolean))];
