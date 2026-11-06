@@ -505,7 +505,8 @@
                     </button>
 
                     <!-- Google Drive Link Button -->
-                    <button onclick="openDriveImportModal()" class="cursor-pointer bg-slate-200/90 hover:bg-slate-300 text-amber-700 border border-amber-500/40 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2 transition" title="اختيار الصف من قاعدة بيانات الطالبات (9-12)">
+                    <label id="cls-select-wrap" class="cls-sel hidden" title="اختاري الصف والشعبة"><span>📚 الصف:</span><select id="cls-select" onchange="clsSelectChange(this)" aria-label="اختيار الصف"></select></label>
+                    <button id="cls-open-btn" onclick="openDriveImportModal()" class="cursor-pointer bg-slate-200/90 hover:bg-slate-300 text-amber-700 border border-amber-500/40 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2 transition" title="اختيار الصف من قاعدة بيانات الطالبات (9-12)">
                         <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="currentColor"><path d="M7.71 3.5L1.15 15l3.43 6 6.55-11.5 -3.42-6zm2.86 6L14 3.5h6.86l-3.43 6H10.57zm3.15 1.5l3.43 6H3.43l3.42-6h6.86z"/></svg>
                         <span>اختيار الصف</span>
                     </button>
@@ -8733,6 +8734,7 @@ body:has([id$="-modal"]:not(.hidden)) #kn-icons{display:none !important}
     {s:'#kn-help',t:'؟ الجولة التعريفية',d:'يمكنكِ إعادة هذه الجولة في أي وقت من هذا الزر.'},
     {s:'.v5-lead',t:'أدوات القيادة',d:'لوحة القيادة، وتعاميم أولياء الأمور، والإنذار المبكر، والحافلات.',when:()=>isRole('principal','vice_principal')},
     {s:'#circ-btn',t:'📜 تعاميم الهيئة التعليمية',d:'اكتبي تعميماً موجهاً للمعلمات أو الإدارة أو الأخصائيات، فيصل لكل واحدة منهن في الرسائل مع جرس تنبيه، وتتابعين عدد من قرأته.'},
+    {s:'#cls-select-wrap',t:'اختيار الصف',d:'اختاري من القائمة الصف والشعبة؛ تظهر لكِ الشعب التي تدرّسينها فقط، فتُحمَّل طالباتها وأرقام أولياء أمورهن.'},
     {s:'button[onclick="openDriveImportModal()"]',t:'اختيار الصف',d:'اختاري الصف (9 إلى 12) ثم الشعبة، فتُحمَّل قائمة طالباتها وأرقام أولياء أمورهن من قاعدة بيانات المدرسة.'},
     {s:'#search-input',t:'البحث عن طالبة',d:'اكتبي جزءاً من اسم الطالبة أو رقم ولي الأمر للوصول إليها بسرعة.'},
     {s:'#students-list-container',t:'قائمة طالبات الصف',d:'اضغطي على اسم الطالبة لاختيارها. زر ✏️ لتعديل رقم ولي الأمر (يُحفظ ولا يضيع عند إعادة الاستيراد)، ومربع الاختيار للإرسال الجماعي.'},
@@ -9471,6 +9473,11 @@ body.dark-mode .text-yellow-200{color:#e3c992 !important}
 </div>
 <style>
 #sdb-dialog{z-index:10002 !important}
+.cls-sel{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(176,141,87,.55);border-radius:12px;padding:4px 6px 4px 12px;font-size:13px;font-weight:800;color:#5e1822}
+.cls-sel.hidden{display:none}
+.cls-sel select{border:0;background:transparent;font-family:inherit;font-size:14px;font-weight:800;color:#1f1d1b;padding:6px 4px;min-width:170px;cursor:pointer;outline:none}
+.cls-sel:focus-within{outline:3px solid var(--om-gold,#b08d57);outline-offset:2px}
+body.dark-mode .cls-sel{background:#2a2122 !important;border-color:#4a3a3c !important;color:#e9b8bf}body.dark-mode .cls-sel select{color:#efe8e2 !important;background:#2a2122 !important}
 .cls-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .cls-tabs button{border:1px solid var(--om-line,#e5e0d8);background:#faf8f5;border-radius:12px;padding:8px 18px;font-weight:800;font-family:inherit;cursor:pointer;font-size:14px;color:#45413c}
 .cls-tabs button[aria-selected="true"]{background:var(--om-maroon,#7b1e2b);border-color:var(--om-maroon,#7b1e2b);color:#fff}
@@ -9532,14 +9539,37 @@ body.dark-mode .cls-grid b{color:#efe8e2}body.dark-mode .cls-tabs button[aria-se
       students=items.map(x=>({ id:sid(cls,x.name), name:x.name, phone:tel(x.phone), status:'نشط' }));
       saveStudentsToStorage(); updateActiveClassDisplay(name);
       try{ if(typeof selectedStudent!=='undefined') selectedStudent=null; }catch(e){}
+      try{ const n=document.getElementById('selected-student-name'), ph=document.getElementById('selected-student-phone'); if(n) n.innerText='اختاري طالبة من قائمة الصف'; if(ph) ph.innerText='—'; }catch(e){}
       try{ window.knApplyStudentEdits&&knApplyStudentEdits(); }catch(e){}
       renderStudentsList(''); updateStats();
       closeDialog('cls-dialog');
       const miss=students.filter(s=>!/^968[79]\d{7}$/.test(s.phone)).length;
       showToast(`✓ ${name}: ${students.length} طالبة`+(miss?` — ${miss} بلا رقم صحيح (عدّليه بزر ✏️)`:''), !!miss);
       if(window.knPullStudentEdits) knPullStudentEdits();
-    }catch(e){ st.textContent='تعذر الاتصال، حاولي مرة أخرى.'; }
+      const sel=document.getElementById('cls-select'); if(sel){ sel.value=cls; const blank=sel.querySelector('option[value=""]'); if(blank) blank.remove(); }
+    }catch(e){ st.textContent='تعذر الاتصال، حاولي مرة أخرى.'; showToast('تعذر تحميل الصف، حاولي مرة أخرى',true); }
   };
+
+  // ---- قائمة منسدلة لاختيار الصف (تظهر فيها شعب المعلمة فقط، وكل الشعب للإدارة والأخصائيات) ----
+  async function fillSelect(){
+    const wrap=document.getElementById('cls-select-wrap'), sel=document.getElementById('cls-select'), btn=document.getElementById('cls-open-btn');
+    if(!wrap||!sel) return;
+    if(!v14()){ wrap.classList.add('hidden'); if(btn) btn.style.display=''; return; }
+    let items=[], note='';
+    try{ const r=await api('classList',{}); items=(r&&r.ok&&r.items)||[]; note=(r&&r.note)||''; }catch(e){}
+    if(!items.length){ wrap.classList.add('hidden'); if(btn) btn.style.display=''; return; }
+    list=items;
+    const cur=String(localStorage.getItem('school_active_class_name')||'');
+    const by={}; items.forEach(x=>{ (by[x.grade]=by[x.grade]||[]).push(x); });
+    const curCode=(items.find(x=>display(x.cls)===cur)||{}).cls||'';
+    sel.innerHTML=(curCode?'':'<option value="">— اختاري الصف والشعبة —</option>')+Object.keys(by).sort((a,b)=>a-b).map(g=>`<optgroup label="الصف ${g}">${by[g].map(x=>`<option value="${esc(x.cls)}"${x.cls===curCode?' selected':''}>${esc(display(x.cls))} — ${x.count} طالبة</option>`).join('')}</optgroup>`).join('');
+    wrap.title=note||'اختاري الصف والشعبة';
+    wrap.classList.remove('hidden'); if(btn) btn.style.display='none';
+  }
+  window.clsFillSelect=fillSelect;
+  window.clsSelectChange=function(sel){ if(sel.value) clsPick(sel.value); };
+  if(typeof applyStaffLogin==='function'){ const al=applyStaffLogin; applyStaffLogin=function(){ const r=al.apply(this,arguments); setTimeout(()=>{ (typeof scriptReady!=='undefined'?scriptReady:Promise.resolve()).then(fillSelect).catch(()=>{}); },900); return r; }; }
+  if(typeof logoutStaff==='function'){ const lo=logoutStaff; logoutStaff=function(){ const r=lo.apply(this,arguments); const w=document.getElementById('cls-select-wrap'); if(w) w.classList.add('hidden'); const b=document.getElementById('cls-open-btn'); if(b) b.style.display=''; return r; }; }
 
   // ---- رفع قاعدة البيانات (مسؤولة المنصة) ----
   let parsed=[];
