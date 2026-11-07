@@ -6,7 +6,12 @@
     <!-- Installable app (PWA) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#5e1822">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+    <meta name="application-name" content="كُنْ مَعَنا">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="msapplication-TileColor" content="#5e1822">
+    <meta name="msapplication-TileImage" content="icon-192.png?v=2">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="كُنْ مَعَنا">
@@ -374,22 +379,24 @@
     <div id="login-gate" role="dialog" aria-modal="true" aria-labelledby="login-gate-title">
         <div class="lg-card">
             <img id="login-gate-banner" class="lg-banner" alt="منصة كن معنا">
-            <form class="lg-body" onsubmit="submitLoginGate(event)" autocomplete="off">
+            <form class="lg-body" id="login-form" method="post" action="#" onsubmit="submitLoginGate(event)" autocomplete="on">
                 <h2 id="login-gate-title">تسجيل دخول الموظفة</h2>
                 <p class="lg-sub">منصة «كُن معنا» — مدرسة خولة بنت حكيم للبنات <span style="white-space:nowrap">(9–12)</span></p>
                 <label for="login-name">الاسم</label>
-                <input id="login-name" list="login-name-list" placeholder="اكتبي اسمك" oninput="onLoginNameInput()" onchange="onLoginNameInput()">
+                <input id="login-name" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" list="login-name-list" placeholder="اكتبي اسمك" oninput="onLoginNameInput()" onchange="onLoginNameInput()">
                 <p id="login-name-job" style="display:none;margin:6px 2px 0;font-size:12px;font-weight:700;color:#7b1e2b"></p>
                 <datalist id="login-name-list"></datalist>
                 <label for="login-role">الدور الوظيفي</label>
                 <select id="login-role"></select>
                 <label for="login-password">الرقم السري</label>
-                <input id="login-password" type="password" placeholder="••••••">
+                <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••">
+                <label class="lg-remember"><input type="checkbox" id="login-remember" checked> تذكّري اسمي ودوري على هذا الجهاز، واحفظي الرقم السري في المتصفح</label>
                 <p id="login-error" class="lg-err"></p>
                 <button type="submit">دخول</button>
                 <p id="login-v5-hint" class="lg-foot" style="display:none">لمن لديها حساب خاص: الاسم وكلمة المرور فقط، ويُحدَّد الدور تلقائياً.</p>
                 <button type="button" class="lg-admin-link" onclick="openAdminDialog()">إدارة حسابات الموظفات (لمسؤولة المنصة)</button>
                 <p class="lg-foot">يبقى الدخول فعّالاً حتى إغلاق نافذة المتصفح أو تسجيل الخروج.</p>
+                <button type="button" class="lg-admin-link lg-install-link" onclick="knInstallGuide()">📲 تثبيت المنصة على جهازكِ (جوال، آيباد، حاسوب)</button>
             </form>
         </div>
     </div>
@@ -9652,6 +9659,103 @@ body.dark-mode .cls-grid b{color:#efe8e2}body.dark-mode .cls-tabs button[aria-se
       showToast(`✓ حُفظت ${r.count} طالبة في قاعدة البيانات`); parsed=[]; openStudentsDb();
     }catch(e){ showToast('تعذر الاتصال',true); } finally{ b.textContent='💾 حفظ في قاعدة البيانات'; }
   };
+})();
+</script>
+<div id="inst-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="inst-title">
+  <div class="xw-panel" style="max-width:560px">
+    <div class="xw-head"><div><h3 id="inst-title">📲 تثبيت منصة «كُنْ مَعَنا»</h3><div class="xw-sub" id="inst-sub"></div></div>
+      <button class="xw-x" onclick="closeDialog('inst-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body"><div id="inst-body"></div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:800;font-size:13px">طريقة التثبيت على الأجهزة الأخرى</summary><div id="inst-all" style="margin-top:8px"></div></details>
+    </div>
+  </div>
+</div>
+<style>
+.lg-remember{display:flex !important;align-items:flex-start;gap:8px;font-size:12.5px !important;font-weight:600 !important;color:#57524c !important;margin:10px 2px 0 !important;line-height:1.6;cursor:pointer}
+.lg-remember input{width:18px !important;height:18px !important;margin-top:2px;flex:none;accent-color:#7b1e2b;padding:0 !important}
+.lg-install-link{color:#2f5d50 !important;font-weight:700 !important}
+#inst-dialog{z-index:10004 !important}
+.inst-steps{margin:0;padding-right:20px;line-height:1.9;font-size:14px}.inst-steps li{margin-bottom:4px}
+.inst-dev{border:1px solid #e5e0d8;border-radius:12px;padding:8px 12px;margin-bottom:8px;background:#faf8f5}
+.inst-dev b{display:block;color:#5e1822;margin-bottom:2px}.inst-dev ol{margin:0;padding-right:18px;font-size:13px;line-height:1.8}
+.inst-go{width:100%;margin-top:12px}
+.inst-note{font-size:12.5px;background:#faf6ee;border:1px solid #e5d3ae;border-radius:10px;padding:8px 10px;margin-top:10px}
+body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important;border-color:#4a3a3c !important;color:#efe8e2}
+</style>
+<script>
+/* حفظ الرقم السري في الجوال والحاسوب + تذكّر الاسم والدور + تثبيت المنصة على كل الأجهزة */
+(function(){
+  const LAST='kn_last_login';
+  // ---- تعبئة الاسم والدور المحفوظين ----
+  function prefill(){
+    let o=null; try{ o=JSON.parse(localStorage.getItem(LAST)||'null'); }catch(e){}
+    if(!o||!o.name) return;
+    const n=document.getElementById('login-name'), r=document.getElementById('login-role');
+    if(n&&!n.value){ n.value=o.name; try{ onLoginNameInput(); }catch(e){} }
+    if(r&&o.role&&[...r.options].some(x=>x.value===o.role)) r.value=o.role;
+  }
+  window.addEventListener('load',()=>setTimeout(prefill,300));
+  setTimeout(prefill,1200);
+  // ---- عند نجاح الدخول: حفظ الاسم/الدور، وطلب حفظ الرقم السري من المتصفح ----
+  let pending=null;
+  document.addEventListener('submit',e=>{ if(e.target&&e.target.id==='login-form'){ pending={ name:(document.getElementById('login-name').value||'').replace(/\s+/g,' ').trim(), pw:document.getElementById('login-password').value, role:document.getElementById('login-role').value }; } },true);
+  async function storeCred(p){
+    try{
+      if(!document.getElementById('login-remember')||!document.getElementById('login-remember').checked){ localStorage.removeItem(LAST); return; }
+      localStorage.setItem(LAST,JSON.stringify({name:p.name,role:p.role}));
+    }catch(e){}
+    // Chrome / Edge / Android: يظهر عرض «حفظ كلمة المرور» فوراً
+    try{ if(window.PasswordCredential&&navigator.credentials&&p.pw){ await navigator.credentials.store(new PasswordCredential({ id:p.name, password:p.pw, name:p.name })); } }catch(e){}
+    // Safari (آيفون/آيباد/ماك): يعرض الحفظ بعد إرسال النموذج واختفائه — نُبقي القيم لحظة ثم نمسحها
+    setTimeout(()=>{ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} },50);
+  }
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(info){ const r=a.apply(this,arguments); try{ if(pending&&info&&pending.name){ const p=Object.assign({},pending,{role:info.role||pending.role}); pending=null; storeCred(p); } }catch(e){} return r; }; }
+
+  // ---- تثبيت المنصة ----
+  const ua=navigator.userAgent||'';
+  const isIPad=/iPad/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isIOS=/iPhone|iPod/.test(ua)||isIPad;
+  const isAndroid=/Android/i.test(ua);
+  const inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|TikTok|; wv\)/i.test(ua);
+  const isSamsung=/SamsungBrowser/i.test(ua), isFirefox=/Firefox|FxiOS/i.test(ua), isEdge=/Edg(e|A|iOS)?\//i.test(ua);
+  const isSafariMac=!isIOS&&/Macintosh/.test(ua)&&/Safari/.test(ua)&&!/Chrome|Chromium|Edg|Firefox/.test(ua);
+  const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.matchMedia('(display-mode: minimal-ui)').matches||navigator.standalone===true;
+  const ALL=[
+    ['📱 آيفون (Safari)',['افتحي رابط المنصة في Safari.','اضغطي زر المشاركة ⬆️ أسفل الشاشة.','اختاري «إضافة إلى الشاشة الرئيسية» ثم «إضافة».']],
+    ['📲 آيباد (Safari)',['افتحي رابط المنصة في Safari.','اضغطي زر المشاركة ⬆️ أعلى الشاشة بجانب شريط العنوان.','اختاري «إضافة إلى الشاشة الرئيسية» ثم «إضافة».']],
+    ['🤖 أندرويد (Chrome / Edge)',['اضغطي زر «تثبيت» عند ظهوره، أو قائمة المتصفح ⋮.','اختاري «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».']],
+    ['🌐 أندرويد (Samsung Internet)',['اضغطي القائمة ≡ أسفل الشاشة.','اختاري «إضافة الصفحة إلى» ثم «الشاشة الرئيسية».']],
+    ['🦊 أندرويد (Firefox)',['اضغطي القائمة ⋮.','اختاري «تثبيت» أو «إضافة إلى الشاشة الرئيسية».']],
+    ['💻 حاسوب ويندوز أو كروم بوك (Chrome / Edge)',['اضغطي أيقونة التثبيت ⊕ في نهاية شريط العنوان.','أو من القائمة ⋮: «حفظ ومشاركة» ← «تثبيت الصفحة كتطبيق» (Chrome)، أو «التطبيقات» ← «تثبيت هذا الموقع كتطبيق» (Edge).']],
+    ['🍎 حاسوب ماك',['في Safari: قائمة «ملف» ← «إضافة إلى Dock».','أو في Chrome/Edge: أيقونة التثبيت ⊕ في شريط العنوان.']],
+    ['ℹ️ Firefox على الحاسوب',['لا يدعم التثبيت؛ افتحي المنصة في Chrome أو Edge وثبّتيها منهما.']]
+  ];
+  function steps(arr){ return `<ol class="inst-steps">${arr.map(x=>`<li>${x}</li>`).join('')}</ol>`; }
+  function mine(){
+    if(inApp) return ['أنتِ داخل متصفح تطبيق (واتساب أو غيره)',['اضغطي القائمة ⋮ أو ⋯ أعلى الشاشة.',`اختاري «فتح في ${isIOS?'Safari':'Chrome'}» أو «فتح في المتصفح».`,'ثم اضغطي زر «📲 تثبيت المنصة» مرة أخرى.']];
+    if(isIOS){ const b=ALL[isIPad?1:0]; const extra=/CriOS|FxiOS|EdgiOS/.test(ua)?['إن لم يظهر الخيار، افتحي الرابط في Safari وكرري الخطوات.']:[]; return [b[0],b[1].concat(extra)]; }
+    if(isAndroid) return isSamsung?ALL[3]:isFirefox?ALL[4]:ALL[2];
+    if(isSafariMac) return ALL[6];
+    if(isFirefox) return ALL[7];
+    return ALL[5];
+  }
+  window.knInstallGuide=async function(){
+    if(standalone()){ showToast('المنصة مثبّتة ومفتوحة كتطبيق على هذا الجهاز ✓'); return; }
+    if(typeof deferredInstallPrompt!=='undefined'&&deferredInstallPrompt){
+      try{ deferredInstallPrompt.prompt(); const c=await deferredInstallPrompt.userChoice; deferredInstallPrompt=null; if(c&&c.outcome==='accepted') return; }catch(e){}
+    }
+    const d=document.getElementById('inst-dialog'); if(d.parentElement!==document.body) document.body.appendChild(d);
+    const m=mine();
+    document.getElementById('inst-sub').textContent='جهازكِ الآن: '+m[0];
+    document.getElementById('inst-body').innerHTML=steps(m[1])+`<div class="inst-note">بعد التثبيت تظهر أيقونة «كُنْ مَعَنا» على الشاشة الرئيسية أو سطح المكتب، وتفتح المنصة كتطبيق مستقل بلا شريط المتصفح.</div>`;
+    document.getElementById('inst-all').innerHTML=ALL.map(x=>`<div class="inst-dev"><b>${x[0]}</b><ol>${x[1].map(y=>`<li>${y}</li>`).join('')}</ol></div>`).join('');
+    openDialog('inst-dialog');
+  };
+  // زر «تثبيت» يظهر على كل الأجهزة (جوال، آيباد، حاسوب) ما دامت المنصة غير مثبّتة
+  window.installPlatformApp=knInstallGuide;
+  function showBtn(){ const b=document.getElementById('install-app-btn'); if(b) b.style.display=standalone()?'none':'inline-block'; const l=document.querySelector('.lg-install-link'); if(l) l.style.display=standalone()?'none':''; }
+  window.addEventListener('load',()=>setTimeout(showBtn,500));
+  if(typeof applyStaffLogin==='function'){ const a2=applyStaffLogin; applyStaffLogin=function(){ const r=a2.apply(this,arguments); setTimeout(showBtn,300); return r; }; }
 })();
 </script>
 <style id="omani-official-theme">
