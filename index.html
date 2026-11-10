@@ -9758,6 +9758,25 @@ body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important
   if(typeof applyStaffLogin==='function'){ const a2=applyStaffLogin; applyStaffLogin=function(){ const r=a2.apply(this,arguments); setTimeout(showBtn,300); return r; }; }
 })();
 </script>
+<script>
+/* v15: send the section and message type with each message (for accurate reports) */
+(function(){
+  if (typeof backupArchiveEntryToGoogleSheet !== 'function') return;
+  const orig = backupArchiveEntryToGoogleSheet;
+  window.backupArchiveEntryToGoogleSheet = backupArchiveEntryToGoogleSheet = function(entry){
+    const r = orig.apply(this, arguments);
+    try {
+      if (entry && typeof scriptV !== 'undefined' && scriptV >= 15 && staffSession && staffSession.token && PARENT_REPLY_WEBAPP_URL) {
+        const sent = new Date(entry.sentAt);
+        if (!isNaN(sent)) fetch(PARENT_REPLY_WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'msgMeta', session: staffSession.token, key: getArchiveReplyKey(entry.phone, sent),
+            cls: (entry.className && entry.className !== 'الصف المُستورد') ? entry.className : '', type: entry.type || '' }) }).catch(function(){});
+      }
+    } catch (e) {}
+    return r;
+  };
+})();
+</script>
 <style id="omani-official-theme">
 /* ===== الهوية الرسمية: ألوان هادئة بطابع حكومي عُماني (عنابي، أخضر، ذهبي رملي) ===== */
 :root{--om-maroon:#7b1e2b;--om-maroon-d:#5e1822;--om-green:#2f5d50;--om-gold:#b08d57;--om-sand:#f4f2ee;--om-ink:#1f1d1b;--om-muted:#6b665f;--om-line:#e5e0d8}
