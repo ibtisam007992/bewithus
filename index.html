@@ -9777,6 +9777,212 @@ body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important
   };
 })();
 </script>
+<style>
+#uni-fab{position:fixed;left:14px;bottom:14px;z-index:54;display:none;border:0;border-radius:999px;padding:10px 16px;font:800 13px inherit;font-family:inherit;cursor:pointer;background:#2f5d50;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#uni-fab.mine{background:#b08d57}
+#uni-fab .n{display:inline-block;min-width:20px;margin-inline-start:6px;padding:0 6px;border-radius:999px;background:#fff;color:#2f5d50;font-size:12px}
+#uni-dialog .uni-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+#uni-dialog .uni-row{border:1px solid #e7e1d8;border-right:4px solid #2f5d50;border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}
+#uni-dialog .uni-row.cur{border-right-color:#b08d57;background:#fbf8f2}
+#uni-dialog .uni-row .h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800;font-size:14px}
+#uni-dialog .uni-row .m{color:#6b665f;font-size:12px;font-weight:600}
+#uni-dialog .uni-row .t{white-space:pre-line;font-size:13px;margin:6px 0;max-height:4.6em;overflow:hidden;color:#3a3631}
+#uni-dialog .uni-row .b{display:flex;gap:6px;flex-wrap:wrap}
+#uni-dialog .uni-note{background:#f4f2ee;border-radius:10px;padding:8px 10px;font-size:12px;color:#5b564f;margin-bottom:10px;line-height:1.7}
+#uni-dialog .st{font-size:11px;padding:2px 8px;border-radius:999px;background:#eef3f1;color:#2f5d50}
+#uni-dialog .st.p{background:#f7efe1;color:#8a6a2f}#uni-dialog .st.c{background:#f5e1df;color:#7f1d1d}
+</style>
+<div id="uni-dialog" class="xw-overlay" role="dialog" aria-modal="true" aria-labelledby="uni-title">
+  <div class="xw-panel" style="max-width:760px">
+    <div class="xw-head"><div><h3 id="uni-title">الصادر الموحّد — رقم المدرسة</h3><div class="xw-sub" id="uni-sub"></div></div>
+      <button class="xw-x" onclick="closeDialog('uni-dialog')" aria-label="إغلاق">✕</button></div>
+    <div class="xw-body" id="uni-body"></div>
+    <div class="xw-foot"><button class="xw-btn" onclick="closeDialog('uni-dialog')">إغلاق</button></div>
+  </div>
+</div>
+<button type="button" id="uni-fab" onclick="knUniOpen()"></button>
+<script>
+/* v16: الرقم الموحّد — رسائل الهيئة التعليمية تُرسل من رقم واتساب المدرسة عبر صندوق صادر موحّد */
+(function(){
+  const U = window.KN_UNI = { on:false, number:'', canDispatch:false, pending:0, mine:[], list:[], tab:'pending', cur:null };
+  const esc = t => String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const lbl = t => (typeof TEMPLATE_TYPE_LABELS!=='undefined' && TEMPLATE_TYPE_LABELS[t]) || 'رسالة';
+  const ready = () => typeof scriptV!=='undefined' && scriptV>=16 && typeof staffSession!=='undefined' && staffSession && staffSession.token;
+  const RETRY='kn_uni_retry';
+  const isMobile = () => /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent);
+  const p2 = n => String(n).padStart(2,'0');
+  const keyDate = d => `${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+  const parseKey = s => { const m=String(s||'').match(/(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/); return m? new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]) : null; };
+
+  async function refresh(){
+    if(!ready()){ U.on=false; fab(); return; }
+    try{
+      const r = await api('outboxInfo');
+      U.on = !!(r && r.on); U.number = r.number||''; U.canDispatch = !!r.canDispatch; U.pending = r.pending||0;
+      if(U.on){ await flushRetry(); await syncMine(); }
+    }catch(e){}
+    fab();
+  }
+  function fab(){
+    const b=document.getElementById('uni-fab'); if(!b) return;
+    if(!U.on){ b.style.display='none'; return; }
+    const myPending = U.mine.filter(x=>x.status==='pending').length;
+    if(U.canDispatch){ b.className=''; b.innerHTML=`📤 الصادر الموحّد<span class="n">${U.pending}</span>`; b.style.display=''; }
+    else if(myPending){ b.className='mine'; b.innerHTML=`📤 بانتظار الإرسال من رقم المدرسة<span class="n">${myPending}</span>`; b.style.display=''; }
+    else b.style.display='none';
+  }
+
+  // ---- إدخال رسائل المعلمة في الصادر بدل فتح واتساب ----
+  function pendingIds(){ try{ return (JSON.parse(localStorage.getItem('kn_wa_pending')||'[]')||[]).map(p=>String(p.id)); }catch(e){ return []; } }
+  function pendingItems(){ try{ return JSON.parse(localStorage.getItem('kn_wa_pending')||'[]')||[]; }catch(e){ return []; } }
+  function capture(run){
+    const before = new Set(pendingIds());
+    const o = window.open; window.open = function(){ return null; };
+    try{ run(); } finally { window.open = o; }
+    const added = pendingItems().filter(p=>!before.has(String(p.id)));
+    added.forEach(p=>{ try{ window.waDrop(p.id); }catch(e){} });
+    return added;
+  }
+  async function enqueue(items){
+    if(!items.length) return;
+    try{
+      const r = await api('outboxAdd',{ items });
+      if(!r || !r.ok) throw new Error(r && r.error || 'تعذر');
+      showToast(items.length>1 ? `أُضيفت ${items.length} رسالة إلى الصادر الموحّد، وستصل لأولياء الأمور من رقم المدرسة` : 'أُضيفت الرسالة إلى الصادر الموحّد، وستصل لولي الأمر من رقم المدرسة');
+    }catch(e){
+      let q=[]; try{ q=JSON.parse(localStorage.getItem(RETRY)||'[]'); }catch(_){}
+      localStorage.setItem(RETRY, JSON.stringify(q.concat(items)));
+      showToast('تعذر الوصول للخادم؛ ستُضاف الرسالة للصادر الموحّد تلقائياً عند عودة الاتصال', true);
+    }
+    refresh();
+  }
+  async function flushRetry(){
+    let q=[]; try{ q=JSON.parse(localStorage.getItem(RETRY)||'[]'); }catch(_){}
+    if(!q.length) return;
+    try{ const r=await api('outboxAdd',{ items:q }); if(r&&r.ok) localStorage.removeItem(RETRY); }catch(e){}
+  }
+  if(typeof sendWhatsApp==='function'){
+    const base = sendWhatsApp;
+    sendWhatsApp = function(){ if(!U.on) return base.apply(this,arguments); const args=arguments, self=this; const items=capture(()=>base.apply(self,args)); enqueue(items); };
+    window.sendWhatsApp = sendWhatsApp;
+  }
+  if(typeof openNextBulkMessage==='function'){
+    const baseB = openNextBulkMessage;
+    openNextBulkMessage = function(){
+      if(!U.on) return baseB.apply(this,arguments);
+      const self=this; let guard=0;
+      const items = capture(()=>{ baseB.apply(self); while(bulkQueueActive && bulkQueueIndex < bulkQueue.length && guard++ < 500) baseB.apply(self); });
+      if(bulkQueueActive){ try{ baseB.apply(self); }catch(e){} } // ينهي الطابور ويخفي شريط التقدم
+      enqueue(items);
+    };
+    window.openNextBulkMessage = openNextBulkMessage;
+  }
+
+  // ---- المعلمة: إضافة الرسائل المُرسلة من رقم المدرسة إلى أرشيفها ----
+  async function syncMine(){
+    try{
+      const r = await api('outboxMine'); if(!r||!r.ok) return;
+      U.mine = r.items||[];
+      let changed=false;
+      const have = new Set(messageArchive.map(e=>String(e.replyToken||'')+'|'+String(e.id)));
+      U.mine.filter(x=>x.status==='sent').forEach(x=>{
+        const m=x.meta||{}; const k=String(m.replyToken||'')+'|'+String(m.id);
+        if(have.has(k) || messageArchive.some(e=>e.uniId===x.id)) return;
+        const d=parseKey(x.sentAt)||new Date();
+        messageArchive.unshift(Object.assign({}, m, { id:m.id||Date.now(), uniId:x.id, sentAt:d.toISOString(), mode:'unified' }));
+        changed=true;
+      });
+      if(changed){ messageArchive.sort((a,b)=>new Date(b.sentAt)-new Date(a.sentAt)); try{ saveArchiveToStorage(); }catch(e){} try{ updateStats(); }catch(e){} }
+    }catch(e){}
+  }
+
+  // ---- نافذة الصادر الموحّد ----
+  window.knUniOpen = async function(tab){
+    if(tab) U.tab=tab; else U.tab = U.canDispatch ? 'pending' : 'mine';
+    openDialog('uni-dialog');
+    document.getElementById('uni-sub').textContent = `رقم المدرسة: ${U.number}`;
+    await renderBody(true);
+  };
+  window.knUniTab = function(t){ U.tab=t; renderBody(true); };
+  async function renderBody(load){
+    const body=document.getElementById('uni-body'); if(!body) return;
+    const tabs = U.canDispatch
+      ? `<div class="uni-tabs"><button class="xw-btn ${U.tab==='pending'?'primary':''}" onclick="knUniTab('pending')">بانتظار الإرسال</button><button class="xw-btn ${U.tab==='sent'?'primary':''}" onclick="knUniTab('sent')">أُرسلت</button><button class="xw-btn ${U.tab==='mine'?'primary':''}" onclick="knUniTab('mine')">رسائلي</button></div>` : '';
+    if(load){ body.innerHTML = tabs+'<div class="xw-empty">جاري التحميل…</div>';
+      try{
+        if(U.tab==='mine'){ await syncMine(); U.list=U.mine.slice().reverse(); }
+        else { const r=await api('outboxList',{status:U.tab}); U.list=(r&&r.ok&&r.items)||[]; if(U.tab==='pending') U.pending=U.list.length; }
+      }catch(e){ U.list=[]; }
+      fab();
+    }
+    let note='';
+    if(U.tab==='pending') note=`<div class="uni-note">افتحي هذه الصفحة على جهاز مرتبط بواتساب المدرسة (${esc(U.number)}) عبر WhatsApp Web أو تطبيق واتساب للأعمال. اضغطي «▶ افتح التالية»، أرسلي الرسالة في واتساب، ثم «✅ أُرسلت — التالية». تُسجَّل الرسالة في الأرشيف باسم المعلمة صاحبتها.</div>`+
+      (U.list.length?`<div class="uni-tabs"><button class="xw-btn primary" onclick="knUniNext()">▶ افتح التالية (${U.list.length})</button></div>`:'');
+    if(U.tab==='sent') note='<div class="uni-note">إذا ردّ ولي الأمر على رقم المدرسة في واتساب، اضغطي «📝 تسجيل الرد» والصقي الرد؛ فيظهر للمعلمة في المنصة ويُحتسب في لوحة الإحصائيات.</div>';
+    if(U.tab==='mine') note='<div class="uni-note">رسائلكِ تُرسل لأولياء الأمور من رقم المدرسة الموحّد، وتظهر في أرشيفكِ بعد إرسالها. ردود أولياء الأمور تصلكِ في المنصة.</div>';
+    const st = s => s==='sent'?'<span class="st">أُرسلت</span>':s==='cancelled'?'<span class="st c">أُلغيت</span>':'<span class="st p">بانتظار الإرسال</span>';
+    const rows = U.list.map(x=>{
+      const cur = U.cur===x.id;
+      let btns='';
+      if(U.tab==='pending') btns = `<button class="xw-btn" onclick="knUniOpenChat('${x.id}')">📲 فتح في واتساب</button><button class="xw-btn ${cur?'primary':''}" onclick="knUniSent('${x.id}',${cur?'true':'false'})">${cur?'✅ أُرسلت — التالية':'✅ أُرسلت'}</button><button class="xw-btn warn" onclick="knUniCancel('${x.id}')">✖ إلغاء</button>`;
+      if(U.tab==='sent') btns = `<button class="xw-btn" onclick="knUniReply('${x.id}')">📝 تسجيل الرد</button>`;
+      if(U.tab==='mine' && x.status==='pending') btns = `<button class="xw-btn warn" onclick="knUniCancel('${x.id}')">✖ إلغاء</button>`;
+      return `<div class="uni-row ${cur?'cur':''}"><div class="h"><span>${esc(x.student)}${x.cls?` <span class="m">— ${esc(x.cls)}</span>`:''}</span>${U.tab==='mine'?st(x.status):`<span class="m">${esc(lbl(x.type))}</span>`}</div>
+        <div class="m">${esc(U.tab==='mine'?lbl(x.type):x.by)} · ${esc(U.tab==='sent'||x.status==='sent'?('أُرسلت '+x.sentAt+(x.sentBy?' بواسطة '+x.sentBy:'')):x.at)}</div>
+        <div class="t">${esc(x.text)}</div><div class="b">${btns}</div></div>`;
+    }).join('');
+    body.innerHTML = tabs + note + (rows || `<div class="xw-empty">${U.tab==='pending'?'لا توجد رسائل بانتظار الإرسال 🎉':'لا توجد رسائل'}</div>`);
+  }
+  const find = id => U.list.find(x=>x.id===id);
+  window.knUniOpenChat = function(id){
+    const x=find(id); if(!x) return;
+    U.cur=id;
+    const enc=encodeURIComponent(x.text);
+    const u = isMobile() ? `https://api.whatsapp.com/send?phone=${x.phone}&text=${enc}` : `https://web.whatsapp.com/send?phone=${x.phone}&text=${enc}`;
+    window.open(u,'kn_unified_chat');
+    renderBody(false);
+  };
+  window.knUniNext = function(){ const x=U.list[0]; if(x) knUniOpenChat(x.id); };
+  window.knUniSent = async function(id, goNext){
+    const x=find(id); if(!x) return;
+    const now=new Date();
+    try{
+      const r=await api('outboxMark',{ id, status:'sent', sentAtText:keyDate(now) });
+      if(!r||!r.ok){ showToast((r&&r.error)||'تعذر التسجيل',true); return; }
+      if(!r.already){
+        const sentD = parseKey(r.item.sentAt) || now;
+        const entry = Object.assign({}, x.meta||{}, { id:(x.meta&&x.meta.id)||Date.now(), uniId:id, sentAt:sentD.toISOString(), mode:'unified' });
+        try{ backupArchiveEntryToGoogleSheet(entry); }catch(e){} try{ registerReplyLink(entry); }catch(e){}
+      }
+      U.list=U.list.filter(y=>y.id!==id); U.pending=U.list.length; if(U.cur===id) U.cur=null;
+      fab(); renderBody(false);
+      if(goNext && U.list.length) knUniOpenChat(U.list[0].id); else showToast('سُجّلت الرسالة كمُرسلة من رقم المدرسة ✓');
+    }catch(e){ showToast('تعذر الاتصال بالخادم',true); }
+  };
+  window.knUniCancel = async function(id){
+    if(!confirm('إلغاء هذه الرسالة؟ لن تُرسل لولي الأمر.')) return;
+    try{ const r=await api('outboxMark',{ id, status:'cancelled' }); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الإلغاء',true); return; } }catch(e){ return; }
+    U.list=U.list.filter(y=>y.id!==id); U.mine=U.mine.map(y=>y.id===id?Object.assign({},y,{status:'cancelled'}):y);
+    if(U.tab==='pending') U.pending=U.list.length; fab(); renderBody(U.tab==='mine'); showToast('أُلغيت الرسالة');
+  };
+  window.knUniReply = async function(id){
+    const x=find(id); if(!x) return;
+    const text=(prompt(`الصقي رد ولي أمر الطالبة ${x.student}:`)||'').trim(); if(!text) return;
+    const m=x.meta||{};
+    const entryLike=Object.assign({}, m, { sentAt:(parseKey(x.sentAt)||new Date()).toISOString() });
+    try{
+      const r=await api(undefined,{ key:`${x.phone}|${x.sentAt}`, sentAtText:x.sentAt, studentName:x.student, phone:x.phone, subject:x.subject,
+        sender:(typeof getEntrySenderLabel==='function'?getEntrySenderLabel(entryLike):x.by), messagePreview:String(x.text).slice(0,300), reply:text, replyAtText:keyDate(new Date()) });
+      showToast(r&&r.ok?'سُجّل الرد ✓ ويظهر للمعلمة في المنصة':'تعذر تسجيل الرد', !(r&&r.ok));
+    }catch(e){ showToast('تعذر الاتصال بالخادم',true); }
+  };
+
+  function boot(){ refresh(); setInterval(refresh, 120000); }
+  const start = () => { if(typeof scriptReady!=='undefined' && scriptReady && scriptReady.then) scriptReady.then(()=>setTimeout(boot,800)); else setTimeout(boot,3000); };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+  if(typeof applyStaffLogin==='function'){ const a=applyStaffLogin; applyStaffLogin=function(){ const r=a.apply(this,arguments); setTimeout(refresh,1500); return r; }; window.applyStaffLogin=applyStaffLogin; }
+})();
+</script>
 <style id="omani-official-theme">
 /* ===== الهوية الرسمية: ألوان هادئة بطابع حكومي عُماني (عنابي، أخضر، ذهبي رملي) ===== */
 :root{--om-maroon:#7b1e2b;--om-maroon-d:#5e1822;--om-green:#2f5d50;--om-gold:#b08d57;--om-sand:#f4f2ee;--om-ink:#1f1d1b;--om-muted:#6b665f;--om-line:#e5e0d8}
