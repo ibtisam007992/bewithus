@@ -9778,7 +9778,8 @@ body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important
 })();
 </script>
 <style>
-#uni-fab{position:fixed;left:14px;bottom:14px;z-index:54;display:none;border:0;border-radius:999px;padding:10px 16px;font:800 13px inherit;font-family:inherit;cursor:pointer;background:#2f5d50;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+body:has(.xw-overlay.open) #uni-fab{display:none !important}
+#uni-fab{position:fixed;left:14px;bottom:14px;z-index:60;display:none;border:0;border-radius:999px;padding:10px 16px;font:800 13px inherit;font-family:inherit;cursor:pointer;background:#2f5d50;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #uni-fab.mine{background:#b08d57}
 #uni-fab .n{display:inline-block;min-width:20px;margin-inline-start:6px;padding:0 6px;border-radius:999px;background:#fff;color:#2f5d50;font-size:12px}
 #uni-dialog .uni-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
@@ -9827,8 +9828,8 @@ body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important
     const b=document.getElementById('uni-fab'); if(!b) return;
     if(!U.on){ b.style.display='none'; return; }
     const myPending = U.mine.filter(x=>x.status==='pending').length;
-    if(U.canDispatch){ b.className=''; b.innerHTML=`📤 الصادر الموحّد<span class="n">${U.pending}</span>`; b.style.display=''; }
-    else if(myPending){ b.className='mine'; b.innerHTML=`📤 بانتظار الإرسال من رقم المدرسة<span class="n">${myPending}</span>`; b.style.display=''; }
+    if(U.canDispatch){ b.className=''; b.innerHTML=`📤 الصادر الموحّد<span class="n">${U.pending}</span>`; b.style.display='block'; }
+    else if(myPending){ b.className='mine'; b.innerHTML=`📤 بانتظار الإرسال من رقم المدرسة<span class="n">${myPending}</span>`; b.style.display='block'; }
     else b.style.display='none';
   }
 
@@ -9977,6 +9978,7 @@ body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important
     }catch(e){ showToast('تعذر الاتصال بالخادم',true); }
   };
 
+  window.knUniRefresh = refresh;
   function boot(){ refresh(); setInterval(refresh, 120000); }
   const start = () => { if(typeof scriptReady!=='undefined' && scriptReady && scriptReady.then) scriptReady.then(()=>setTimeout(boot,800)); else setTimeout(boot,3000); };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
