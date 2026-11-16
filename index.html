@@ -9781,6 +9781,7 @@ body.dark-mode .inst-dev,body.dark-mode .inst-note{background:#2a2122 !important
 body:has(.xw-overlay.open) #uni-fab{display:none !important}
 #uni-fab{position:fixed;left:14px;bottom:14px;z-index:60;display:none;border:0;border-radius:999px;padding:10px 16px;font:800 13px inherit;font-family:inherit;cursor:pointer;background:#2f5d50;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #uni-fab.mine{background:#b08d57}
+#uni-fab.fail{background:#9b1c1c}
 #uni-fab .n{display:inline-block;min-width:20px;margin-inline-start:6px;padding:0 6px;border-radius:999px;background:#fff;color:#2f5d50;font-size:12px}
 #uni-dialog .uni-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 #uni-dialog .uni-row{border:1px solid #e7e1d8;border-right:4px solid #2f5d50;border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}
@@ -9828,6 +9829,8 @@ body:has(.xw-overlay.open) #uni-fab{display:none !important}
     const b=document.getElementById('uni-fab'); if(!b) return;
     if(!U.on){ b.style.display='none'; return; }
     const myPending = U.mine.filter(x=>x.status==='pending').length;
+    const myFailed = U.mine.filter(x=>x.status==='failed').length;
+    if(myFailed && !U.canDispatch){ b.className='fail'; b.innerHTML=`⚠️ رسائل لم تُرسل<span class="n">${myFailed}</span>`; b.style.display='block'; return; }
     if(U.canDispatch){ b.className=''; b.innerHTML=`📤 الصادر الموحّد<span class="n">${U.pending}</span>`; b.style.display='block'; }
     else if(myPending){ b.className='mine'; b.innerHTML=`📤 بانتظار الإرسال من رقم المدرسة<span class="n">${myPending}</span>`; b.style.display='block'; }
     else b.style.display='none';
@@ -9884,6 +9887,12 @@ body:has(.xw-overlay.open) #uni-fab{display:none !important}
     try{
       const r = await api('outboxMine'); if(!r||!r.ok) return;
       U.mine = r.items||[];
+      try{
+        const seen=new Set(JSON.parse(localStorage.getItem('kn_uni_failseen')||'[]'));
+        const fresh=U.mine.filter(x=>x.status==='failed' && !seen.has(x.id));
+        if(fresh.length){ fresh.forEach(x=>seen.add(x.id)); localStorage.setItem('kn_uni_failseen',JSON.stringify([...seen].slice(-300)));
+          showToast(fresh.length>1?`⚠️ تعذّر إرسال ${fresh.length} من رسائلكِ: رقم ولي الأمر غير متوفر في واتساب. افتحي «⚠️ رسائل لم تُرسل» لتصحيح الرقم`:`⚠️ تعذّر إرسال رسالتكِ لولي أمر ${fresh[0].student}: ${fresh[0].reason||'الرقم غير متوفر في واتساب'}`, true); }
+      }catch(e){}
       let changed=false;
       const have = new Set(messageArchive.map(e=>String(e.replyToken||'')+'|'+String(e.id)));
       U.mine.filter(x=>x.status==='sent').forEach(x=>{
@@ -9899,7 +9908,7 @@ body:has(.xw-overlay.open) #uni-fab{display:none !important}
 
   // ---- نافذة الصادر الموحّد ----
   window.knUniOpen = async function(tab){
-    if(tab) U.tab=tab; else U.tab = U.canDispatch ? 'pending' : 'mine';
+    if(tab) U.tab=tab; else U.tab = (U.canDispatch && !U.mine.some(x=>x.status==='failed')) ? 'pending' : (U.canDispatch ? 'pending' : 'mine');
     openDialog('uni-dialog');
     document.getElementById('uni-sub').textContent = `رقم المدرسة: ${U.number}`;
     await renderBody(true);
@@ -9920,14 +9929,15 @@ body:has(.xw-overlay.open) #uni-fab{display:none !important}
     if(U.tab==='pending') note=`<div class="uni-note">افتحي هذه الصفحة على جهاز مرتبط بواتساب المدرسة (${esc(U.number)}) عبر WhatsApp Web أو تطبيق واتساب للأعمال. اضغطي «▶ افتح التالية»، أرسلي الرسالة في واتساب، ثم «✅ أُرسلت — التالية». تُسجَّل الرسالة في الأرشيف باسم المعلمة صاحبتها.</div>`+
       (U.list.length?`<div class="uni-tabs"><button class="xw-btn primary" onclick="knUniNext()">▶ افتح التالية (${U.list.length})</button></div>`:'');
     if(U.tab==='sent') note='<div class="uni-note">إذا ردّ ولي الأمر على رقم المدرسة في واتساب، اضغطي «📝 تسجيل الرد» والصقي الرد؛ فيظهر للمعلمة في المنصة ويُحتسب في لوحة الإحصائيات.</div>';
-    if(U.tab==='mine') note='<div class="uni-note">رسائلكِ تُرسل لأولياء الأمور من رقم المدرسة الموحّد، وتظهر في أرشيفكِ بعد إرسالها. ردود أولياء الأمور تصلكِ في المنصة.</div>';
-    const st = s => s==='sent'?'<span class="st">أُرسلت</span>':s==='cancelled'?'<span class="st c">أُلغيت</span>':'<span class="st p">بانتظار الإرسال</span>';
+    if(U.tab==='mine') note='<div class="uni-note">رسائلكِ تُرسل لأولياء الأمور من رقم المدرسة الموحّد، وتظهر في أرشيفكِ بعد إرسالها. ردود أولياء الأمور تصلكِ في المنصة. إذا تعذّر الإرسال لأن رقم ولي الأمر غير متوفر في واتساب، يصلكِ تنبيه هنا وفي «📨 الرسائل»، فصحّحي الرقم وأعيدي الإرسال.</div>';
+    const st = s => s==='sent'?'<span class="st">أُرسلت</span>':s==='cancelled'?'<span class="st c">أُلغيت</span>':s==='failed'?'<span class="st c">لم تُرسل</span>':s==='resent'?'<span class="st">أُعيد إرسالها برقم مصحّح</span>':'<span class="st p">بانتظار الإرسال</span>';
     const rows = U.list.map(x=>{
       const cur = U.cur===x.id;
       let btns='';
-      if(U.tab==='pending') btns = `<button class="xw-btn" onclick="knUniOpenChat('${x.id}')">📲 فتح في واتساب</button><button class="xw-btn ${cur?'primary':''}" onclick="knUniSent('${x.id}',${cur?'true':'false'})">${cur?'✅ أُرسلت — التالية':'✅ أُرسلت'}</button><button class="xw-btn warn" onclick="knUniCancel('${x.id}')">✖ إلغاء</button>`;
+      if(U.tab==='pending') btns = `<button class="xw-btn" onclick="knUniOpenChat('${x.id}')">📲 فتح في واتساب</button><button class="xw-btn ${cur?'primary':''}" onclick="knUniSent('${x.id}',${cur?'true':'false'})">${cur?'✅ أُرسلت — التالية':'✅ أُرسلت'}</button><button class="xw-btn warn" onclick="knUniFail('${x.id}')">🚫 الرقم غير متوفر في واتساب</button><button class="xw-btn warn" onclick="knUniCancel('${x.id}')">✖ إلغاء</button>`;
       if(U.tab==='sent') btns = `<button class="xw-btn" onclick="knUniReply('${x.id}')">📝 تسجيل الرد</button>`;
       if(U.tab==='mine' && x.status==='pending') btns = `<button class="xw-btn warn" onclick="knUniCancel('${x.id}')">✖ إلغاء</button>`;
+      if(U.tab==='mine' && x.status==='failed') btns = `<div class="m" style="color:#9b1c1c;width:100%">السبب: ${esc(x.reason||'رقم ولي الأمر غير متوفر في واتساب')} — الرقم: ${esc(x.phone)}</div><button class="xw-btn primary" onclick="knUniFix('${x.id}')">✏️ تصحيح الرقم وإعادة الإرسال</button>`;
       return `<div class="uni-row ${cur?'cur':''}"><div class="h"><span>${esc(x.student)}${x.cls?` <span class="m">— ${esc(x.cls)}</span>`:''}</span>${U.tab==='mine'?st(x.status):`<span class="m">${esc(lbl(x.type))}</span>`}</div>
         <div class="m">${esc(U.tab==='mine'?lbl(x.type):x.by)} · ${esc(U.tab==='sent'||x.status==='sent'?('أُرسلت '+x.sentAt+(x.sentBy?' بواسطة '+x.sentBy:'')):x.at)}</div>
         <div class="t">${esc(x.text)}</div><div class="b">${btns}</div></div>`;
@@ -9965,6 +9975,34 @@ body:has(.xw-overlay.open) #uni-fab{display:none !important}
     try{ const r=await api('outboxMark',{ id, status:'cancelled' }); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر الإلغاء',true); return; } }catch(e){ return; }
     U.list=U.list.filter(y=>y.id!==id); U.mine=U.mine.map(y=>y.id===id?Object.assign({},y,{status:'cancelled'}):y);
     if(U.tab==='pending') U.pending=U.list.length; fab(); renderBody(U.tab==='mine'); showToast('أُلغيت الرسالة');
+  };
+  window.knUniFail = async function(id){
+    const x=find(id); if(!x) return;
+    const reason=prompt(`سبب عدم الإرسال لولي أمر ${x.student} (يصل للمعلمة ${x.by}):`, 'رقم ولي الأمر غير مسجّل في واتساب');
+    if(reason===null) return;
+    try{
+      const r=await api('outboxMark',{ id, status:'failed', reason:reason.trim()||'رقم ولي الأمر غير مسجّل في واتساب' });
+      if(!r||!r.ok){ showToast((r&&r.error)||'تعذر التسجيل',true); return; }
+    }catch(e){ showToast('تعذر الاتصال بالخادم',true); return; }
+    U.list=U.list.filter(y=>y.id!==id); U.pending=U.list.length; if(U.cur===id) U.cur=null;
+    fab(); renderBody(false); showToast(`أُبلغت المعلمة ${x.by} بأن الرسالة لم تُرسل ✓`);
+  };
+  window.knUniFix = async function(id){
+    const x=U.list.find(y=>y.id===id)||U.mine.find(y=>y.id===id); if(!x) return;
+    let ph=(prompt(`رقم ولي أمر الطالبة ${x.student} الصحيح (8 أرقام أو بمفتاح الدولة):`, String(x.phone).replace(/^968/,''))||'');
+    ph=(typeof normalizeDigits==='function'?normalizeDigits(ph):ph).replace(/\D/g,'');
+    if(!ph) return;
+    if(ph.length===8) ph='968'+ph;
+    if(ph.length<11){ showToast('الرقم غير صحيح',true); return; }
+    if(ph===String(x.phone)&&!confirm('الرقم نفسه الذي تعذّر الإرسال إليه. إعادة الإرسال على الرقم نفسه؟')) return;
+    const m=Object.assign({}, x.meta||{}, { phone:ph, message:x.text, studentName:x.student, className:x.cls||(x.meta&&x.meta.className)||'', subject:x.subject, type:x.type });
+    try{
+      const r=await api('outboxAdd',{ items:[m] }); if(!r||!r.ok){ showToast((r&&r.error)||'تعذر إعادة الإرسال',true); return; }
+      await api('outboxMark',{ id, status:'resent' });
+      if(m.className && m.studentName && ph!==String(x.phone)){ api('savePhoneEdit',{ cls:m.className, name:m.studentName, phone:ph, prev:x.phone }).then(()=>{ try{ window.knPullStudentEdits&&knPullStudentEdits(); }catch(e){} }).catch(()=>{}); }
+    }catch(e){ showToast('تعذر الاتصال بالخادم',true); return; }
+    showToast('صُحّح الرقم وأُعيدت الرسالة إلى الصادر الموحّد ✓');
+    await syncMine(); U.list=U.mine.slice().reverse(); fab(); renderBody(false);
   };
   window.knUniReply = async function(id){
     const x=find(id); if(!x) return;
