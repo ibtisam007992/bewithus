@@ -9856,7 +9856,7 @@ body:has(.xw-overlay.open) #uni-fab{display:none !important}
     }catch(e){
       let q=[]; try{ q=JSON.parse(localStorage.getItem(RETRY)||'[]'); }catch(_){}
       localStorage.setItem(RETRY, JSON.stringify(q.concat(items)));
-      showToast('تعذر الوصول للخادم؛ ستُضاف الرسالة للصادر الموحّد تلقائياً عند عودة الاتصال', true);
+      showToast((e && e.message && e.message!=='Failed to fetch' && e.message!=='تعذر' ? ('تعذر إضافة الرسالة للصادر الموحّد ('+e.message+')') : 'تعذر الوصول للخادم')+'؛ حُفظت الرسالة وستُضاف للصادر الموحّد تلقائياً لاحقاً', true);
     }
     refresh();
   }
